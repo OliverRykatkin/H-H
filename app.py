@@ -162,6 +162,17 @@ NATIONAL_2022 = {
     "S": 30.33, "V": 6.75, "MP": 5.08, "SD": 20.54,
 }
 
+# Valens datum – används för kampanjsvängningskorrigering
+ELECTION_2026 = datetime(2026, 9, 13)   # Preliminärt: andra söndagen i september 2026
+ELECTION_2022 = datetime(2022, 9, 11)
+ELECTION_2018 = datetime(2018, 9, 9)
+
+# Riksdagsvalet 2018 – nationellt slutresultat
+NATIONAL_2018 = {
+    "M": 19.84, "L": 5.49, "C": 8.61, "KD": 4.91,
+    "S": 28.26, "V": 7.97, "MP": 4.41, "SD": 17.53,
+}
+
 # Genomsnittlig polling-bias: (faktiskt valresultat − sista opinionsmätning)
 # Baserat på 2018 och 2022 års riksdagsval. Positivt = underestimat av instituten.
 # Källa: jämförelse Sifo/Demoskop slutmätningar vs Valmyndighetens slutresultat.
@@ -342,11 +353,13 @@ def load_scb_results(
     api_url: str,
     contents_code: str,
     region_codes: list | None = None,
+    party_codes: list | None = None,
 ) -> pd.DataFrame:
     """
     Hämtar 2022 valresultat per geografisk enhet från SCB PX-Web API.
     SCB kräver att Region-koder anges explicit i frågan (utelämning ger rikssnitt).
     region_codes=None → hämtar alla 4-siffriga kommuner automatiskt.
+    party_codes=None  → hämtar de 8 riksdagspartierna (SCB_PARTIES_RAW).
     Returnerar DataFrame med kolumner: region_code, party, pct_2022
     """
     import re as _re
@@ -358,6 +371,8 @@ def load_scb_results(
     if not region_codes:
         return pd.DataFrame(columns=["region_code", "party", "pct_2022"])
 
+    parties_to_fetch = party_codes if party_codes is not None else SCB_PARTIES_RAW
+
     query = {
         "query": [
             {
@@ -366,7 +381,7 @@ def load_scb_results(
             },
             {
                 "code": "Partimm",
-                "selection": {"filter": "item", "values": SCB_PARTIES_RAW},
+                "selection": {"filter": "item", "values": parties_to_fetch},
             },
             {
                 "code": "ContentsCode",
@@ -409,25 +424,83 @@ def load_scb_results(
     )
 
 
+@st.cache_data(ttl=3600 * 6, show_spinner=False)
+def compute_campaign_swing(
+    _polls_df: pd.DataFrame,
+    _house_weights_df: pd.DataFrame,
+    days_until_election: int,
+) -> dict:
+    """
+    Beräknar förväntad kvarvarande kampanjsvängning baserat på 2018 och 2022.
+
+    Metod: beräkna opinionsläget exakt 'days_until_election' dagar innan
+    respektive historiskt val, jämför med faktiskt resultat.
+    Medelvärdet av de två valen = förväntad kvarvarande rörelse från
+    nuläget fram till valdagen.
+
+    Exempel: med 168 dagar kvar visar historiken att SD typiskt ökar ~1.5 pp,
+    S ökar ~1.8 pp, och C minskar ~1.5 pp under slutspurten.
+    """
+    if days_until_election <= 0:
+        return {p: 0.0 for p in PARTIES}
+
+    elections = [
+        (ELECTION_2022, NATIONAL_2022),
+        (ELECTION_2018, NATIONAL_2018),
+    ]
+
+    swings_list = []
+    for election_date, national_result in elections:
+        ref_date = election_date - timedelta(days=days_until_election)
+        est = aggregate_polls(
+            _polls_df,
+            window_days=90,
+            decay_halflife_days=30,
+            use_house_weights=True,
+            house_weights=_house_weights_df,
+            reference_date=ref_date,
+        )
+        swing = {
+            p: national_result.get(p, 0.0) - est.get(p, 0.0)
+            for p in PARTIES
+        }
+        swings_list.append(swing)
+
+    return {
+        p: round(sum(s[p] for s in swings_list) / len(swings_list), 2)
+        for p in PARTIES
+    }
+
+
 def apply_uniform_swing(
     df: pd.DataFrame,
     national_current: dict,
     national_2022: dict,
     apply_bias: bool = False,
+    campaign_correction: dict | None = None,
+    ovriga_per_area: dict | None = None,
 ) -> pd.DataFrame:
     """
     Uniform swing-modell:
-      predicted[p][area] = 2022_local[p][area] + (current_national[p] − 2022_national[p])
+      predicted[p][area] = 2022_local[p][area] + total_swing[p]
 
-    Om apply_bias=True adderas POLLING_BIAS[p] till det nationella estimatet
-    innan svängningen beräknas (historisk korrigering baserad på 2018+2022).
-    Normaliseras per geografisk enhet så att partierna summerar till 100 %.
+    total_swing[p] = (current_national[p] − 2022_national[p])
+                   + POLLING_BIAS[p]          (om apply_bias=True)
+                   + campaign_correction[p]   (om angiven)
+
+    Normaliseras per geografisk enhet.
+    Om ovriga_per_area anges (kommunalval) summeras de 8 partierna till
+    (100 − ÖVRIGA%) per kommun, så att ÖVRIGA antas hålla sin 2022-nivå.
     """
     if df.empty:
         return df
 
     effective_current = {
-        p: float(national_current.get(p, 0)) + (POLLING_BIAS.get(p, 0) if apply_bias else 0.0)
+        p: (
+            float(national_current.get(p, 0))
+            + (POLLING_BIAS.get(p, 0.0) if apply_bias else 0.0)
+            + (float((campaign_correction or {}).get(p, 0.0)))
+        )
         for p in PARTIES
     }
 
@@ -442,8 +515,13 @@ def apply_uniform_swing(
 
     region_totals = result.groupby("region_code")["pct_raw"].sum()
     result["_rtot"] = result["region_code"].map(region_totals)
+
+    _ovriga = ovriga_per_area or {}
     result["pct_predicted"] = result.apply(
-        lambda r: r["pct_raw"] / r["_rtot"] * 100.0 if r["_rtot"] > 0 else 0.0,
+        lambda r: (
+            r["pct_raw"] / r["_rtot"] * (100.0 - _ovriga.get(r["region_code"], 0.0))
+            if r["_rtot"] > 0 else 0.0
+        ),
         axis=1,
     )
     return result.drop(columns=["swing", "pct_raw", "_rtot"])
@@ -1619,6 +1697,8 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
+    _days_left = max(0, (ELECTION_2026 - datetime.now()).days)
+
     with st.sidebar:
         st.title("Riksdagsprediction")
         st.markdown("*Opinionsundersökningsaggregator*")
@@ -1637,6 +1717,31 @@ def main():
             "Vikta efter träffsäkerhet (2022)",
             value=True,
             help="Institut med lägre medelabsolut fel mot 2022 års val ges högre vikt.",
+        )
+
+        st.divider()
+        st.subheader("Prognoskorrigeringar")
+        st.caption(
+            "Påverkar mandatprognosen, simuleringen och koalitionsanalysen. "
+            "Regionkartan visar alltid okorrigerade pollsiffror."
+        )
+        apply_bias_pred = st.toggle(
+            "Historisk biaskorrigering",
+            value=False,
+            key="pred_bias",
+            help=(
+                "Lägger till genomsnittlig polling-bias från 2018+2022: "
+                "SD +1,8 pp · KD +0,8 pp · S +0,5 pp · V −0,6 pp."
+            ),
+        )
+        apply_campaign_pred = st.toggle(
+            "Kampanjsvängning",
+            value=False,
+            key="pred_campaign",
+            help=(
+                f"Lägger till historisk kampanjsvängning de sista {_days_left} dagarna "
+                "(genomsnitt 2018+2022). M tappar typiskt ~2 pp, V ~1,3 pp, L/MP vinner."
+            ),
         )
 
         st.divider()
@@ -1664,7 +1769,25 @@ def main():
         use_house_weights=use_house_w,
         house_weights=house_weights_df,
     )
-    mandates = allocate_all_mandates(raw_est)
+
+    # ── Korrigerat prognosestimat (pred_est) ──
+    # raw_est = rena pollsiffror (används för trenddiagram och regionkarta)
+    # pred_est = raw_est + valbara korrigeringar (används för mandat, sim och koalitioner)
+    pred_est = dict(raw_est)
+    if apply_bias_pred:
+        for p in PARTIES:
+            pred_est[p] = pred_est[p] + POLLING_BIAS.get(p, 0.0)
+    if apply_campaign_pred:
+        _camp_corr = compute_campaign_swing(polls_df, house_weights_df, _days_left)
+        for p in PARTIES:
+            pred_est[p] = pred_est[p] + _camp_corr.get(p, 0.0)
+    # Normalisera så att partierna summerar till samma totalnivå som raw_est
+    _raw_total = sum(raw_est.values())
+    _pred_total = sum(pred_est[p] for p in PARTIES)
+    if _pred_total > 0:
+        pred_est = {p: pred_est[p] / _pred_total * _raw_total for p in PARTIES}
+
+    mandates = allocate_all_mandates(pred_est)
 
     # ── Topprad ──
     st.title("Riksdagsprediction")
@@ -1679,10 +1802,10 @@ def main():
     with c2:
         st.metric("Vänsterblocket", f"{bloc_v} mandat", delta=f"{bloc_v - 175:+d} mot majoritet")
     with c3:
-        biggest = max(raw_est, key=raw_est.get)
-        st.metric("Största parti", PARTY_NAMES[biggest], delta=f"{raw_est[biggest]:.1f}%")
+        biggest = max(pred_est, key=pred_est.get)
+        st.metric("Största parti", PARTY_NAMES[biggest], delta=f"{pred_est[biggest]:.1f}%")
     with c4:
-        below = [p for p in PARTIES if raw_est.get(p, 0) < THRESHOLD]
+        below = [p for p in PARTIES if pred_est.get(p, 0) < THRESHOLD]
         st.metric("Under 4 %-spärren", ", ".join(below) if below else "Inga")
 
     st.divider()
@@ -1696,7 +1819,7 @@ def main():
 
     # Kör simulering en gång – används i både Tab 2 och Tab 4
     with st.spinner("Kör 10 000 simuleringar..."):
-        sim = run_simulation(raw_est, polls_df, window_days)
+        sim = run_simulation(pred_est, polls_df, window_days)
 
     # Beräkna 2022-mandat per parti (summerat nationellt) för referens i CI-diagrammet
     seats_2022_const = compute_2022_mandates()
@@ -2428,7 +2551,10 @@ för den regionala offsetmodellen.
         disp = polls_df[["PublDate", "Company", "n"] + PARTIES].tail(show_n).copy()
         disp["PublDate"] = disp["PublDate"].dt.strftime("%Y-%m-%d")
         disp = disp.sort_values("PublDate", ascending=False)
-        st.dataframe(disp, hide_index=True, use_container_width=True)
+        st.dataframe(
+            disp.style.format({p: "{:.1f}" for p in PARTIES}),
+            hide_index=True, use_container_width=True,
+        )
 
         st.subheader("Institutsvikter – träffsäkerhet mot 2022 års val")
         st.caption(
@@ -2474,7 +2600,11 @@ för den regionala offsetmodellen.
         st.plotly_chart(fig_hw, use_container_width=True)
 
         st.subheader("Valresultat 2022 per valkrets (referensdata)")
-        st.dataframe(pd.DataFrame(CONSTITUENCIES_2022).T, use_container_width=True)
+        _c22 = pd.DataFrame(CONSTITUENCIES_2022).T
+        st.dataframe(
+            _c22.style.format({p: "{:.2f}" for p in PARTIES if p in _c22.columns}),
+            use_container_width=True,
+        )
 
         st.download_button(
             "Ladda ner mandatdata (CSV)",
@@ -2487,34 +2617,43 @@ för den regionala offsetmodellen.
     # ── Tab 9: Regional karta ──
     with tab9:
         st.header("Regional & kommunal valprediktion")
+        days_left = max(0, (ELECTION_2026 - datetime.now()).days)
         st.markdown(
             "Applicerar en **uniform swing-modell** på valresultaten 2022 per region och "
-            "kommun. Data hämtas live från **SCB:s öppna API** och **okfse/sweden-geojson**."
+            "kommun. Modellen tar det aktuella nationella opinionsläget och fördelar "
+            "förändringen sedan 2022 lika i alla kommuner och regioner. "
+            "Data från **SCB PX-Web** och **okfse/sweden-geojson**.\n\n"
+            f"🗓️ **{days_left} dagar kvar till valet** (preliminärt 13 september 2026)"
         )
 
+        with st.expander("ℹ️ Så här fungerar modellen"):
+            st.markdown("""
+**Uniform swing** innebär att den nationella förändringen sedan 2022 appliceras lika
+i alla kommuner. Om SD nationellt gått från 20,5 % → 22,0 % (+1,5 pp) får varje
+kommun +1,5 pp på sin lokala 2022-siffra — oavsett om kommunen är SD-stark eller svag.
+
+Det är en förenkling, men transparent och vanlig i valanalys.
+
+`prediktion = 2022-lokalt + nationell opinionssving (sedan 2022)`
+
+Historisk biaskorrigering och kampanjsvängning kan aktiveras i sidopanelen — de
+påverkar den nationella prediktionen (mandatfördelning, simulering, koalitioner).
+""")
+
         # ── Kontroller ──
-        ctrl1, ctrl2, ctrl3 = st.columns([3, 3, 2])
+        ctrl1, = st.columns([1])
         with ctrl1:
-            val_type = st.radio(
-                "Valtyp",
-                ["Riksdag per kommun", "Regionval per region", "Kommunalval per kommun"],
-                horizontal=False,
-                key="map_val_type",
-            )
-        with ctrl2:
-            view_opts = ["Ledande parti"] + [PARTY_NAMES.get(p, p) for p in PARTIES]
-            view_sel = st.selectbox("Färgläggning", view_opts, key="map_view_sel")
-        with ctrl3:
-            apply_bias = st.toggle(
-                "Historisk biaskorrigering",
-                value=False,
-                key="map_bias",
-                help=(
-                    "Korrigerar för att opinionsinstituterna historiskt "
-                    "underskattat SD (+1,8 pp) och KD (+0,8 pp) och "
-                    "överskattat V (−0,6 pp). Baserat på 2018 och 2022 års val."
-                ),
-            )
+            col_radio, col_view = st.columns([2, 2])
+            with col_radio:
+                val_type = st.radio(
+                    "Valtyp",
+                    ["Riksdag per kommun", "Regionval per region", "Kommunalval per kommun"],
+                    horizontal=False,
+                    key="map_val_type",
+                )
+            with col_view:
+                view_opts = ["Ledande parti"] + [PARTY_NAMES.get(p, p) for p in PARTIES]
+                view_sel = st.selectbox("Färgläggning", view_opts, key="map_view_sel")
 
         if view_sel == "Ledande parti":
             view_mode = "leading"
@@ -2524,11 +2663,11 @@ för den regionala offsetmodellen.
 
         # ── Hämta SCB-data ──
         is_kommunal = False
+        ovriga_per_area = {}   # fylls i för regionval och kommunalval
         if val_type == "Riksdag per kommun":
             with st.spinner("Hämtar riksdagsvalresultat (290 kommuner) från SCB…"):
                 scb_df = load_scb_results(SCB_RIKSDAG_URL, "ME0104B7")
             scb_df = scb_df[scb_df["region_code"].str.match(r"^\d{4}$")].copy()
-            national_2022_local = NATIONAL_2022.copy()
             geo = load_geojson_url(MUNI_GEOJSON_URL)
             featureidkey = "properties.id"
             id_col = "region_code"
@@ -2540,9 +2679,21 @@ för den regionala offsetmodellen.
                     SCB_REGIONVAL_URL, "ME0104B5",
                     region_codes=SCB_REGIONVAL_CODES,
                 )
+                scb_ovriga_reg = load_scb_results(
+                    SCB_REGIONVAL_URL, "ME0104B5",
+                    region_codes=SCB_REGIONVAL_CODES,
+                    party_codes=["ÖVRIGA"],
+                )
             scb_df = scb_df[scb_df["region_code"].isin(SCB_REGIONVAL_TO_GEOJSON)].copy()
             scb_df["region_code"] = scb_df["region_code"].map(SCB_REGIONVAL_TO_GEOJSON)
-            national_2022_local = scb_df.groupby("party")["pct_2022"].mean().to_dict()
+            # Bygg ÖVRIGA-dict med regionnamn som nyckel (efter mappning)
+            scb_ovriga_reg = scb_ovriga_reg[
+                scb_ovriga_reg["region_code"].isin(SCB_REGIONVAL_TO_GEOJSON)
+            ].copy()
+            scb_ovriga_reg["region_code"] = scb_ovriga_reg["region_code"].map(SCB_REGIONVAL_TO_GEOJSON)
+            ovriga_per_area = (
+                scb_ovriga_reg.set_index("region_code")["pct_2022"].to_dict()
+            )
             geo = load_geojson_url(REGION_GEOJSON_URL)
             featureidkey = "properties.name"
             id_col = "region_code"
@@ -2552,15 +2703,17 @@ för den regionala offsetmodellen.
             is_kommunal = True
             with st.spinner("Hämtar kommunalvalsresultat (290 kommuner) från SCB…"):
                 scb_df = load_scb_results(SCB_KOMMUNVAL_URL, "ME0104B2")
-                # Hämta även ÖVRIGA (lokala partier) separat
-                scb_ovriga = load_scb_results(
+                scb_ovriga_df = load_scb_results(
                     SCB_KOMMUNVAL_URL, "ME0104B2",
-                    region_codes=None,  # alla kommuner
+                    party_codes=["ÖVRIGA"],
                 )
             scb_df = scb_df[scb_df["region_code"].str.match(r"^\d{4}$")].copy()
-            # Hämta ÖVRIGA från samma anrop men filtrera på ÖVRIGA-partiet
-            # (SCB returnerar ÖVRIGA om vi inkluderar det i partilistan)
-            national_2022_local = scb_df.groupby("party")["pct_2022"].mean().to_dict()
+            # Bygg dict: region_code → ÖVRIGA-procent 2022
+            ovriga_per_area = (
+                scb_ovriga_df[scb_ovriga_df["region_code"].str.match(r"^\d{4}$")]
+                .set_index("region_code")["pct_2022"]
+                .to_dict()
+            )
             geo = load_geojson_url(MUNI_GEOJSON_URL)
             featureidkey = "properties.id"
             id_col = "region_code"
@@ -2586,9 +2739,12 @@ för den regionala offsetmodellen.
                     for f in geo.get("features", [])
                 }
 
-            # ── Applicera uniform swing (med valfri biaskorrigering) ──
+            # ── Applicera uniform swing (riksdagssvingen sedan 2022 appliceras lokalt) ──
+            # Alltid NATIONAL_2022 som referens: sving = raw_est[p] − riksdag_2022[p]
+            # För kommunalval: partierna normaliseras till (100% − ÖVRIGA%) per kommun
             predicted_df = apply_uniform_swing(
-                scb_df, raw_est, national_2022_local, apply_bias=apply_bias
+                scb_df, raw_est, NATIONAL_2022,
+                ovriga_per_area=ovriga_per_area,
             )
 
             # ── Karta ──
@@ -2638,25 +2794,37 @@ för den regionala offsetmodellen.
                     "Prediktion 2026 (%)": round(pred_val, 1),
                     "Förändring (pp)": round(pred_val - hist_val, 1),
                 })
+            # Lägg till ÖVRIGA för regionval och kommunalval — antas hålla sin 2022-nivå
+            ov_pct = ovriga_per_area.get(sel_area_code, 0.0)
+            if ov_pct > 0:
+                detail_rows.append({
+                    "parti_kod": "ÖVRIGA",
+                    "Parti": "Lokala partier (ÖVRIGA)",
+                    "2022 (%)": round(ov_pct, 1),
+                    "Prediktion 2026 (%)": round(ov_pct, 1),
+                    "Förändring (pp)": 0.0,
+                })
             detail_df = pd.DataFrame(detail_rows)
 
-            # Stapeldiagram: 2022 vs prediktion
+            # Stapeldiagram: bara riksdagspartierna (ej ÖVRIGA)
+            chart_df = detail_df[detail_df["parti_kod"].isin(PARTIES)]
+            chart_colors = [PARTY_COLORS.get(p, "#888") for p in chart_df["parti_kod"]]
             fig_detail = go.Figure()
             fig_detail.add_trace(go.Bar(
                 name="Valresultat 2022",
-                x=detail_df["Parti"],
-                y=detail_df["2022 (%)"],
-                marker_color=[PARTY_COLORS.get(p, "#888") for p in PARTIES],
+                x=chart_df["Parti"],
+                y=chart_df["2022 (%)"],
+                marker_color=chart_colors,
                 opacity=0.45,
                 marker_pattern_shape="/",
             ))
             fig_detail.add_trace(go.Bar(
                 name="Prediktion 2026",
-                x=detail_df["Parti"],
-                y=detail_df["Prediktion 2026 (%)"],
-                marker_color=[PARTY_COLORS.get(p, "#888") for p in PARTIES],
+                x=chart_df["Parti"],
+                y=chart_df["Prediktion 2026 (%)"],
+                marker_color=chart_colors,
                 opacity=0.95,
-                text=detail_df["Prediktion 2026 (%)"].round(1).astype(str) + "%",
+                text=chart_df["Prediktion 2026 (%)"].round(1).astype(str) + "%",
                 textposition="outside",
             ))
             fig_detail.update_layout(
@@ -2673,8 +2841,8 @@ för den regionala offsetmodellen.
                 yaxis=dict(
                     showgrid=True, gridcolor="#ebebeb",
                     zeroline=False, ticksuffix="%",
-                    range=[0, max(detail_df["Prediktion 2026 (%)"].max(),
-                                  detail_df["2022 (%)"].max()) * 1.2],
+                    range=[0, max(chart_df["Prediktion 2026 (%)"].max(),
+                                  chart_df["2022 (%)"].max()) * 1.2],
                 ),
                 height=360,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
@@ -2682,7 +2850,7 @@ för den regionala offsetmodellen.
             )
             st.plotly_chart(fig_detail, use_container_width=True)
 
-            # Detailtabell med lokal-parti-kolumn för kommunalval
+            # Detailtabell
             def _color_chg(val):
                 try:
                     v = float(val)
@@ -2692,65 +2860,48 @@ för den regionala offsetmodellen.
                     pass
                 return ""
 
-            # Hämta ÖVRIGA för kommunalval
-            if is_kommunal:
-                ovriga_query = {
-                    "query": [
-                        {"code": "Region", "selection": {"filter": "item", "values": [sel_area_code]}},
-                        {"code": "Partimm", "selection": {"filter": "item", "values": ["ÖVRIGA"]}},
-                        {"code": "ContentsCode", "selection": {"filter": "item", "values": ["ME0104B2"]}},
-                        {"code": "Tid", "selection": {"filter": "item", "values": ["2022"]}},
-                    ],
-                    "response": {"format": "json"},
-                }
-                try:
-                    ov_resp = requests.post(SCB_KOMMUNVAL_URL, json=ovriga_query, timeout=30)
-                    ov_data = ov_resp.json().get("data", [])
-                    ovriga_pct = float(ov_data[0]["values"][0]) if ov_data else 0.0
-                except Exception:
-                    ovriga_pct = 0.0
-
-                if ovriga_pct > 0.5:
-                    st.info(
-                        f"🏘️ **Lokala partier (ÖVRIGA)** fick **{ovriga_pct:.1f}%** i "
-                        f"{sel_area_name} vid kommunalvalet 2022. Uniform swing-modellen "
-                        "täcker bara de 8 riksdagspartierna — lokalpartiers stöd kan skilja "
-                        "sig markant från rikstrenden."
-                    )
-
-            display_detail = detail_df.drop(columns=["parti_kod"]).style.applymap(
-                _color_chg, subset=["Förändring (pp)"]
+            display_detail = (
+                detail_df.drop(columns=["parti_kod"])
+                .style
+                .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
+                .applymap(_color_chg, subset=["Förändring (pp)"])
             )
             st.dataframe(display_detail, hide_index=True, use_container_width=True)
 
-            # ── Nationell swing-tabell ──
+            # ── Nationell sving-tabell ──
             st.divider()
             st.subheader("Nationell svängning sedan 2022")
+            st.caption(
+                "Visar den nationella opinionsförändringen sedan 2022 som appliceras "
+                "uniformt i alla kommuner och regioner."
+            )
             swing_rows = []
             for p in PARTIES:
                 cur = float(raw_est.get(p, 0))
-                bias_adj = POLLING_BIAS.get(p, 0) if apply_bias else 0.0
-                ref = float(national_2022_local.get(p, NATIONAL_2022.get(p, 0)))
+                # Använd alltid riksdagsvalet 2022 som referens
+                ref = float(NATIONAL_2022.get(p, 0))
+                opinion_swing = round(cur - ref, 1)
                 swing_rows.append({
                     "Parti": PARTY_NAMES.get(p, p),
-                    "2022 (%)": round(ref, 1),
-                    "Opinionsnivå (%)": round(cur, 1),
-                    "Biaskorrigering (pp)": round(bias_adj, 1) if apply_bias else "–",
-                    "Effektiv svängning (pp)": round(cur + bias_adj - ref, 1),
+                    "Riksdag 2022 (%)": round(ref, 1),
+                    "Nu i polls (%)": round(cur, 1),
+                    "Opinionssving (pp)": f"{opinion_swing:+.1f}",
                 })
             swing_df = pd.DataFrame(swing_rows)
 
-            def _color_eff(val):
+            def _color_total(val):
                 try:
-                    v = float(val)
-                    if v > 0:   return "color:#2ca02c; font-weight:600"
-                    if v < 0:   return "color:#d62728; font-weight:600"
+                    v = float(str(val).replace("+", ""))
+                    if v > 0.3:   return "color:#2ca02c; font-weight:600"
+                    if v < -0.3:  return "color:#d62728; font-weight:600"
                 except Exception:
                     pass
                 return ""
 
             st.dataframe(
-                swing_df.style.applymap(_color_eff, subset=["Effektiv svängning (pp)"]),
+                swing_df.style
+                .format({"Riksdag 2022 (%)": "{:.1f}", "Nu i polls (%)": "{:.1f}"})
+                .applymap(_color_total, subset=["Opinionssving (pp)"]),
                 hide_index=True, use_container_width=True,
             )
 
@@ -2775,7 +2926,11 @@ för den regionala offsetmodellen.
                 rename_cols = {p: f"{PARTY_NAMES.get(p, p)} (%)" for p in party_cols_t}
                 rename_cols[id_col] = "Kod"
                 wide_table = wide_table.rename(columns=rename_cols)
-                st.dataframe(wide_table, hide_index=True, use_container_width=True)
+                pct_cols = [f"{PARTY_NAMES.get(p, p)} (%)" for p in party_cols_t]
+                st.dataframe(
+                    wide_table.style.format({c: "{:.1f}" for c in pct_cols}),
+                    hide_index=True, use_container_width=True,
+                )
                 st.download_button(
                     "⬇️ Ladda ner prediktion (CSV)",
                     data=wide_table.to_csv(index=False).encode("utf-8"),
