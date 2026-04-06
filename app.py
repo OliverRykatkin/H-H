@@ -111,7 +111,7 @@ def hex_to_rgba(hex_color: str, alpha: float = 0.15) -> str:
 ECONOMIST_LAYOUT = dict(
     plot_bgcolor="white",
     paper_bgcolor="white",
-    font=dict(family="Arial, Helvetica, sans-serif", size=12, color="#333333"),
+    font=dict(family="Arial, Helvetica, sans-serif", size=12, color="#111213"),
     xaxis=dict(
         showgrid=False,
         showline=True,
@@ -135,7 +135,7 @@ ECONOMIST_LAYOUT = dict(
 ECONOMIST_BASE = dict(
     plot_bgcolor="white",
     paper_bgcolor="white",
-    font=dict(family="Arial, Helvetica, sans-serif", size=12, color="#333333"),
+    font=dict(family="Arial, Helvetica, sans-serif", size=12, color="#111213"),
 )
 
 # Blocktillhörighet
@@ -162,30 +162,13 @@ NATIONAL_2022 = {
     "S": 30.33, "V": 6.75, "MP": 5.08, "SD": 20.54,
 }
 
-# Valens datum – används för kampanjsvängningskorrigering
+# Valens datum
 ELECTION_2026 = datetime(2026, 9, 13)   # Preliminärt: andra söndagen i september 2026
 ELECTION_2022 = datetime(2022, 9, 11)
-ELECTION_2018 = datetime(2018, 9, 9)
 
-# Riksdagsvalet 2018 – nationellt slutresultat
-NATIONAL_2018 = {
-    "M": 19.84, "L": 5.49, "C": 8.61, "KD": 4.91,
-    "S": 28.26, "V": 7.97, "MP": 4.41, "SD": 17.53,
-}
-
-# Genomsnittlig polling-bias: (faktiskt valresultat − sista opinionsmätning)
-# Baserat på 2018 och 2022 års riksdagsval. Positivt = underestimat av instituten.
-# Källa: jämförelse Sifo/Demoskop slutmätningar vs Valmyndighetens slutresultat.
-POLLING_BIAS = {
-    "M":  0.5,   # Underskattat 2018 (+2pp), neutralt 2022
-    "L":  0.2,
-    "C": -0.2,
-    "KD": 0.8,   # Underskattat i båda valen
-    "S":  0.5,   # Underskattat i båda valen
-    "V": -0.6,   # Överskattad i polls
-    "MP": 0.1,
-    "SD": 1.8,   # Konsekvent starkt underskattat (genomsnitt +1,5–2pp)
-}
+# Pollingbias och modellkorrigering beräknas nu dynamiskt i
+# compute_polling_bias_2022() och compute_model_correction_2022()
+# baserat på aggregatorns faktiska prestanda dagen innan valet 2022.
 
 # ── Kart-URLs ──
 MUNI_GEOJSON_URL = (
@@ -424,83 +407,27 @@ def load_scb_results(
     )
 
 
-@st.cache_data(ttl=3600 * 6, show_spinner=False)
-def compute_campaign_swing(
-    _polls_df: pd.DataFrame,
-    _house_weights_df: pd.DataFrame,
-    days_until_election: int,
-) -> dict:
-    """
-    Beräknar förväntad kvarvarande kampanjsvängning baserat på 2018 och 2022.
-
-    Metod: beräkna opinionsläget exakt 'days_until_election' dagar innan
-    respektive historiskt val, jämför med faktiskt resultat.
-    Medelvärdet av de två valen = förväntad kvarvarande rörelse från
-    nuläget fram till valdagen.
-
-    Exempel: med 168 dagar kvar visar historiken att SD typiskt ökar ~1.5 pp,
-    S ökar ~1.8 pp, och C minskar ~1.5 pp under slutspurten.
-    """
-    if days_until_election <= 0:
-        return {p: 0.0 for p in PARTIES}
-
-    elections = [
-        (ELECTION_2022, NATIONAL_2022),
-        (ELECTION_2018, NATIONAL_2018),
-    ]
-
-    swings_list = []
-    for election_date, national_result in elections:
-        ref_date = election_date - timedelta(days=days_until_election)
-        est = aggregate_polls(
-            _polls_df,
-            window_days=90,
-            decay_halflife_days=30,
-            use_house_weights=True,
-            house_weights=_house_weights_df,
-            reference_date=ref_date,
-        )
-        swing = {
-            p: national_result.get(p, 0.0) - est.get(p, 0.0)
-            for p in PARTIES
-        }
-        swings_list.append(swing)
-
-    return {
-        p: round(sum(s[p] for s in swings_list) / len(swings_list), 2)
-        for p in PARTIES
-    }
-
 
 def apply_uniform_swing(
     df: pd.DataFrame,
     national_current: dict,
     national_2022: dict,
-    apply_bias: bool = False,
-    campaign_correction: dict | None = None,
     ovriga_per_area: dict | None = None,
 ) -> pd.DataFrame:
     """
     Uniform swing-modell:
       predicted[p][area] = 2022_local[p][area] + total_swing[p]
-
-    total_swing[p] = (current_national[p] − 2022_national[p])
-                   + POLLING_BIAS[p]          (om apply_bias=True)
-                   + campaign_correction[p]   (om angiven)
+      total_swing[p] = national_current[p] − national_2022[p]
 
     Normaliseras per geografisk enhet.
-    Om ovriga_per_area anges (kommunalval) summeras de 8 partierna till
-    (100 − ÖVRIGA%) per kommun, så att ÖVRIGA antas hålla sin 2022-nivå.
+    Om ovriga_per_area anges (kommunalval/regionval) summeras de 8 partierna
+    till (100 − ÖVRIGA%) per område, så att ÖVRIGA antas hålla sin 2022-nivå.
     """
     if df.empty:
         return df
 
     effective_current = {
-        p: (
-            float(national_current.get(p, 0))
-            + (POLLING_BIAS.get(p, 0.0) if apply_bias else 0.0)
-            + (float((campaign_correction or {}).get(p, 0.0)))
-        )
+        p: float(national_current.get(p, 0))
         for p in PARTIES
     }
 
@@ -639,7 +566,7 @@ def make_regional_map(
         fig.update_traces(hovertemplate="%{customdata[0]}<extra></extra>")
 
     fig.update_layout(
-        title=dict(text=title, font=dict(size=14, color="#333333")),
+        title=dict(text=title, font=dict(size=14, color="#111213")),
         paper_bgcolor="white",
         font=dict(family="Arial, Helvetica, sans-serif", size=12),
         margin=dict(t=50, b=0, l=0, r=0),
@@ -748,6 +675,31 @@ def compute_house_weights(df: pd.DataFrame) -> pd.DataFrame:
     return house_df.reset_index(drop=True)
 
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def compute_backtesting_correction(
+    _polls_df: pd.DataFrame,
+    _house_weights_df: pd.DataFrame,
+) -> dict:
+    """
+    Backtesting-korrigering: kör aggregatorn med standardinställningar
+    dagen innan riksdagsvalet 2022 och returnerar det totala felet.
+
+    Korrigering[p] = NATIONAL_2022[p] − modellestimат[p]
+                   = −(Fel pp från backtesting-tabellen vid valdagen)
+
+    Täcker alla systematiska fel: pollingbias, modellspecifika fel
+    och institutsviktningens effekt — allt i ett tal per parti.
+    """
+    ref = ELECTION_2022 - timedelta(days=1)
+    est = aggregate_polls_kalman(
+        _polls_df,
+        _house_weights=_house_weights_df,
+        reference_date=ref,
+        window_days=365,
+    )
+    return {p: round(NATIONAL_2022.get(p, 0) - est.get(p, 0), 2) for p in PARTIES}
+
+
 def aggregate_polls(
     df: pd.DataFrame,
     window_days: int = 90,
@@ -791,6 +743,109 @@ def aggregate_polls(
     return result
 
 
+@st.cache_data(show_spinner=False)
+def aggregate_polls_kalman(
+    _df: pd.DataFrame,
+    _house_weights: pd.DataFrame = None,
+    reference_date: datetime = None,
+    sigma_process_per_day: float = 0.07,
+    window_days: int = 365,
+) -> dict:
+    # Rename underscored params (required by @st.cache_data unhashable convention)
+    df = _df
+    house_weights = _house_weights
+
+    # Ankra till senaste mätning om inget referensdatum angetts.
+    # Utan detta ändras estimatet varje dag när polls rullar ur fönstret.
+    latest_in_data = df["PublDate"].max() if not df.empty else datetime.now()
+    now = reference_date or latest_in_data
+    cutoff = now - timedelta(days=window_days)
+    recent = df[(df["PublDate"] >= cutoff) & (df["PublDate"] <= now)].copy()
+
+    if recent.empty:
+        return NATIONAL_2022.copy()
+
+    recent = recent.sort_values("PublDate").reset_index(drop=True)
+
+    # Institutsvikter: lägre vikt → mer mätningsmässigt brus
+    hw_map = {}
+    if house_weights is not None and not house_weights.empty:
+        hw_map = dict(zip(house_weights["Institut"], house_weights["Vikt"]))
+
+    t0 = recent["PublDate"].min()
+    t_now = float((now - t0).days)
+
+    results = {}
+
+    for party in PARTIES:
+        y_col  = pd.to_numeric(recent[party], errors="coerce")
+        n_col  = pd.to_numeric(recent["n"],   errors="coerce").fillna(1000.0)
+        valid  = y_col.notna()
+
+        if valid.sum() == 0:
+            results[party] = NATIONAL_2022.get(party, 0.0)
+            continue
+
+        t_obs = (recent.loc[valid, "PublDate"] - t0).dt.days.astype(float).values
+        y_obs = y_col[valid].values
+        n_obs = n_col[valid].values
+        co_obs = recent.loc[valid, "Company"].fillna("").values
+
+        # ── Observationsbrus per mätning ──
+        sigma_obs = np.zeros(len(y_obs))
+        for i, (y, n, c) in enumerate(zip(y_obs, n_obs, co_obs)):
+            p_frac = np.clip(y / 100.0, 0.01, 0.99)
+            # Stickprovsvarians i pp²
+            var_samp = p_frac * (1.0 - p_frac) * 10_000.0 / max(float(n), 100.0)
+            # Institutsbrus: sämre institut → mer osäkerhet (skalas med 1/vikt²)
+            hw = max(hw_map.get(c, 1.0), 0.2)
+            sigma_obs[i] = float(np.sqrt(max(var_samp / hw**2, 0.09)))  # min 0.3 pp
+
+        # ── Kalman-filter (framåtpass) ──
+        n_pts = len(t_obs)
+        xf = np.zeros(n_pts)
+        Pf = np.zeros(n_pts)
+        xf[0] = y_obs[0]
+        Pf[0] = sigma_obs[0] ** 2
+
+        for i in range(1, n_pts):
+            dt   = max(float(t_obs[i] - t_obs[i - 1]), 1.0)
+            Q    = sigma_process_per_day ** 2 * dt
+            xp   = xf[i - 1]
+            Pp   = Pf[i - 1] + Q
+            R    = sigma_obs[i] ** 2
+            K    = Pp / (Pp + R)
+            xf[i] = xp + K * (y_obs[i] - xp)
+            Pf[i] = (1.0 - K) * Pp
+
+        # ── RTS-smoother (bakåtpass) ──
+        xs = xf.copy()
+        Ps = Pf.copy()
+        for i in range(n_pts - 2, -1, -1):
+            dt        = max(float(t_obs[i + 1] - t_obs[i]), 1.0)
+            Q         = sigma_process_per_day ** 2 * dt
+            P_pred    = Pf[i] + Q
+            G         = Pf[i] / P_pred
+            xs[i]     = xf[i] + G * (xs[i + 1] - xf[i])
+            Ps[i]     = Pf[i] + G ** 2 * (Ps[i + 1] - P_pred)
+
+        # ── Prediktion framåt till reference_date ──
+        dt_ahead   = max(t_now - t_obs[-1], 0.0)
+        x_now      = float(xs[-1])   # RTS-smoothat slutvärde
+        # (vid prediktion bortom data faller vi tillbaka på filterets slutvärde)
+        if dt_ahead > 0:
+            x_now = float(xf[-1])   # filtervärde är bättre att extrapolera från
+
+        results[party] = float(np.clip(x_now, 0.0, 100.0))
+
+    # Normalisera till 100 %
+    total = sum(results.values())
+    if total > 0:
+        results = {p: v / total * 100.0 for p, v in results.items()}
+
+    return results
+
+
 # ─────────────────────────────────────────────
 # MANDATBERÄKNING
 # ─────────────────────────────────────────────
@@ -798,7 +853,7 @@ def aggregate_polls(
 def modified_sainte_lague(votes: dict, n_seats: int) -> dict:
     import heapq
     seats = {p: 0 for p in votes}
-    heap = [(-v / 1.4, p) for p, v in votes.items()]
+    heap = [(-v / 1.2, p) for p, v in votes.items()]
     heapq.heapify(heap)
     for _ in range(n_seats):
         if not heap:
@@ -886,6 +941,7 @@ def run_simulation(
         bloc_v[i] = sum(alloc.get(p, 0) for p in ["S", "V", "MP", "C"])
 
     return {
+        "draws": draws,
         "party_mandates": party_mandates,
         "party_std": party_std,
         "total_std": total_std,
@@ -910,8 +966,11 @@ def compute_2022_mandates() -> dict:
     return fixed_seats
 
 
-def allocate_all_mandates(national_est_raw: dict) -> dict:
-    eligible = [p for p in PARTIES if national_est_raw.get(p, 0) >= THRESHOLD]
+def allocate_all_mandates(national_est_raw: dict, threshold_ref: dict = None) -> dict:
+    # Tröskelkollen görs mot threshold_ref (= råa polls) för att undvika att
+    # backtesting-korrigeringen felaktigt utesluter partier över 4 % i opinionen.
+    ref = threshold_ref if threshold_ref is not None else national_est_raw
+    eligible = [p for p in PARTIES if ref.get(p, 0) >= THRESHOLD]
     elig_votes = {p: national_est_raw[p] for p in eligible}
     total_elig = sum(elig_votes.values())
     national_norm = {p: v / total_elig * 100 for p, v in elig_votes.items()}
@@ -934,8 +993,27 @@ def allocate_all_mandates(national_est_raw: dict) -> dict:
             party_fixed_total[p] += fixed_seats[name].get(p, 0)
 
     national_prop = modified_sainte_lague(national_norm, TOTAL_SEATS)
-    adjustment = {p: max(0, national_prop.get(p, 0) - party_fixed_total.get(p, 0)) for p in PARTIES}
-    total = {p: party_fixed_total[p] + adjustment[p] for p in PARTIES}
+
+    # Utjämningsmandat: fördela exakt (TOTAL_SEATS − fasta) mandat bland partier
+    # som fortfarande behöver fler mandat för att nå proportionell andel.
+    # Kör en ny Sainte-Laguë-fördelning för utjämningssätet med "återstående behov"
+    # som röstandel — detta garanterar att summan alltid = TOTAL_SEATS (349).
+    total_fixed_seats = sum(party_fixed_total.values())
+    adj_seats_available = TOTAL_SEATS - total_fixed_seats  # normalt 39
+
+    adj_need = {
+        p: max(0.0, national_prop.get(p, 0) - party_fixed_total.get(p, 0))
+        for p in eligible
+    }
+    adj_need_total = sum(adj_need.values())
+
+    if adj_need_total > 0 and adj_seats_available > 0:
+        adj_norm = {p: v / adj_need_total * 100 for p, v in adj_need.items() if v > 0}
+        adjustment = modified_sainte_lague(adj_norm, adj_seats_available)
+    else:
+        adjustment = {}
+
+    total = {p: party_fixed_total[p] + adjustment.get(p, 0) for p in PARTIES}
 
     return {
         "fixed": fixed_seats,
@@ -952,31 +1030,50 @@ def allocate_all_mandates(national_est_raw: dict) -> dict:
 # VISUALISERING
 # ─────────────────────────────────────────────
 
-def make_support_bar(votes: dict) -> go.Figure:
+def make_support_bar(votes: dict, reference_2022: dict | None = None) -> go.Figure:
     parties = list(votes.keys())
     values = [votes[p] for p in parties]
     colors = [PARTY_COLORS.get(p, "#888") for p in parties]
     names = [PARTY_NAMES.get(p, p) for p in parties]
 
-    fig = go.Figure(go.Bar(
+    fig = go.Figure()
+
+    if reference_2022:
+        ref_values = [reference_2022.get(p, 0) for p in parties]
+        fig.add_trace(go.Bar(
+            name="Valresultat 2022",
+            x=names, y=ref_values,
+            marker_color=colors,
+            opacity=0.35,
+            marker_pattern_shape="/",
+            marker_line_width=0,
+            showlegend=True,
+        ))
+
+    fig.add_trace(go.Bar(
+        name="Aktuell opinion",
         x=names, y=values,
         marker_color=colors,
         text=[f"{v:.1f}%" for v in values],
         textposition="outside",
         marker_line_width=0,
+        showlegend=bool(reference_2022),
     ))
+
     fig.add_hline(y=4.0, line_dash="dot", line_color="#999999", line_width=1.5,
                   annotation_text="4%-spärren", annotation_position="top right",
                   annotation_font=dict(size=10, color="#666666"))
     fig.update_layout(
         **ECONOMIST_LAYOUT,
-        title=dict(text="Aktuellt stöd", font=dict(size=14, color="#333333")),
+        barmode="group",
+        title=dict(text="Aktuellt stöd vs valresultat 2022", font=dict(size=13, color="#111213")),
         yaxis_title="Röstandel (%)",
-        yaxis_range=[0, max(values) * 1.2 + 2],
-        height=400,
-        margin=dict(t=50, b=10, l=50, r=10),
-        showlegend=False,
+        yaxis_range=[0, max(values) * 1.25 + 3],
+        height=460,
+        margin=dict(t=80, b=20, l=50, r=10),
+        legend=dict(orientation="h", yanchor="top", y=1.12, x=0, font=dict(size=10)),
     )
+    fig.update_xaxes(tickangle=-35, tickfont=dict(size=10, color="#555555"))
     return fig
 
 
@@ -993,18 +1090,19 @@ def make_mandate_bar(total_mandates: dict) -> go.Figure:
         text=values,
         textposition="outside",
     ))
-    fig.add_hline(y=175, line_dash="dot", line_color="#cc0000", line_width=1.5,
+    fig.add_hline(y=175, line_dash="dot", line_color="#EF718C", line_width=1.5,
                   annotation_text="Majoritet (175)", annotation_position="top right",
-                  annotation_font=dict(size=10, color="#cc0000"))
+                  annotation_font=dict(size=10, color="#EF718C"))
     fig.update_layout(
         **ECONOMIST_LAYOUT,
-        title=dict(text="Beräknad mandatfördelning — 349 mandat totalt", font=dict(size=14, color="#333333")),
+        title=dict(text="Beräknad mandatfördelning — 349 mandat totalt", font=dict(size=13, color="#111213")),
         yaxis_title="Mandat",
-        yaxis_range=[0, max(values) * 1.25 + 10],
-        height=400,
-        margin=dict(t=50, b=10, l=50, r=10),
+        yaxis_range=[0, max(values) * 1.3 + 15],
+        height=460,
+        margin=dict(t=70, b=20, l=50, r=10),
         showlegend=False,
     )
+    fig.update_xaxes(tickangle=-35, tickfont=dict(size=10, color="#555555"))
     return fig
 
 
@@ -1162,7 +1260,7 @@ def make_trend_chart(df: pd.DataFrame, window_days: int) -> go.Figure:
                   annotation_position="bottom right")
     fig.update_layout(
         **ECONOMIST_LAYOUT,
-        title=dict(text="Opinionstrender", font=dict(size=14, color="#333333")),
+        title=dict(text="Opinionstrender", font=dict(size=14, color="#111213")),
         yaxis_title="Röstandel (%)",
         xaxis_title="",
         height=470,
@@ -1295,7 +1393,7 @@ def make_constituency_bar(fixed_seats: dict, seats_2022: dict, party: str) -> go
     ))
     fig.update_layout(
         **ECONOMIST_LAYOUT,
-        title=dict(text=f"Mandat per valkrets — {PARTY_NAMES.get(party, party)}", font=dict(size=14, color="#333333")),
+        title=dict(text=f"Mandat per valkrets — {PARTY_NAMES.get(party, party)}", font=dict(size=14, color="#111213")),
         yaxis_title="Mandat",
         xaxis_tickangle=-45,
         barmode="group",
@@ -1330,12 +1428,12 @@ def make_economist_mandate_chart(
 
     # Majoritetsmarkering (vertikal linje)
     fig.add_vline(
-        x=175, line_dash="dot", line_color="#cc0000", line_width=1.5,
+        x=175, line_dash="dot", line_color="#EF718C", line_width=1.5,
     )
     fig.add_annotation(
         x=175, y=len(parties_sorted) - 0.1,
         text="Majoritet (175)", showarrow=False,
-        font=dict(size=10, color="#cc0000"),
+        font=dict(size=10, color="#EF718C"),
         xanchor="left", yanchor="top",
         xshift=5,
     )
@@ -1420,7 +1518,7 @@ def make_economist_mandate_chart(
 
     fig.update_layout(
         **ECONOMIST_BASE,
-        title=dict(text="Mandatprognos per parti — 90 % konfidensintervall", font=dict(size=14, color="#333333")),
+        title=dict(text="Mandatprognos per parti — 90 % konfidensintervall", font=dict(size=14, color="#111213")),
         xaxis=dict(
             title="Mandat",
             showgrid=True,
@@ -1439,7 +1537,7 @@ def make_economist_mandate_chart(
             showgrid=False,
             showline=False,
             zeroline=False,
-            tickfont=dict(size=12, color="#333333"),
+            tickfont=dict(size=12, color="#111213"),
         ),
         height=max(320, len(parties_sorted) * 52 + 80),
         margin=dict(t=60, b=40, l=130, r=20),
@@ -1479,7 +1577,7 @@ def make_coalition_chart(sim: dict) -> go.Figure:
     fig = go.Figure()
 
     for r in rows:
-        color = "#1a6faf" if r["prob"] >= 0.5 else "#c0392b" if r["prob"] < 0.25 else "#e67e22"
+        color = "#29BFA2" if r["prob"] >= 0.5 else "#EF718C" if r["prob"] < 0.25 else "#a8a8a8"
         fig.add_trace(go.Bar(
             x=[r["prob"] * 100],
             y=[r["name"]],
@@ -1505,14 +1603,14 @@ def make_coalition_chart(sim: dict) -> go.Figure:
 
     fig.update_layout(
         **ECONOMIST_BASE,
-        title=dict(text="Sannolikhet för riksdagsmajoritet per koalition", font=dict(size=14, color="#333333")),
+        title=dict(text="Sannolikhet för riksdagsmajoritet per koalition", font=dict(size=14, color="#111213")),
         xaxis=dict(
             title="Sannolikhet för ≥ 175 mandat (%)",
             range=[0, 115],
             showgrid=True, gridcolor="#ebebeb", showline=True, linecolor="#cccccc",
             tickfont=dict(size=11, color="#555555"),
         ),
-        yaxis=dict(showgrid=False, showline=False, tickfont=dict(size=11, color="#333333")),
+        yaxis=dict(showgrid=False, showline=False, tickfont=dict(size=11, color="#111213")),
         height=max(320, len(rows) * 58 + 80),
         margin=dict(t=60, b=40, l=300, r=90),
     )
@@ -1537,9 +1635,9 @@ def make_coalition_mandate_dist(sim: dict) -> go.Figure:
             x=arr,
             name=name,
             orientation="h",
-            marker_color="#1a6faf",
-            fillcolor=hex_to_rgba("#1a6faf", 0.20),
-            line=dict(color="#1a6faf", width=1.2),
+            marker_color="#29BFA2",
+            fillcolor=hex_to_rgba("#29BFA2", 0.20),
+            line=dict(color="#29BFA2", width=1.2),
             boxmean=True,
             hovertemplate=(
                 f"<b>{name}</b><br>"
@@ -1550,20 +1648,20 @@ def make_coalition_mandate_dist(sim: dict) -> go.Figure:
             ),
         ))
 
-    fig.add_vline(x=175, line_dash="dot", line_color="#cc0000", line_width=1.5,
+    fig.add_vline(x=175, line_dash="dot", line_color="#EF718C", line_width=1.5,
                   annotation_text="Majoritet (175)",
-                  annotation_font=dict(size=10, color="#cc0000"),
+                  annotation_font=dict(size=10, color="#EF718C"),
                   annotation_position="top right")
 
     fig.update_layout(
         **ECONOMIST_BASE,
-        title=dict(text="Mandatfördelning per koalition — 10 000 simuleringar", font=dict(size=14, color="#333333")),
+        title=dict(text="Mandatfördelning per koalition — 10 000 simuleringar", font=dict(size=14, color="#111213")),
         xaxis=dict(
             title="Mandat",
             showgrid=True, gridcolor="#ebebeb", showline=True, linecolor="#cccccc",
             tickfont=dict(size=11, color="#555555"),
         ),
-        yaxis=dict(showgrid=False, showline=False, tickfont=dict(size=10, color="#333333")),
+        yaxis=dict(showgrid=False, showline=False, tickfont=dict(size=10, color="#111213")),
         height=max(360, len(sorted_names) * 60 + 80),
         margin=dict(t=60, b=40, l=300, r=20),
         showlegend=False,
@@ -1624,7 +1722,7 @@ def make_party_comparison(df: pd.DataFrame, party_x: str, party_y: str, window_d
 
     fig.update_layout(
         **ECONOMIST_LAYOUT,
-        title=dict(text=f"{px_name} vs {py_name} — stöd per mätning", font=dict(size=14, color="#333333")),
+        title=dict(text=f"{px_name} vs {py_name} — stöd per mätning", font=dict(size=14, color="#111213")),
         xaxis_title=f"{px_name} (%)",
         yaxis_title=f"{py_name} (%)",
         height=420,
@@ -1645,15 +1743,13 @@ def compute_backtesting(polls_df: pd.DataFrame, house_weights_df: pd.DataFrame) 
     rows = []
     for days_before in test_offsets:
         ref = election_date - timedelta(days=days_before)
-        # Dynamiskt fönster: minst 60 dagar eller det tillgängliga
-        window = min(90, days_before)
-        est = aggregate_polls(
+        # Dynamiskt fönster: begränsa till tillgänglig data
+        window = min(365, days_before) if days_before > 30 else 365
+        est = aggregate_polls_kalman(
             polls_df,
-            window_days=window,
-            decay_halflife_days=30,
-            use_house_weights=True,
-            house_weights=house_weights_df,
+            _house_weights=house_weights_df,
             reference_date=ref,
+            window_days=window,
         )
         for p in PARTIES:
             rows.append({
@@ -1673,83 +1769,92 @@ def compute_backtesting(polls_df: pd.DataFrame, house_weights_df: pd.DataFrame) 
 
 def main():
     st.set_page_config(
-        page_title="Riksdagsprediction",
+        page_title="Mandatorn",
         page_icon=None,
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="collapsed",  # Sidopanelen används inte
     )
 
     st.markdown("""
     <style>
-        /* Economist-inspirerad typografi och layout */
-        html, body, [class*="css"] {
-            font-family: "Arial", "Helvetica Neue", Helvetica, sans-serif;
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+        /* DM Sans – täcker hela Streamlit-appen */
+        html, body, * {
+            font-family: "DM Sans", sans-serif !important;
         }
-        h1 { font-size: 1.9rem !important; font-weight: 700; color: #111111; letter-spacing: -0.5px; }
-        h2 { font-size: 1.3rem !important; font-weight: 600; color: #222222; }
+        /* Streamlit-specifika selektorer */
+        .stApp, .stApp *, section[data-testid="stSidebar"] *,
+        [data-testid="stMarkdownContainer"] *,
+        [data-testid="stMetricLabel"], [data-testid="stMetricValue"],
+        [data-testid="stMetricDelta"], [data-testid="column"] *,
+        .stTabs [data-baseweb="tab"], .stDataFrame *,
+        div[data-testid="stCaptionContainer"],
+        .stButton button, .stSelectbox *, .stRadio *,
+        .stSlider *, .stExpander *, p, h1, h2, h3, h4, h5, h6,
+        span, div, li, td, th, label, input, textarea, select {
+            font-family: "DM Sans", sans-serif !important;
+        }
+        h1 { font-size: 1.9rem !important; font-weight: 700; color: #111213; letter-spacing: -0.5px; }
+        h2 { font-size: 1.3rem !important; font-weight: 600; color: #111213; }
         h3 { font-size: 1.1rem !important; font-weight: 600; color: #333333; }
-        /* Subtil röd topplinje likt The Economist */
-        .main > div:first-child { border-top: 4px solid #E3120B; padding-top: 1rem; }
+        /* Topplinje i brandteal */
+        .main > div:first-child { border-top: 4px solid #29BFA2; padding-top: 1rem; }
         /* Renare dataframe-tabeller */
         .stDataFrame { border: none !important; }
         /* Ljusare metriker */
         [data-testid="stMetricValue"] { font-size: 1.4rem !important; font-weight: 600; }
+
+        /* ── Fliknavigering: förhindra överlapp med innehåll ── */
+        .stTabs [data-baseweb="tab-list"] {
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 999 !important;
+            background: white !important;
+            padding-bottom: 4px !important;
+            border-bottom: 1px solid #ebebeb !important;
+        }
+        /* Expanders ska aldrig rendera under flikraden */
+        .stExpander {
+            position: relative !important;
+            z-index: 1 !important;
+            overflow: visible !important;
+        }
+        details[data-testid="stExpander"] {
+            overflow: visible !important;
+        }
+        details[data-testid="stExpander"] summary {
+            z-index: 1 !important;
+            position: relative !important;
+        }
+
+        /* ── Mobilanpassning ── */
+        @media (max-width: 768px) {
+            /* Stapla alla kolumner vertikalt */
+            [data-testid="column"] {
+                width: 100% !important;
+                flex: 1 1 100% !important;
+                min-width: 100% !important;
+            }
+            /* Mindre rubrik på mobil */
+            h1 { font-size: 1.4rem !important; }
+            h2 { font-size: 1.1rem !important; }
+            /* Mindre metriker på mobil */
+            [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
+            [data-testid="stMetricLabel"] { font-size: 0.8rem !important; }
+            /* Mindre padding i main-containern */
+            .main .block-container { padding: 1rem 0.75rem !important; }
+            /* Fliklablar – tillåt radbrytning */
+            .stTabs [data-baseweb="tab"] { padding: 0.4rem 0.5rem !important; font-size: 0.8rem !important; }
+        }
     </style>
     """, unsafe_allow_html=True)
 
     _days_left = max(0, (ELECTION_2026 - datetime.now()).days)
 
-    with st.sidebar:
-        st.title("Riksdagsprediction")
-        st.markdown("*Opinionsundersökningsaggregator*")
-        st.divider()
-
-        st.subheader("Inställningar")
-        window_days = st.slider(
-            "Tidsfönster (dagar)", 30, 365, 90, 15,
-            help="Antal dagar bakåt att inkludera i aggregeringen",
-        )
-        decay_half = st.slider(
-            "Halveringstid för tidsvikt (dagar)", 7, 60, 30, 7,
-            help="Hur snabbt äldre mätningar tappar vikt",
-        )
-        use_house_w = st.toggle(
-            "Vikta efter träffsäkerhet (2022)",
-            value=True,
-            help="Institut med lägre medelabsolut fel mot 2022 års val ges högre vikt.",
-        )
-
-        st.divider()
-        st.subheader("Prognoskorrigeringar")
-        st.caption(
-            "Påverkar mandatprognosen, simuleringen och koalitionsanalysen. "
-            "Regionkartan visar alltid okorrigerade pollsiffror."
-        )
-        apply_bias_pred = st.toggle(
-            "Historisk biaskorrigering",
-            value=False,
-            key="pred_bias",
-            help=(
-                "Lägger till genomsnittlig polling-bias från 2018+2022: "
-                "SD +1,8 pp · KD +0,8 pp · S +0,5 pp · V −0,6 pp."
-            ),
-        )
-        apply_campaign_pred = st.toggle(
-            "Kampanjsvängning",
-            value=False,
-            key="pred_campaign",
-            help=(
-                f"Lägger till historisk kampanjsvängning de sista {_days_left} dagarna "
-                "(genomsnitt 2018+2022). M tappar typiskt ~2 pp, V ~1,3 pp, L/MP vinner."
-            ),
-        )
-
-        st.divider()
-        st.caption(
-            "Data: [SwedishPolls](https://github.com/MansMeg/SwedishPolls) · "
-            "Karta: [okfse/sweden-geojson](https://github.com/okfse/sweden-geojson)"
-        )
-        st.caption("Valresultat per valkrets: Valmyndigheten 2022")
+    # Fasta inställningar (ej justerbara av användaren)
+    window_days = 365
+    decay_half = 30
 
     with st.spinner("Hämtar data..."):
         polls_df = load_polls()
@@ -1762,51 +1867,60 @@ def main():
     house_weights_df = compute_house_weights(polls_df)
 
     latest_date = polls_df["PublDate"].max().strftime("%Y-%m-%d")
-    raw_est = aggregate_polls(
+    raw_est = aggregate_polls_kalman(
         polls_df,
+        _house_weights=house_weights_df,
         window_days=window_days,
-        decay_halflife_days=decay_half,
-        use_house_weights=use_house_w,
-        house_weights=house_weights_df,
     )
 
     # ── Korrigerat prognosestimat (pred_est) ──
-    # raw_est = rena pollsiffror (används för trenddiagram och regionkarta)
-    # pred_est = raw_est + valbara korrigeringar (används för mandat, sim och koalitioner)
-    pred_est = dict(raw_est)
-    if apply_bias_pred:
-        for p in PARTIES:
-            pred_est[p] = pred_est[p] + POLLING_BIAS.get(p, 0.0)
-    if apply_campaign_pred:
-        _camp_corr = compute_campaign_swing(polls_df, house_weights_df, _days_left)
-        for p in PARTIES:
-            pred_est[p] = pred_est[p] + _camp_corr.get(p, 0.0)
+    # raw_est  = rena pollsiffror med husvikter (trenddiagram, regionkarta)
+    # pred_est = raw_est + backtesting-korrigering(2022)
+    #            (mandat, simulering, koalitioner)
+    # Korrigeringen = −(Fel pp i backtesting vid valet 2022)
+    #               = NATIONAL_2022 − modellestimат_2022
+    _bt_corr = compute_backtesting_correction(polls_df, house_weights_df)
+    pred_est = {
+        p: raw_est.get(p, 0) + _bt_corr.get(p, 0.0)
+        for p in PARTIES
+    }
     # Normalisera så att partierna summerar till samma totalnivå som raw_est
-    _raw_total = sum(raw_est.values())
+    _raw_total  = sum(raw_est.values())
     _pred_total = sum(pred_est[p] for p in PARTIES)
     if _pred_total > 0:
         pred_est = {p: pred_est[p] / _pred_total * _raw_total for p in PARTIES}
 
-    mandates = allocate_all_mandates(pred_est)
+    mandates = allocate_all_mandates(pred_est, threshold_ref=raw_est)
 
     # ── Topprad ──
-    st.title("Riksdagsprediction")
+    st.title("Mandatorn")
+    st.caption("*Nils Silverström — ett svenskt försök till FiveThirtyEight*")
     st.caption(f"Senaste undersökning: **{latest_date}** · {len(polls_df)} mätningar totalt")
 
-    c1, c2, c3, c4 = st.columns(4)
+    st.info(
+        "⚠️ **Disclaimer:** Detta är en oberoende statistisk modell baserad på publicerade "
+        "opinionsmätningar och utgör inte ett officiellt valresultat eller en politisk rekommendation. "
+        "Alla prognoser är förenade med osäkerhet. Modellbeskrivning finns i fliken **Metod**. "
+        "Datakälla: [MansMeg/SwedishPolls](https://github.com/MansMeg/SwedishPolls) · "
+        "Valresultat: [Valmyndigheten](https://www.val.se).",
+        icon=None,
+    )
+
     bloc_h = sum(mandates["total"].get(p, 0) for p in BLOC_PARTIES["Högerblocket"])
     bloc_v = sum(mandates["total"].get(p, 0) for p in BLOC_PARTIES["Vänsterblocket"])
+    biggest = max(pred_est, key=pred_est.get)
+    below = [p for p in PARTIES if raw_est.get(p, 0) < THRESHOLD]
 
-    with c1:
+    row1_c1, row1_c2 = st.columns(2)
+    with row1_c1:
         st.metric("Högerblocket", f"{bloc_h} mandat", delta=f"{bloc_h - 175:+d} mot majoritet")
-    with c2:
+    with row1_c2:
         st.metric("Vänsterblocket", f"{bloc_v} mandat", delta=f"{bloc_v - 175:+d} mot majoritet")
-    with c3:
-        biggest = max(pred_est, key=pred_est.get)
+    row2_c1, row2_c2 = st.columns(2)
+    with row2_c1:
         st.metric("Största parti", PARTY_NAMES[biggest], delta=f"{pred_est[biggest]:.1f}%")
-    with c4:
-        below = [p for p in PARTIES if pred_est.get(p, 0) < THRESHOLD]
-        st.metric("Under 4 %-spärren", ", ".join(below) if below else "Inga")
+    with row2_c2:
+        st.metric("Under 4%-spärren", ", ".join(below) if below else "Inga")
 
     st.divider()
 
@@ -1826,48 +1940,140 @@ def main():
     seats_2022_total = {p: sum(seats_2022_const[c].get(p, 0) for c in seats_2022_const) for p in PARTIES}
 
     tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
-        "Nationell opinion", "Mandatfördelning", "Valkretsar",
-        "Simulering", "Koalitioner", "Kandidater", "Data", "Metod & Källor",
-        "🗺️ Regional karta",
+        "📊 Opinion", "🏛️ Mandat", "🗺️ Valkretsar",
+        "🎲 Simulering", "👤 Kandidater",
+        "📍 Regional", "📋 Data", "ℹ️ Metod", "🙋 Om mig",
     ])
 
     # ── Tab 1: Nationell opinion ──
     with tab1:
         col1, col2 = st.columns([2, 1])
         with col1:
-            st.plotly_chart(make_trend_chart(polls_df, window_days), use_container_width=True)
+            st.plotly_chart(make_trend_chart(polls_df, window_days), use_container_width=True, key="trend_chart_tab1")
         with col2:
-            st.plotly_chart(make_support_bar(raw_est), use_container_width=True)
+            st.plotly_chart(make_support_bar(raw_est, reference_2022=NATIONAL_2022), use_container_width=True, key="support_bar_tab1")
             st.subheader("Estimat per parti")
             est_df = pd.DataFrame([
                 {
                     "Parti": PARTY_NAMES.get(p, p),
-                    "Stöd (%)": f"{raw_est.get(p, 0):.1f}",
+                    "2022 (%)": f"{NATIONAL_2022.get(p, 0):.1f}",
+                    "Nu (%)": f"{raw_est.get(p, 0):.1f}",
+                    "Δ (pp)": f"{raw_est.get(p, 0) - NATIONAL_2022.get(p, 0):+.1f}",
                     "Över spärren": "Ja" if raw_est.get(p, 0) >= THRESHOLD else "Nej",
                 }
                 for p in PARTIES
             ])
             st.dataframe(est_df, hide_index=True, use_container_width=True)
 
+        # ── Mandatfördelning (kompakt) ──
         st.divider()
-        st.subheader("Partiernas stöd mot varandra")
-        st.caption("Scatter-plot visar hur två partiers stöd samvarierar över tid. Mörkare punkt = nyare mätning.")
-        cmp1, cmp2 = st.columns(2)
-        with cmp1:
-            px_party = st.selectbox("X-axel", PARTIES, index=0,
-                                    format_func=lambda p: PARTY_NAMES.get(p, p), key="cmp_x")
-        with cmp2:
-            py_party = st.selectbox("Y-axel", PARTIES, index=4,
-                                    format_func=lambda p: PARTY_NAMES.get(p, p), key="cmp_y")
-        if px_party != py_party:
-            st.plotly_chart(make_party_comparison(polls_df, px_party, py_party, window_days),
-                            use_container_width=True)
-        else:
-            st.info("Välj två olika partier för jämförelsen.")
+        st.subheader("Aktuell mandatprognos")
+        st.plotly_chart(make_mandate_bar(mandates["total"]), use_container_width=True, key="mandate_bar_tab1")
+        mand_col1, mand_col2 = st.columns(2)
+        with mand_col1:
+            mandate_df_t1 = pd.DataFrame([
+                {
+                    "Parti": PARTY_NAMES.get(p, p),
+                    "Fasta": mandates["fixed_total"].get(p, 0),
+                    "Utjämning": mandates["adjustment"].get(p, 0),
+                    "Totalt": mandates["total"].get(p, 0),
+                }
+                for p in PARTIES if mandates["total"].get(p, 0) > 0
+            ]).sort_values("Totalt", ascending=False)
+            st.dataframe(mandate_df_t1, hide_index=True, use_container_width=True)
+        with mand_col2:
+            for bloc_name, bloc_parties in BLOC_PARTIES.items():
+                total_bloc = sum(mandates["total"].get(p, 0) for p in bloc_parties)
+                st.metric(bloc_name, f"{total_bloc} mandat")
+                for p in bloc_parties:
+                    m = mandates["total"].get(p, 0)
+                    if m > 0:
+                        st.write(f"  {PARTY_NAMES.get(p, p)}: {m}")
+                st.markdown("---")
+
+        # ── Partistöd per valkrets ──
+        st.divider()
+        st.subheader("Partistöd per valkrets")
+        const_names_t1 = sorted(CONSTITUENCIES_2022.keys())
+        sel_const_t1 = st.selectbox("Välj valkrets", const_names_t1, key="tab1_const_sel")
+
+        _swing_t1 = {p: raw_est.get(p, 0) - NATIONAL_2022.get(p, 0) for p in PARTIES}
+        _c22_t1 = CONSTITUENCIES_2022[sel_const_t1]
+        _raw_t1 = {p: max(0.0, _c22_t1.get(p, 0) + _swing_t1.get(p, 0)) for p in PARTIES}
+        _tot_t1 = sum(_raw_t1.values())
+        _pred_t1 = {p: _raw_t1[p] / _tot_t1 * 100 if _tot_t1 > 0 else 0.0 for p in PARTIES}
+
+        const_detail_rows_t1 = []
+        for p in PARTIES:
+            v22 = _c22_t1.get(p, 0.0)
+            v26 = _pred_t1.get(p, 0.0)
+            const_detail_rows_t1.append({
+                "parti_kod": p,
+                "Parti": PARTY_NAMES.get(p, p),
+                "2022 (%)": round(v22, 1),
+                "Prediktion 2026 (%)": round(v26, 1),
+                "Förändring (pp)": round(v26 - v22, 1),
+            })
+        const_detail_df_t1 = pd.DataFrame(const_detail_rows_t1)
+
+        _chart_colors_t1 = [PARTY_COLORS.get(p, "#888") for p in PARTIES]
+        fig_const_t1 = go.Figure()
+        fig_const_t1.add_trace(go.Bar(
+            name="Valresultat 2022",
+            x=const_detail_df_t1["Parti"],
+            y=const_detail_df_t1["2022 (%)"],
+            marker_color=_chart_colors_t1,
+            opacity=0.4,
+            marker_pattern_shape="/",
+        ))
+        fig_const_t1.add_trace(go.Bar(
+            name="Prediktion 2026",
+            x=const_detail_df_t1["Parti"],
+            y=const_detail_df_t1["Prediktion 2026 (%)"],
+            marker_color=_chart_colors_t1,
+            opacity=0.95,
+            text=const_detail_df_t1["Prediktion 2026 (%)"].round(1).astype(str) + "%",
+            textposition="outside",
+        ))
+        fig_const_t1.update_layout(
+            **ECONOMIST_BASE,
+            barmode="group",
+            title=dict(
+                text=f"{sel_const_t1} — partistöd 2022 vs prediktion 2026",
+                font=dict(size=13, color="#111213"),
+            ),
+            xaxis=dict(showgrid=False, showline=True, linecolor="#cccccc", tickfont=dict(size=11)),
+            yaxis=dict(
+                showgrid=True, gridcolor="#ebebeb", zeroline=False, ticksuffix="%",
+                range=[0, max(const_detail_df_t1["Prediktion 2026 (%)"].max(),
+                              const_detail_df_t1["2022 (%)"].max()) * 1.2],
+            ),
+            height=360,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+            margin=dict(t=60, b=20, l=50, r=10),
+        )
+        st.plotly_chart(fig_const_t1, use_container_width=True, key="const_bar_tab1")
+
+        def _color_const_chg_t1(val):
+            try:
+                v = float(val)
+                if v > 0.5:  return "color:#2ca02c; font-weight:600"
+                if v < -0.5: return "color:#d62728; font-weight:600"
+            except Exception:
+                pass
+            return ""
+
+        st.dataframe(
+            const_detail_df_t1.drop(columns=["parti_kod"])
+            .style
+            .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
+            .applymap(_color_const_chg_t1, subset=["Förändring (pp)"]),
+            hide_index=True, use_container_width=True,
+        )
 
     # ── Tab 2: Mandatfördelning ──
     with tab2:
-        st.plotly_chart(make_mandate_bar(mandates["total"]), use_container_width=True)
+        st.plotly_chart(make_mandate_bar(mandates["total"]), use_container_width=True, key="mandate_bar_tab2")
 
         st.divider()
         st.subheader("Mandatprognos med osäkerhetsintervall")
@@ -1878,6 +2084,7 @@ def main():
         st.plotly_chart(
             make_economist_mandate_chart(raw_est, sim, seats_2022_total),
             use_container_width=True,
+            key="economist_mandate_tab2",
         )
 
         st.divider()
@@ -1942,38 +2149,90 @@ def main():
             paper_bgcolor="white",
             margin=dict(t=10, b=10, l=10, r=10),
         )
-        st.plotly_chart(fig_hem, use_container_width=True)
+        st.plotly_chart(fig_hem, use_container_width=True, key="hemisphere_tab2")
 
     # ── Tab 3: Valkretsar ──
     with tab3:
-        st.subheader("Interaktiv karta – mandat per region")
+        st.subheader("Partistöd per valkrets")
+        const_names = sorted(CONSTITUENCIES_2022.keys())
+        sel_const = st.selectbox("Välj valkrets", const_names, key="tab3_const_sel")
 
-        map_col1, map_col2 = st.columns([3, 1])
-        with map_col2:
-            map_mode = st.radio(
-                "Kartläge",
-                ["Dominerande parti", "Visa ett parti"],
-                help="Välj om kartan ska visa det starkaste partiet eller ett specifikt parti",
-            )
-            if map_mode == "Visa ett parti":
-                map_party = st.selectbox(
-                    "Välj parti",
-                    options=[p for p in PARTIES if mandates["total"].get(p, 0) > 0],
-                    format_func=lambda p: PARTY_NAMES.get(p, p),
-                )
-            else:
-                map_party = None
+        # Beräkna predicted vote share per valkrets med uniform swing
+        _swing = {p: raw_est.get(p, 0) - NATIONAL_2022.get(p, 0) for p in PARTIES}
+        _c22 = CONSTITUENCIES_2022[sel_const]
+        _raw = {p: max(0.0, _c22.get(p, 0) + _swing.get(p, 0)) for p in PARTIES}
+        _tot = sum(_raw.values())
+        _pred = {p: _raw[p] / _tot * 100 if _tot > 0 else 0.0 for p in PARTIES}
 
-            st.caption(
-                "Kartan visar Sveriges 21 län. Stockholms, Skånes och "
-                "Västra Götalands mandat är summerade från sina respektive valkretsar."
-            )
+        const_detail_rows = []
+        for p in PARTIES:
+            v22 = _c22.get(p, 0.0)
+            v26 = _pred.get(p, 0.0)
+            const_detail_rows.append({
+                "parti_kod": p,
+                "Parti": PARTY_NAMES.get(p, p),
+                "2022 (%)": round(v22, 1),
+                "Prediktion 2026 (%)": round(v26, 1),
+                "Förändring (pp)": round(v26 - v22, 1),
+            })
+        const_detail_df = pd.DataFrame(const_detail_rows)
 
-        with map_col1:
-            st.plotly_chart(
-                make_sweden_map(mandates["fixed"], geojson, selected_party=map_party),
-                use_container_width=True,
-            )
+        # Stapeldiagram
+        _chart_colors = [PARTY_COLORS.get(p, "#888") for p in PARTIES]
+        fig_const = go.Figure()
+        fig_const.add_trace(go.Bar(
+            name="Valresultat 2022",
+            x=const_detail_df["Parti"],
+            y=const_detail_df["2022 (%)"],
+            marker_color=_chart_colors,
+            opacity=0.4,
+            marker_pattern_shape="/",
+        ))
+        fig_const.add_trace(go.Bar(
+            name="Prediktion 2026",
+            x=const_detail_df["Parti"],
+            y=const_detail_df["Prediktion 2026 (%)"],
+            marker_color=_chart_colors,
+            opacity=0.95,
+            text=const_detail_df["Prediktion 2026 (%)"].round(1).astype(str) + "%",
+            textposition="outside",
+        ))
+        fig_const.update_layout(
+            **ECONOMIST_BASE,
+            barmode="group",
+            title=dict(
+                text=f"{sel_const} — partistöd 2022 vs prediktion 2026",
+                font=dict(size=13, color="#111213"),
+            ),
+            xaxis=dict(showgrid=False, showline=True, linecolor="#cccccc", tickfont=dict(size=11)),
+            yaxis=dict(
+                showgrid=True, gridcolor="#ebebeb", zeroline=False, ticksuffix="%",
+                range=[0, max(const_detail_df["Prediktion 2026 (%)"].max(),
+                              const_detail_df["2022 (%)"].max()) * 1.2],
+            ),
+            height=360,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+            margin=dict(t=60, b=20, l=50, r=10),
+        )
+        st.plotly_chart(fig_const, use_container_width=True, key="const_bar_tab3")
+
+        # Tabell
+        def _color_const_chg(val):
+            try:
+                v = float(val)
+                if v > 0.5:  return "color:#2ca02c; font-weight:600"
+                if v < -0.5: return "color:#d62728; font-weight:600"
+            except Exception:
+                pass
+            return ""
+
+        st.dataframe(
+            const_detail_df.drop(columns=["parti_kod"])
+            .style
+            .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
+            .applymap(_color_const_chg, subset=["Förändring (pp)"]),
+            hide_index=True, use_container_width=True,
+        )
 
         st.divider()
         st.subheader("Fasta mandat per valkrets – prognos vs 2022")
@@ -2034,31 +2293,40 @@ def main():
         st.plotly_chart(
             make_constituency_bar(mandates["fixed"], seats_2022, bar_party),
             use_container_width=True,
+            key="const_bar_tab3_party",
         )
 
     # ── Tab 8: Metod & Källor ──
     with tab8:
         st.header("Metod & Källor")
 
-        st.subheader("1. Opinionsaggregering")
+        st.subheader("1. Opinionsaggregering – Kalman-smoother")
         st.markdown("""
 Appen hämtar alla tillgängliga opinionsmätningar från databasen
 [SwedishPolls](https://github.com/MansMeg/SwedishPolls) (MansMeg/SwedishPolls på GitHub),
 som samlar svenska riksdagsundersökningar från 1980 och framåt.
 
-Aggregeringen beräknar ett **viktat medelvärde** av mätningar inom det valda tidsfönstret.
-Varje mätning tilldelas en vikt baserad på två faktorer:
+Aggregeringen använder ett **Kalman-filter med RTS-smoother** (Rauch–Tung–Striebel)
+på ett rullande **365-dagarsfönster**. Modellen bygger på tre komponenter:
 
-- **Tidsvikt** – Nyare mätningar väger tyngre. Vikten avtar exponentiellt med en
-  halveringstid som kan justeras i sidopanelen (standard: 30 dagar).
-  Formeln är: vikt = exp(−ln(2) / halveringstid × dagar_sedan_publicering)
+**Tillståndsmodell (random walk):**
+Opinion modelleras som ett latent tillstånd som förändras gradvis —
+`x_t = x_{t−1} + w_t`, där `w_t ~ N(0, σ_process² · Δt)`.
+Processbruset är `σ_process = 0,07 pp/√dag`, vilket ger ≈ 0,5 pp naturlig rörelse per vecka.
 
-- **Stickprovsvikt** – Mätningar med fler respondenter väger något tyngre,
-  proportionellt mot kvadratroten av stickprovsstorleken (√n).
-  Kvadratrot används för att dämpa inflytandet från extremt stora undersökningar.
+**Observationsmodell (variabelt brus):**
+Varje enskild mätning ges ett eget observationsbrus baserat på stickprovsstorlek och
+institutsvikt: `σ_obs = sqrt(p·(1−p)/n) · 100 / institutsvikt`.
+Större enkäter och mer träffsäkra institut väger därmed tyngre på ett principiellt korrekt sätt
+— till skillnad från en godtycklig halverings­tid.
 
-Partier som erhåller **under 4 %** i det aggregerade estimatet exkluderas från
-mandatberäkningen i enlighet med den svenska riksdagsspärren.
+**Tvåpassalgoritm:**
+Framåtpasset (Kalman-filtret) uppdaterar estimatet allteftersom nya mätningar inkluderas.
+Bakåtpasset (RTS-smoothern) korrigerar historiska estimat med efterföljande information,
+vilket ger mjukare och mer korrekta historiska trender i trenddiagrammet.
+
+Partier som understiger **4 %** i de smoothade pollsiffrorna exkluderas från
+mandatberäkningen i enlighet med riksdagsspärren.
 """)
 
         st.subheader("2. Valkretsprognosmodell – naiv offset")
@@ -2078,14 +2346,39 @@ Modellen antar att **de regionala mönstren är stabila** – ett parti som hist
 men fungerar väl som approximation på kort sikt.
 """)
 
-        st.subheader("3. Mandatfördelning – modifierad Sainte-Laguë")
+        st.subheader("3. Backtesting-korrigering (2022)")
+        st.markdown("""
+En korrigering tillämpas alltid på mandatprognosen, simuleringen och
+koalitionsanalysen. Den beräknas dynamiskt från modellens faktiska
+prestanda dagen innan riksdagsvalet 11 september 2022.
+
+**Beräkning**
+
+Aggregatorn körs med samma inställningar som live-aggregeringen (husvikter,
+365-dagarsfönster, 30 dagars halveringstid) på opinionsdatan som fanns
+tillgänglig dagen innan valet 2022.
+Resultatet jämförs med det faktiska valresultatet:
+
+`Korrigering[p] = valresultat_2022[p] − modellestimат_2022[p]`
+
+Detta är ekvivalent med att negera "Fel (pp)" i backtesting-tabellen (avsnitt 7)
+vid det datum som ligger närmast valdagen. Korrigeringen täcker samtliga
+systematiska fel i ett tal per parti — pollsens bias, fönsterval,
+tidsviktning och institutsviktningens effekt — allt samlat.
+
+`pred_est[p] = raw_est[p] + korrigering[p]`
+
+Regionkartan visar alltid okorrigerade pollsiffror (raw_est).
+""")
+
+        st.subheader("4. Mandatfördelning – modifierad Sainte-Laguë")
         st.markdown("""
 Mandat fördelas med **modifierad Sainte-Laguë-metoden**, samma metod som
 Valmyndigheten använder i svenska riksdagsval:
 
 - Fasta valkretsmandat (310 st) fördelas inom varje valkrets med divisorerna
-  **1,4 – 3 – 5 – 7 – 9 …** (första divisorn är 1,4 istället för 1,
-  vilket missgynnar små partier något).
+  **1,2 – 3 – 5 – 7 – 9 …** (första divisorn är 1,2 sedan 2018 — tidigare
+  1,4 — vilket ger ökad proportionalitet för mindre partier).
 
 - Utjämningsmandat (39 st) delas ut för att göra riksdagen proportionell
   mot rikssiffrorna. Varje parti som fått färre fasta mandat än sin
@@ -2095,7 +2388,7 @@ Valmyndigheten använder i svenska riksdagsval:
 Totalt 349 mandat. Majoritetsgränsen är 175 mandat.
 """)
 
-        st.subheader("4. Datakällor")
+        st.subheader("5. Datakällor")
         st.markdown("""
 | Källa | Beskrivning | Länk |
 |---|---|---|
@@ -2109,7 +2402,7 @@ Valmyndighetens officiella slutresultat och utgör referensdata
 för den regionala offsetmodellen.
 """)
 
-        st.subheader("5. Begränsningar & felkällor")
+        st.subheader("6. Begränsningar & felkällor")
         st.markdown("""
 - **Naiv modell**: Appen implementerar ett enkelt viktat medelvärde,
   inte en fullständig Bayesiansk modell som Botten Ada.
@@ -2127,7 +2420,7 @@ för den regionala offsetmodellen.
   utjämningsmandat per parti visas.
 """)
 
-        st.subheader("6. Backtesting — träffsäkerhet inför valet 2022")
+        st.subheader("7. Backtesting — träffsäkerhet inför valet 2022")
         st.markdown(
             "Hur bra hade modellen presterat om den körts vid olika tidpunkter *före* "
             "riksdagsvalet 11 september 2022? Tabellen och diagrammet nedan visar "
@@ -2170,20 +2463,20 @@ för den regionala offsetmodellen.
             x=mae_df["Referensdatum"],
             y=mae_df["MAE (pp)"],
             mode="lines+markers",
-            line=dict(color="#1a6faf", width=2.5),
-            marker=dict(size=8, color="#1a6faf"),
+            line=dict(color="#29BFA2", width=2.5),
+            marker=dict(size=8, color="#29BFA2"),
             hovertemplate="Datum: %{x}<br>MAE: <b>%{y:.2f} pp</b><extra></extra>",
         ))
         fig_bt.add_hline(y=0, line_dash="dot", line_color="#cccccc", line_width=1)
         fig_bt.update_layout(
             **ECONOMIST_LAYOUT,
-            title=dict(text="Medelabsolut fel (MAE) per referensdatum — inför valet 2022", font=dict(size=13, color="#333333")),
+            title=dict(text="Medelabsolut fel (MAE) per referensdatum — inför valet 2022", font=dict(size=13, color="#111213")),
             xaxis_title="Referensdatum",
             yaxis_title="MAE (procentenheter)",
             height=320,
             margin=dict(t=50, b=40, l=60, r=20),
         )
-        st.plotly_chart(fig_bt, use_container_width=True)
+        st.plotly_chart(fig_bt, use_container_width=True, key="backtesting_chart")
         st.caption(
             "Lägre MAE = bättre träffsäkerhet. Typiskt sjunker felet ju närmre valet man är, "
             "eftersom fler färska mätningar finns tillgängliga."
@@ -2198,6 +2491,81 @@ för den regionala offsetmodellen.
             "centrerad kring aggregeringen och med spridning baserad på variansen "
             "mellan de senaste mätningarna."
         )
+
+        # ── Hur sannolikt är det att… ──
+        st.divider()
+        st.subheader("Hur sannolikt är det att…")
+
+        _draws = sim["draws"]
+        _n = sim["n_sims"]
+        _at = sim["above_threshold"]
+
+        # Beräkna röstandelar per block
+        _bloc_v_votes = sum(_draws.get(p, np.zeros(_n)) for p in ["S", "V", "MP", "C"])
+        _bloc_h_votes = sum(_draws.get(p, np.zeros(_n)) for p in ["M", "L", "KD", "SD"])
+        _svmp_votes   = sum(_draws.get(p, np.zeros(_n)) for p in ["S", "V", "MP"])
+        _scmp_votes   = sum(_draws.get(p, np.zeros(_n)) for p in ["S", "C", "MP"])
+        _gov_votes    = sum(_draws.get(p, np.zeros(_n)) for p in ["M", "L", "KD"])
+
+        def _fmt_pct(p_val):
+            if p_val >= 0.95: return ">95 %"
+            if p_val <= 0.05: return "<5 %"
+            return f"{p_val*100:.0f} %"
+
+        def _verdict(p_val):
+            if p_val >= 0.95: return "Väldigt troligt"
+            if p_val >= 0.70: return "Troligt"
+            if p_val >= 0.30: return "Osäkert"
+            if p_val >= 0.05: return "Osannolikt"
+            return "Väldigt osannolikt"
+
+        _scenarios = [
+            ("Magdalena Anderssons regeringsunderlag har större stöd än Ulf Kristerssons?",
+             float((_bloc_v_votes > _bloc_h_votes).mean())),
+            ("Ulf Kristerssons regeringsunderlag har större stöd än Magdalena Anderssons?",
+             float((_bloc_h_votes > _bloc_v_votes).mean())),
+            ("S, V och MP har en majoritet av väljarna (utan C)?",
+             float((_svmp_votes > 50).mean())),
+            ("S, C och MP har en majoritet av väljarna (utan V)?",
+             float((_scmp_votes > 50).mean())),
+            ("Är SD större än regeringspartierna (M+L+KD) tillsammans?",
+             float((_draws.get("SD", np.zeros(_n)) > _gov_votes).mean())),
+            ("MP ligger över spärren?",    _at.get("MP", 0)),
+            ("L ligger över spärren?",     _at.get("L", 0)),
+            ("KD ligger över spärren?",    _at.get("KD", 0)),
+            ("C ligger över spärren?",     _at.get("C", 0)),
+            ("Samtliga riksdagspartier ligger över spärren?",
+             float(np.mean(np.all(
+                 np.stack([_draws.get(p, np.zeros(_n)) >= THRESHOLD for p in PARTIES]), axis=0
+             )))),
+            ("M är större än SD?",
+             float((_draws.get("M", np.zeros(_n)) > _draws.get("SD", np.zeros(_n))).mean())),
+        ]
+
+        for question, prob in _scenarios:
+            verdict = _verdict(prob)
+            pct_str = _fmt_pct(prob)
+            bar_width = min(max(prob, 0.03), 1.0)
+            bar_color = (
+                "#29BFA2" if prob >= 0.70
+                else "#a8a8a8" if prob >= 0.30
+                else "#EF718C"
+            )
+            st.markdown(f"**{question}**")
+            col_v, col_b = st.columns([1, 3])
+            with col_v:
+                st.markdown(f"*{verdict}*")
+            with col_b:
+                st.markdown(
+                    f"""<div style="background:#e8e8e8; border-radius:4px; height:28px; width:100%; position:relative;">
+                    <div style="background:{bar_color}; width:{bar_width*100:.1f}%; height:100%; border-radius:4px;
+                         display:flex; align-items:center; justify-content:center;">
+                    <span style="color:{'white' if prob > 0.15 else '#333'}; font-weight:600; font-size:0.9rem;">
+                    {pct_str}</span></div></div>""",
+                    unsafe_allow_html=True,
+                )
+            st.markdown("")
+        st.divider()
 
         bh = sim["bloc_h"]
         bv = sim["bloc_v"]
@@ -2221,8 +2589,8 @@ för den regionala offsetmodellen.
         # Sannolikhetsstaplar
         fig_prob = go.Figure()
         for label, val, color in [
-            ("Högerblocket", p_h_maj, "#3366cc"),
-            ("Vänsterblocket", p_v_maj, "#cc3333"),
+            ("Högerblocket", p_h_maj, "#29BFA2"),
+            ("Vänsterblocket", p_v_maj, "#EF718C"),
             ("Inget block", p_none, "#999999"),
         ]:
             fig_prob.add_trace(go.Bar(
@@ -2239,7 +2607,7 @@ för den regionala offsetmodellen.
             height=300,
             showlegend=False, margin=dict(t=20, b=10, l=55, r=10),
         )
-        st.plotly_chart(fig_prob, use_container_width=True)
+        st.plotly_chart(fig_prob, use_container_width=True, key="probability_bar_tab4")
 
         st.divider()
 
@@ -2247,8 +2615,8 @@ för den regionala offsetmodellen.
         st.subheader("Fördelning av riksdagsmandat per block")
         col1, col2 = st.columns(2)
         for col_obj, bloc_arr, bloc_name, color in [
-            (col1, bh, "Högerblocket", "#3366cc"),
-            (col2, bv, "Vänsterblocket", "#cc3333"),
+            (col1, bh, "Högerblocket", "#29BFA2"),
+            (col2, bv, "Vänsterblocket", "#EF718C"),
         ]:
             with col_obj:
                 fig_hist = go.Figure()
@@ -2270,12 +2638,12 @@ för den regionala offsetmodellen.
                 )
                 fig_hist.update_layout(
                     **ECONOMIST_LAYOUT,
-                    title=dict(text=bloc_name, font=dict(size=13, color="#333333")),
+                    title=dict(text=bloc_name, font=dict(size=13, color="#111213")),
                     xaxis_title="Mandat", yaxis_title="Antal simuleringar",
                     height=320,
                     showlegend=False, margin=dict(t=40, b=10, l=55, r=10),
                 )
-                st.plotly_chart(fig_hist, use_container_width=True)
+                st.plotly_chart(fig_hist, use_container_width=True, key=f"hist_{bloc_name}")
 
         st.divider()
 
@@ -2326,7 +2694,7 @@ för den regionala offsetmodellen.
             height=420, showlegend=False,
             margin=dict(t=20, b=10, l=55, r=10),
         )
-        st.plotly_chart(fig_box, use_container_width=True)
+        st.plotly_chart(fig_box, use_container_width=True, key="box_mandates_tab4")
 
         st.caption(
             f"Baserat på {sim['n_sims']:,} simuleringar. "
@@ -2334,15 +2702,15 @@ för den regionala offsetmodellen.
             "σ total inkluderar 1,0 % strukturell osäkerhet."
         )
 
-    # ── Tab 5: Koalitioner ──
-    with tab5:
-        st.header("Koalitionsanalys")
+        # ── Koalitionsanalys ──
+        st.divider()
+        st.subheader("Koalitionsanalys")
         st.markdown(
             "Baserat på **10 000 simuleringar** — hur sannolikt är det att respektive "
             "koalitionskombination uppnår riksdagsmajoritet (≥ 175 mandat)?"
         )
 
-        st.plotly_chart(make_coalition_chart(sim), use_container_width=True)
+        st.plotly_chart(make_coalition_chart(sim), use_container_width=True, key="coalition_bar_tab4")
 
         st.divider()
         st.subheader("Mandatfördelning per koalition")
@@ -2350,7 +2718,7 @@ för den regionala offsetmodellen.
             "Lådagrammet visar median (linje), IQR (låda) och 90 % av simuleringarna (morrhår). "
             "Röd linje = majoritetsgräns (175 mandat)."
         )
-        st.plotly_chart(make_coalition_mandate_dist(sim), use_container_width=True)
+        st.plotly_chart(make_coalition_mandate_dist(sim), use_container_width=True, key="coalition_dist_tab4")
 
         st.divider()
         st.subheader("Koalitionstabell")
@@ -2371,8 +2739,8 @@ för den regionala offsetmodellen.
         coal_rows.sort(key=lambda r: float(r["P(majoritet)"][:-1]), reverse=True)
         st.dataframe(pd.DataFrame(coal_rows), hide_index=True, use_container_width=True)
 
-    # ── Tab 6: Kandidater ──
-    with tab6:
+    # ── Tab 5: Kandidater ──
+    with tab5:
         st.header("Förväntade riksdagsledamöter")
         st.markdown(
             "Baserat på mandatprognoserna och Valmyndighetens registrerade kandidatlistor "
@@ -2507,12 +2875,12 @@ för den regionala offsetmodellen.
                     ))
                     fig_gender.update_layout(
                         **ECONOMIST_LAYOUT,
-                        title=dict(text=f"Könsfördelning (registrerade) — {sel_valkrets}", font=dict(size=13, color="#333333")),
+                        title=dict(text=f"Könsfördelning (registrerade) — {sel_valkrets}", font=dict(size=13, color="#111213")),
                         height=280, showlegend=False,
                         margin=dict(t=40, b=20, l=50, r=10),
                         yaxis_title="Antal kandidater",
                     )
-                    st.plotly_chart(fig_gender, use_container_width=True)
+                    st.plotly_chart(fig_gender, use_container_width=True, key="gender_chart_tab5")
 
             st.divider()
             st.subheader("Alla förväntade invalda — riksdag totalt")
@@ -2592,12 +2960,12 @@ för den regionala offsetmodellen.
                          annotation_text="Standardvikt (1,0)")
         fig_hw.update_layout(
             **ECONOMIST_LAYOUT,
-            title=dict(text="Institutsvikter baserade på träffsäkerhet 2022", font=dict(size=13, color="#333333")),
+            title=dict(text="Institutsvikter baserade på träffsäkerhet 2022", font=dict(size=13, color="#111213")),
             yaxis_title="Vikt", yaxis_range=[0, house_weights_df["Vikt"].max() * 1.25],
             height=320, showlegend=False,
             margin=dict(t=50, b=10, l=55, r=10),
         )
-        st.plotly_chart(fig_hw, use_container_width=True)
+        st.plotly_chart(fig_hw, use_container_width=True, key="house_weights_chart")
 
         st.subheader("Valresultat 2022 per valkrets (referensdata)")
         _c22 = pd.DataFrame(CONSTITUENCIES_2022).T
@@ -2614,20 +2982,18 @@ för den regionala offsetmodellen.
         )
 
 
-    # ── Tab 9: Regional karta ──
-    with tab9:
+    # ── Tab 6: Regional & kommunal ──
+    with tab6:
         st.header("Regional & kommunal valprediktion")
         days_left = max(0, (ELECTION_2026 - datetime.now()).days)
         st.markdown(
             "Applicerar en **uniform swing-modell** på valresultaten 2022 per region och "
             "kommun. Modellen tar det aktuella nationella opinionsläget och fördelar "
             "förändringen sedan 2022 lika i alla kommuner och regioner. "
-            "Data från **SCB PX-Web** och **okfse/sweden-geojson**.\n\n"
-            f"🗓️ **{days_left} dagar kvar till valet** (preliminärt 13 september 2026)"
+            "Data från **SCB PX-Web** och **okfse/sweden-geojson**."
         )
 
-        with st.expander("ℹ️ Så här fungerar modellen"):
-            st.markdown("""
+        st.markdown("""
 **Uniform swing** innebär att den nationella förändringen sedan 2022 appliceras lika
 i alla kommuner. Om SD nationellt gått från 20,5 % → 22,0 % (+1,5 pp) får varje
 kommun +1,5 pp på sin lokala 2022-siffra — oavsett om kommunen är SD-stark eller svag.
@@ -2636,24 +3002,24 @@ Det är en förenkling, men transparent och vanlig i valanalys.
 
 `prediktion = 2022-lokalt + nationell opinionssving (sedan 2022)`
 
-Historisk biaskorrigering och kampanjsvängning kan aktiveras i sidopanelen — de
-påverkar den nationella prediktionen (mandatfördelning, simulering, koalitioner).
+Institutsviktning och backtesting-korrigering tillämpas alltid på mandatprognosen
+och simuleringen. Regionkartan visar alltid okorrigerade pollsiffror.
+**Lokalpartier** ingår inte i modellen — de kan ha ett betydande stöd i enskilda kommuner.
+Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
 """)
 
         # ── Kontroller ──
-        ctrl1, = st.columns([1])
-        with ctrl1:
-            col_radio, col_view = st.columns([2, 2])
-            with col_radio:
-                val_type = st.radio(
-                    "Valtyp",
-                    ["Riksdag per kommun", "Regionval per region", "Kommunalval per kommun"],
-                    horizontal=False,
-                    key="map_val_type",
-                )
-            with col_view:
-                view_opts = ["Ledande parti"] + [PARTY_NAMES.get(p, p) for p in PARTIES]
-                view_sel = st.selectbox("Färgläggning", view_opts, key="map_view_sel")
+        col_radio, col_view = st.columns([2, 1])
+        with col_radio:
+            val_type = st.radio(
+                "Valtyp",
+                ["Riksdag per kommun", "Regionval per region", "Kommunalval per kommun"],
+                horizontal=False,
+                key="map_val_type",
+            )
+        with col_view:
+            view_opts = ["Ledande parti"] + [PARTY_NAMES.get(p, p) for p in PARTIES]
+            view_sel = st.selectbox("Färgläggning", view_opts, key="map_view_sel")
 
         if view_sel == "Ledande parti":
             view_mode = "leading"
@@ -2753,7 +3119,7 @@ påverkar den nationella prediktionen (mandatfördelning, simulering, koalitione
                     predicted_df, geo, featureidkey, id_col,
                     view_mode, map_title, name_map=name_map_geo,
                 )
-            st.plotly_chart(fig_map, use_container_width=True)
+            st.plotly_chart(fig_map, use_container_width=True, key="regional_map_tab6")
 
             # ── Detaljvy per vald kommun/region ──
             st.divider()
@@ -2832,7 +3198,7 @@ påverkar den nationella prediktionen (mandatfördelning, simulering, koalitione
                 barmode="group",
                 title=dict(
                     text=f"{sel_area_name} — 2022 jämfört med prediktion 2026",
-                    font=dict(size=13, color="#333333"),
+                    font=dict(size=13, color="#111213"),
                 ),
                 xaxis=dict(
                     showgrid=False, showline=True,
@@ -2848,7 +3214,7 @@ påverkar den nationella prediktionen (mandatfördelning, simulering, koalitione
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
                 margin=dict(t=60, b=20, l=50, r=10),
             )
-            st.plotly_chart(fig_detail, use_container_width=True)
+            st.plotly_chart(fig_detail, use_container_width=True, key="regional_detail_tab6")
 
             # Detailtabell
             def _color_chg(val):
@@ -2938,12 +3304,45 @@ påverkar den nationella prediktionen (mandatfördelning, simulering, koalitione
                     mime="text/csv",
                 )
 
-            st.info(
-                "**Modellnotering:** Uniform swing antar att den nationella svängningen "
-                "fördelas lika i alla kommuner och regioner. Lokalpartier ingår inte i "
-                "modellen — de kan ha ett betydande stöd i enskilda kommuner. "
-                "Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls."
-            )
+
+    # ── Tab 9: Om mig ──
+    with tab9:
+        st.header("Om mig")
+
+        col_text, col_space = st.columns([2, 1])
+        with col_text:
+            st.markdown("""
+### Oliver Rykatkin
+
+Jag är **Senior Consultant inom insikter och Public Affairs** på
+[Hallvarsson & Halvarsson](https://www.halvarsson.se) — ett av Sveriges ledande
+kommunikationsbolag med fokus på finansiell kommunikation och samhällsfrågor.
+
+Jag har en **kandidatexamen i Statistik från Uppsala Universitet**, vilket lagt grunden
+för mitt intresse för kvantitativ analys och opinionsdata.
+
+Vid sidan av arbetet har jag en **politisk bakgrund inom MUF och Moderaterna**
+och sitter i nämnd i min hemkommun **Nacka**.
+
+---
+
+### Om Mandatorn
+
+Mandatorn är ett personligt projekt som kombinerar mitt statistiska intresse med
+mitt engagemang i svensk politik. Inspirerad av amerikanska valmodeller som
+FiveThirtyEight ville jag se om liknande metodik går att tillämpa på svenska
+riksdagsval — med opinionsmätningar, Kalman-smoother och Monte Carlo-simuleringar
+som grund.
+
+Modellen är öppen och transparent. Metodbeskrivningen finns i fliken **Metod**.
+Alla synpunkter och förbättringsförslag tas tacksamt emot.
+""")
+
+        st.divider()
+        st.caption(
+            "Mandatorn är ett oberoende projekt och representerar inte Hallvarsson & Halvarsson "
+            "eller Moderaterna. Alla prognoser är förenade med osäkerhet — se metodfliken för detaljer."
+        )
 
 
 if __name__ == "__main__":
