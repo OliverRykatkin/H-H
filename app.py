@@ -2067,7 +2067,7 @@ def main():
             const_detail_df_t1.drop(columns=["parti_kod"])
             .style
             .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
-            .applymap(_color_const_chg_t1, subset=["Förändring (pp)"]),
+            .map(_color_const_chg_t1, subset=["Förändring (pp)"]),
             hide_index=True, use_container_width=True,
         )
 
@@ -2230,7 +2230,7 @@ def main():
             const_detail_df.drop(columns=["parti_kod"])
             .style
             .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
-            .applymap(_color_const_chg, subset=["Förändring (pp)"]),
+            .map(_color_const_chg, subset=["Förändring (pp)"]),
             hide_index=True, use_container_width=True,
         )
 
@@ -2277,7 +2277,7 @@ def main():
                         return "background-color: #f8d7da; color: #721c24"
                 return ""
             st.dataframe(
-                diff_df.style.applymap(color_diff),
+                diff_df.style.map(color_diff),
                 use_container_width=True,
             )
 
@@ -2448,7 +2448,7 @@ för den regionala offsetmodellen.
         st.dataframe(
             pivot.style
                  .format({c: "{:+.2f}" for c in num_cols})
-                 .applymap(color_error, subset=num_cols),
+                 .map(color_error, subset=num_cols),
             hide_index=True, use_container_width=True,
         )
 
@@ -2785,7 +2785,7 @@ för den regionala offsetmodellen.
                 return ""
 
             st.dataframe(
-                status_df.style.applymap(color_status, subset=["Status"]),
+                status_df.style.map(color_status, subset=["Status"]),
                 hide_index=True, use_container_width=True,
             )
 
@@ -2854,7 +2854,7 @@ för den regionala offsetmodellen.
                     return ""
 
                 st.dataframe(
-                    cand_table.drop(columns=["Status"]).style.applymap(
+                    cand_table.drop(columns=["Status"]).style.map(
                         color_status_row,
                         subset=["Namn"],
                     ),
@@ -2940,7 +2940,7 @@ för den regionala offsetmodellen.
             except Exception:
                 return ""
 
-        styled_hw = house_weights_df.style.applymap(
+        styled_hw = house_weights_df.style.map(
             color_weight, subset=["Vikt"]
         ).format({"MAE (pp)": "{:.3f}", "Vikt": "{:.3f}"})
         st.dataframe(styled_hw, hide_index=True, use_container_width=True)
@@ -3230,7 +3230,7 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                 detail_df.drop(columns=["parti_kod"])
                 .style
                 .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
-                .applymap(_color_chg, subset=["Förändring (pp)"])
+                .map(_color_chg, subset=["Förändring (pp)"])
             )
             st.dataframe(display_detail, hide_index=True, use_container_width=True)
 
@@ -3267,7 +3267,7 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
             st.dataframe(
                 swing_df.style
                 .format({"Riksdag 2022 (%)": "{:.1f}", "Nu i polls (%)": "{:.1f}"})
-                .applymap(_color_total, subset=["Opinionssving (pp)"]),
+                .map(_color_total, subset=["Opinionssving (pp)"]),
                 hide_index=True, use_container_width=True,
             )
 
