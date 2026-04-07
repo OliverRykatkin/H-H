@@ -166,7 +166,7 @@ NATIONAL_2022 = {
 ELECTION_2026 = datetime(2026, 9, 13)   # Preliminärt: andra söndagen i september 2026
 ELECTION_2022 = datetime(2022, 9, 11)
 
-# Pollingbias och modellkorrigering beräknas nu dynamiskt i
+# Nationella valresultat 2022 — används som referens i valkrets- och swing-modellen
 # compute_polling_bias_2022() och compute_model_correction_2022()
 # baserat på aggregatorns faktiska prestanda dagen innan valet 2022.
 
@@ -590,7 +590,7 @@ def load_candidates() -> pd.DataFrame:
         resp.raise_for_status()
         # Dekoda med utf-8-sig för att ta bort BOM-tecknet i början av filen
         text = resp.content.decode("utf-8-sig")
-        df = pd.read_csv(StringIO(text), sep=";")
+        df = pd.read_csv(StringIO(text), sep=";", on_bad_lines="skip")
     except Exception as e:
         st.warning(f"Kunde inte hämta kandidatdata: {e}")
         return pd.DataFrame()
@@ -612,18 +612,156 @@ def predict_elected_candidates(fixed_seats: dict, candidates_df: pd.DataFrame) -
     Matchar mandatprediktionen mot kandidatlistorna och returnerar
     de förväntade invalda riksdagsledamöterna per valkrets och parti.
 
+    En kandidat kan bara bli invald från en valkrets. Om samma person
+    finns högt upp på listor i flera valkretsar tilldelas de den valkrets
+    där de har lägst ordningsnummer (= bäst listplacering) — samma logik
+    som om de blivit personkryssade där. I övriga valkretsar ersätts de
+    av nästa kandidat på listan.
+
     Returns: {valkrets: {parti: [{'namn':…, 'ordning':…, 'alder':…, 'kon':…, 'hemkommun':…}]}}
     """
-    result = {}
-    for valkrets, party_seats in fixed_seats.items():
+    if candidates_df.empty:
+        return {valkrets: {} for valkrets in fixed_seats}
+
+    # ── Steg 1: bygg ett "hemvalkrets"-index per (parti, namn) ──
+    # Hemvalkrets = valkretsen där kandidaten har lägst ordningsnummer.
+    # Det avspeglar var de är starkast förankrade / personkryssade.
+    home = (
+        candidates_df
+        .sort_values("ordning")
+        .groupby(["parti", "namn"], sort=False)
+        .first()
+        .reset_index()[["parti", "namn", "valkrets"]]
+        .rename(columns={"valkrets": "hemvalkrets"})
+    )
+    df = candidates_df.merge(home, on=["parti", "namn"], how="left")
+
+    # ── Steg 2: fördela mandat — ingen kandidat kan väljas mer än en gång ──
+    elected: set[str] = set()          # nyckel: f"{parti}|{namn}"
+    result: dict = {}
+
+    # Sortera valkretsar på storlek (flest mandat först) så att stora
+    # valkretsar inte tappar toppkandidater till småvalkretsar.
+    sorted_constituencies = sorted(
+        fixed_seats.items(),
+        key=lambda kv: sum(kv[1].values()),
+        reverse=True,
+    )
+
+    for valkrets, party_seats in sorted_constituencies:
         result[valkrets] = {}
         for parti, n_seats in party_seats.items():
-            if n_seats == 0 or candidates_df.empty:
+            if n_seats == 0:
                 continue
-            mask = (candidates_df["parti"] == parti) & (candidates_df["valkrets"] == valkrets)
-            cands = candidates_df[mask].sort_values("ordning").head(n_seats)
-            if not cands.empty:
-                result[valkrets][parti] = cands.to_dict("records")
+            mask = (
+                (df["parti"] == parti) &
+                (df["valkrets"] == valkrets) &
+                # Välj bara kandidaten om denna valkrets är deras hemvalkrets
+                # ELLER om de inte finns i någon annan valkrets alls.
+                (
+                    (df["hemvalkrets"] == valkrets) |
+                    (df["hemvalkrets"].isna())
+                )
+            )
+            pool = df[mask].sort_values("ordning")
+
+            chosen = []
+            for _, row in pool.iterrows():
+                key = f"{parti}|{row['namn']}"
+                if key in elected:
+                    continue
+                chosen.append(row.to_dict())
+                elected.add(key)
+                if len(chosen) == n_seats:
+                    break
+
+            # Om hemvalkrets-filtret gav för få kandidater, fyll på med
+            # övriga kandidater i valkretsen (oavsett hemvalkrets).
+            if len(chosen) < n_seats:
+                fallback_mask = (
+                    (df["parti"] == parti) &
+                    (df["valkrets"] == valkrets) &
+                    (~df["hemvalkrets"].eq(valkrets) | df["hemvalkrets"].isna())
+                )
+                for _, row in df[fallback_mask].sort_values("ordning").iterrows():
+                    key = f"{parti}|{row['namn']}"
+                    if key in elected:
+                        continue
+                    chosen.append(row.to_dict())
+                    elected.add(key)
+                    if len(chosen) == n_seats:
+                        break
+
+            if chosen:
+                result[valkrets][parti] = chosen
+
+    return result
+
+
+def predict_adjustment_candidates(
+    adjustment: dict,
+    candidates_df: pd.DataFrame,
+    elected_fixed: dict,
+) -> dict:
+    """
+    Förutsäger vilka kandidater som vinner utjämningsmandat.
+
+    Utjämningsmandat fördelas nationellt — de tillkommer kandidater som inte
+    redan vunnit ett fast valkretsmandat. För varje parti plockas de nästa
+    kandidaterna i kön, sorterade på deras bästa listplacering (hemvalkrets).
+
+    Returns: {parti: [{'namn':…, 'ordning':…, 'alder':…, 'kon':…, 'hemkommun':…, 'hemvalkrets':…}]}
+    """
+    if candidates_df.empty:
+        return {}
+
+    # Bygg hemvalkrets-index: lägst ordningsnummer per (parti, namn)
+    home = (
+        candidates_df
+        .sort_values("ordning")
+        .groupby(["parti", "namn"], sort=False)
+        .first()
+        .reset_index()[["parti", "namn", "valkrets", "ordning"]]
+        .rename(columns={"valkrets": "hemvalkrets", "ordning": "home_ordning"})
+    )
+
+    # Samla alla som redan vunnit ett fast mandat
+    already_elected: set[str] = set()
+    for valkrets, party_dict in elected_fixed.items():
+        for parti, cands in party_dict.items():
+            for c in cands:
+                already_elected.add(f"{parti}|{c['namn']}")
+
+    result = {}
+    for parti, n_adj in adjustment.items():
+        if n_adj == 0:
+            continue
+        pool = home[home["parti"] == parti].sort_values("home_ordning")
+        chosen = []
+        for _, row in pool.iterrows():
+            key = f"{parti}|{row['namn']}"
+            if key in already_elected:
+                continue
+            # Hämta full kandidatinfo från hemvalkretsen
+            full = candidates_df[
+                (candidates_df["parti"] == parti) &
+                (candidates_df["namn"] == row["namn"]) &
+                (candidates_df["valkrets"] == row["hemvalkrets"])
+            ]
+            if full.empty:
+                full = candidates_df[
+                    (candidates_df["parti"] == parti) &
+                    (candidates_df["namn"] == row["namn"])
+                ]
+            if full.empty:
+                continue
+            rec = full.iloc[0].to_dict()
+            rec["hemvalkrets"] = row["hemvalkrets"]
+            chosen.append(rec)
+            if len(chosen) == n_adj:
+                break
+        if chosen:
+            result[parti] = chosen
     return result
 
 
@@ -755,10 +893,10 @@ def aggregate_polls_kalman(
     df = _df
     house_weights = _house_weights
 
-    # Ankra till senaste mätning om inget referensdatum angetts.
-    # Utan detta ändras estimatet varje dag när polls rullar ur fönstret.
-    latest_in_data = df["PublDate"].max() if not df.empty else datetime.now()
-    now = reference_date or latest_in_data
+    # Referensdatum: idag om inget annat anges.
+    # Det gör att estimatet uppdateras varje dag fönstret rullar
+    # och gamla mätningar faller ur — även utan ny opinionsmätning.
+    now = reference_date or datetime.now()
     cutoff = now - timedelta(days=window_days)
     recent = df[(df["PublDate"] >= cutoff) & (df["PublDate"] <= now)].copy()
 
@@ -966,11 +1104,8 @@ def compute_2022_mandates() -> dict:
     return fixed_seats
 
 
-def allocate_all_mandates(national_est_raw: dict, threshold_ref: dict = None) -> dict:
-    # Tröskelkollen görs mot threshold_ref (= råa polls) för att undvika att
-    # backtesting-korrigeringen felaktigt utesluter partier över 4 % i opinionen.
-    ref = threshold_ref if threshold_ref is not None else national_est_raw
-    eligible = [p for p in PARTIES if ref.get(p, 0) >= THRESHOLD]
+def allocate_all_mandates(national_est_raw: dict) -> dict:
+    eligible = [p for p in PARTIES if national_est_raw.get(p, 0) >= THRESHOLD]
     elig_votes = {p: national_est_raw[p] for p in eligible}
     total_elig = sum(elig_votes.values())
     national_norm = {p: v / total_elig * 100 for p, v in elig_votes.items()}
@@ -1111,6 +1246,7 @@ def kalman_smooth(
     y_vals: np.ndarray,
     sigma_obs: float = 1.8,
     sigma_process_per_day: float = 0.07,
+    extend_to_day: float = None,
 ) -> tuple:
     """
     Kalman filter (forward pass) + RTS-smoother (bakåtpass) för opinionstrender.
@@ -1161,12 +1297,59 @@ def kalman_smooth(
         xs[i] = xf[i] + G * (xs[i + 1] - xf[i])
         Ps[i] = Pf[i] + G ** 2 * (Ps[i + 1] - (Pf[i] + Q))
 
-    # ── Interpolera på 300 jämnt fördelade utvärderingspunkter ──
-    eval_days = np.linspace(t.min(), t.max(), 300)
+    # ── Interpolera + extrapolera till extend_to_day (t.o.m. idag) ──
+    # För dagar bortom sista observation håller vi filtrets slutvärde
+    # (xs[-1]) konstant och låter osäkerheten växa med processbruset.
+    t_end = max(t.max(), extend_to_day) if extend_to_day is not None else t.max()
+    eval_days = np.linspace(t.min(), t_end, 300)
+
+    # Interpolera inom observationsperioden; clip ger sista värdet för extrapolation
     smooth_y = np.interp(eval_days, t, xs)
-    smooth_std = np.sqrt(np.maximum(np.interp(eval_days, t, Ps), 0.0))
+
+    # Osäkerhet: interpolera inom perioden, öka kvadratiskt utanför (random walk)
+    smooth_std_interp = np.interp(eval_days, t, Ps)
+    dt_beyond = np.maximum(eval_days - t.max(), 0.0)
+    smooth_std_total = smooth_std_interp + sigma_process_per_day ** 2 * dt_beyond
+    smooth_std = np.sqrt(np.maximum(smooth_std_total, 0.0))
 
     return smooth_y, smooth_std, eval_days
+
+
+def build_trend_data(df: pd.DataFrame, window_days: int) -> pd.DataFrame:
+    """
+    Returnerar en DataFrame med Kalman-smoothade dagliga estimat per parti,
+    samma data som visas i trendgrafen. Används för nedladdning.
+    Kolumner: Datum, M (%), L (%), C (%), KD (%), S (%), V (%), MP (%), SD (%)
+    """
+    cutoff = datetime.now() - timedelta(days=window_days * 3)
+    recent = df[df["PublDate"] >= cutoff].copy()
+
+    series: dict = {}
+    common_dates = None
+
+    for p in PARTIES:
+        col = recent[["PublDate", p]].dropna(subset=[p]).copy().sort_values("PublDate")
+        if col.empty:
+            continue
+        dates_num = (col["PublDate"] - col["PublDate"].min()).dt.days.values.astype(float)
+        y_vals = col[p].values.astype(float)
+        today_day = float((datetime.now() - col["PublDate"].min()).days)
+        smooth_y, _, eval_days = kalman_smooth(dates_num, y_vals, extend_to_day=today_day)
+        eval_dates = col["PublDate"].min() + pd.to_timedelta(eval_days, unit="D")
+        s = pd.Series(smooth_y, index=eval_dates.round("D")).rename(PARTY_NAMES.get(p, p))
+        series[p] = s
+        if common_dates is None:
+            common_dates = eval_dates
+
+    if not series:
+        return pd.DataFrame()
+
+    result = pd.DataFrame(series)
+    result.index.name = "Datum"
+    result.index = pd.to_datetime(result.index).strftime("%Y-%m-%d")
+    result.columns = [PARTY_NAMES.get(c, c) + " (%)" for c in result.columns]
+    result = result.round(2)
+    return result.reset_index()
 
 
 def make_trend_chart(df: pd.DataFrame, window_days: int) -> go.Figure:
@@ -1189,10 +1372,14 @@ def make_trend_chart(df: pd.DataFrame, window_days: int) -> go.Figure:
         fill_color = hex_to_rgba(party_color, alpha=0.12)
 
         # Kalman filter + RTS-smoother med 95 % Bayesianskt CI
+        # Extrapolera t.o.m. idag så trendlinjen alltid når dagens datum
         dates_num = (col["PublDate"] - col["PublDate"].min()).dt.days.values.astype(float)
         y_vals = col[p].values.astype(float)
+        today_day = float((datetime.now() - col["PublDate"].min()).days)
 
-        smooth_y_arr, smooth_std_arr, eval_days = kalman_smooth(dates_num, y_vals)
+        smooth_y_arr, smooth_std_arr, eval_days = kalman_smooth(
+            dates_num, y_vals, extend_to_day=today_day
+        )
         smooth_y  = smooth_y_arr.tolist()
         upper_ci  = (smooth_y_arr + 1.96 * smooth_std_arr).tolist()
         lower_ci  = (smooth_y_arr - 1.96 * smooth_std_arr).tolist()
@@ -1873,24 +2060,7 @@ def main():
         window_days=window_days,
     )
 
-    # ── Korrigerat prognosestimat (pred_est) ──
-    # raw_est  = rena pollsiffror med husvikter (trenddiagram, regionkarta)
-    # pred_est = raw_est + backtesting-korrigering(2022)
-    #            (mandat, simulering, koalitioner)
-    # Korrigeringen = −(Fel pp i backtesting vid valet 2022)
-    #               = NATIONAL_2022 − modellestimат_2022
-    _bt_corr = compute_backtesting_correction(polls_df, house_weights_df)
-    pred_est = {
-        p: raw_est.get(p, 0) + _bt_corr.get(p, 0.0)
-        for p in PARTIES
-    }
-    # Normalisera så att partierna summerar till samma totalnivå som raw_est
-    _raw_total  = sum(raw_est.values())
-    _pred_total = sum(pred_est[p] for p in PARTIES)
-    if _pred_total > 0:
-        pred_est = {p: pred_est[p] / _pred_total * _raw_total for p in PARTIES}
-
-    mandates = allocate_all_mandates(pred_est, threshold_ref=raw_est)
+    mandates = allocate_all_mandates(raw_est)
 
     # ── Topprad ──
     st.title("Mandatorn")
@@ -1908,7 +2078,7 @@ def main():
 
     bloc_h = sum(mandates["total"].get(p, 0) for p in BLOC_PARTIES["Högerblocket"])
     bloc_v = sum(mandates["total"].get(p, 0) for p in BLOC_PARTIES["Vänsterblocket"])
-    biggest = max(pred_est, key=pred_est.get)
+    biggest = max(raw_est, key=raw_est.get)
     below = [p for p in PARTIES if raw_est.get(p, 0) < THRESHOLD]
 
     row1_c1, row1_c2 = st.columns(2)
@@ -1918,7 +2088,7 @@ def main():
         st.metric("Vänsterblocket", f"{bloc_v} mandat", delta=f"{bloc_v - 175:+d} mot majoritet")
     row2_c1, row2_c2 = st.columns(2)
     with row2_c1:
-        st.metric("Största parti", PARTY_NAMES[biggest], delta=f"{pred_est[biggest]:.1f}%")
+        st.metric("Största parti", PARTY_NAMES[biggest], delta=f"{raw_est[biggest]:.1f}%")
     with row2_c2:
         st.metric("Under 4%-spärren", ", ".join(below) if below else "Inga")
 
@@ -1933,7 +2103,7 @@ def main():
 
     # Kör simulering en gång – används i både Tab 2 och Tab 4
     with st.spinner("Kör 10 000 simuleringar..."):
-        sim = run_simulation(pred_est, polls_df, window_days)
+        sim = run_simulation(raw_est, polls_df, window_days)
 
     # Beräkna 2022-mandat per parti (summerat nationellt) för referens i CI-diagrammet
     seats_2022_const = compute_2022_mandates()
@@ -1950,6 +2120,15 @@ def main():
         col1, col2 = st.columns([2, 1])
         with col1:
             st.plotly_chart(make_trend_chart(polls_df, window_days), use_container_width=True, key="trend_chart_tab1")
+            trend_csv = build_trend_data(polls_df, window_days)
+            if not trend_csv.empty:
+                st.download_button(
+                    "⬇️ Ladda ner trenddata (CSV)",
+                    data=trend_csv.to_csv(index=False).encode("utf-8"),
+                    file_name="mandatorn_opinionstrender.csv",
+                    mime="text/csv",
+                    key="dl_trend",
+                )
         with col2:
             st.plotly_chart(make_support_bar(raw_est, reference_2022=NATIONAL_2022), use_container_width=True, key="support_bar_tab1")
             st.subheader("Estimat per parti")
@@ -1997,6 +2176,7 @@ def main():
         const_names_t1 = sorted(CONSTITUENCIES_2022.keys())
         sel_const_t1 = st.selectbox("Välj valkrets", const_names_t1, key="tab1_const_sel")
 
+        # Använder raw_est – samma estimat som mandatfördelningen
         _swing_t1 = {p: raw_est.get(p, 0) - NATIONAL_2022.get(p, 0) for p in PARTIES}
         _c22_t1 = CONSTITUENCIES_2022[sel_const_t1]
         _raw_t1 = {p: max(0.0, _c22_t1.get(p, 0) + _swing_t1.get(p, 0)) for p in PARTIES}
@@ -2158,6 +2338,7 @@ def main():
         sel_const = st.selectbox("Välj valkrets", const_names, key="tab3_const_sel")
 
         # Beräkna predicted vote share per valkrets med uniform swing
+        # Använder raw_est – samma estimat som mandatfördelningen
         _swing = {p: raw_est.get(p, 0) - NATIONAL_2022.get(p, 0) for p in PARTIES}
         _c22 = CONSTITUENCIES_2022[sel_const]
         _raw = {p: max(0.0, _c22.get(p, 0) + _swing.get(p, 0)) for p in PARTIES}
@@ -2346,29 +2527,15 @@ Modellen antar att **de regionala mönstren är stabila** – ett parti som hist
 men fungerar väl som approximation på kort sikt.
 """)
 
-        st.subheader("3. Backtesting-korrigering (2022)")
+        st.subheader("3. Backtesting (2022)")
         st.markdown("""
-En korrigering tillämpas alltid på mandatprognosen, simuleringen och
-koalitionsanalysen. Den beräknas dynamiskt från modellens faktiska
-prestanda dagen innan riksdagsvalet 11 september 2022.
+Modellen utvärderas mot riksdagsvalet 2022 för att mäta träffsäkerheten.
+Backtesting-tabellen (avsnitt 7) visar hur väl aggregatorn presterat
+vid olika tidpunkter inför valet — men **ingen korrigering tillämpas**
+på de löpande estimaten. Modellen visar raka Kalman-smoothade pollsiffror
+med institutsviktning, utan justering för historiska fel.
 
-**Beräkning**
-
-Aggregatorn körs med samma inställningar som live-aggregeringen (husvikter,
-365-dagarsfönster, 30 dagars halveringstid) på opinionsdatan som fanns
-tillgänglig dagen innan valet 2022.
-Resultatet jämförs med det faktiska valresultatet:
-
-`Korrigering[p] = valresultat_2022[p] − modellestimат_2022[p]`
-
-Detta är ekvivalent med att negera "Fel (pp)" i backtesting-tabellen (avsnitt 7)
-vid det datum som ligger närmast valdagen. Korrigeringen täcker samtliga
-systematiska fel i ett tal per parti — pollsens bias, fönsterval,
-tidsviktning och institutsviktningens effekt — allt samlat.
-
-`pred_est[p] = raw_est[p] + korrigering[p]`
-
-Regionkartan visar alltid okorrigerade pollsiffror (raw_est).
+Det gör modellen mer transparent och undviker att överfita på ett enda val.
 """)
 
         st.subheader("4. Mandatfördelning – modifierad Sainte-Laguë")
@@ -2791,8 +2958,11 @@ för den regionala offsetmodellen.
 
             st.divider()
 
-            # Prediktera invalda kandidater
+            # Prediktera invalda kandidater (fasta mandat + utjämningsmandat)
             elected = predict_elected_candidates(mandates["fixed"], cand_df)
+            elected_adj = predict_adjustment_candidates(
+                mandates["adjustment"], cand_df, elected
+            )
 
             # Välj valkrets
             sel_valkrets = st.selectbox(
@@ -2912,6 +3082,107 @@ för den regionala offsetmodellen.
                     mime="text/csv",
                 )
 
+            # ── Utjämningsmandat ──
+            st.divider()
+            st.subheader("Förutsedda utjämningsmandat")
+            total_adj = sum(mandates["adjustment"].values())
+            st.caption(
+                f"Totalt {total_adj} utjämningsmandat fördelas nationellt för att "
+                "göra riksdagen proportionell. Kandidaterna nedan är nästa i kön "
+                "per parti — de som inte redan vunnit ett fast valkretsmandat."
+            )
+
+            adj_rows = []
+            for p in PARTIES:
+                n_adj = mandates["adjustment"].get(p, 0)
+                if n_adj == 0:
+                    continue
+                cands = elected_adj.get(p, [])
+                if cands:
+                    for c in cands:
+                        adj_rows.append({
+                            "Parti": PARTY_NAMES.get(p, p),
+                            "Utjämningsmandat": n_adj,
+                            "Hemvalkrets": c.get("hemvalkrets", "–") or "–",
+                            "Listplats": int(c["ordning"]) if pd.notna(c.get("ordning")) else "–",
+                            "Namn": c["namn"],
+                            "Ålder": int(c["alder"]) if pd.notna(c.get("alder")) else "–",
+                            "Kön": "Kvinna" if str(c.get("kon", "")).strip() == "K" else "Man",
+                            "Hemkommun": c["hemkommun"] if pd.notna(c.get("hemkommun")) else "–",
+                            "Status": "Registrerad",
+                        })
+                else:
+                    for rank in range(1, n_adj + 1):
+                        adj_rows.append({
+                            "Parti": PARTY_NAMES.get(p, p),
+                            "Utjämningsmandat": n_adj,
+                            "Hemvalkrets": "–",
+                            "Listplats": rank,
+                            "Namn": "Ej registrerad ännu",
+                            "Ålder": "–",
+                            "Kön": "–",
+                            "Hemkommun": "–",
+                            "Status": "Ej registrerad",
+                        })
+
+            if adj_rows:
+                adj_df = pd.DataFrame(adj_rows)
+
+                def color_adj_row(val):
+                    if val == "Ej registrerad ännu":
+                        return "background-color:#fff3cd; color:#856404"
+                    return ""
+
+                st.dataframe(
+                    adj_df.drop(columns=["Status"]).style.map(
+                        color_adj_row, subset=["Namn"]
+                    ),
+                    hide_index=True, use_container_width=True,
+                )
+                st.download_button(
+                    "Ladda ner utjämningsmandat (CSV)",
+                    data=adj_df.drop(columns=["Status"]).to_csv(index=False),
+                    file_name="riksdagsprediction_utjamning.csv",
+                    mime="text/csv",
+                    key="dl_adj_cands",
+                )
+
+            st.divider()
+            st.subheader("ℹ️ Så fungerar kandidatprediktionen")
+            st.markdown("""
+**Datakälla:** Valmyndighetens registrerade kandidatlistor för riksdagsvalet 2026.
+Listan uppdateras löpande i takt med att partierna registrerar sina kandidater.
+
+**Mandatunderlag:** Prognostiserat antal fasta valkretsmandat per parti och valkrets,
+beräknat med modifierad Sainte-Laguë på Kalman-smoothade pollsiffror.
+
+**En kandidat — en valkrets:**
+Kandidater får lov att stå på listor i flera valkretsar samtidigt, men kan bara
+bli invald från en. Modellen hanterar detta i två steg:
+
+1. Varje kandidat tilldelas en *hemvalkrets* — den valkrets där de har
+   sitt lägsta ordningsnummer (bäst listplacering). Det speglar var de är
+   starkast förankrade, vilket i praktiken ofta sammanfaller med var de
+   blivit personkryssade tidigare val.
+2. Valkretsar med flest mandat tilldelas kandidater först. Om en
+   kandidats hemvalkrets är en annan fylls platsen istället av nästa
+   tillgängliga kandidat på listan.
+
+**Utjämningsmandat:**
+Utöver de fasta valkretsmandaten fördelas normalt 39 utjämningsmandat
+nationellt för att göra riksdagen proportionell. Modellen identifierar
+vilka kandidater som är näst på tur per parti — de som har bäst
+listplacering i sin hemvalkrets men inte vunnit ett fast mandat.
+Utjämningsmandat är inte knutna till en specifik valkrets; *hemvalkrets*
+i tabellen visar var kandidaten är starkast listad, inte var mandatet
+formellt tilldelas.
+
+**Begränsningar:**
+Modellen förutsäger invalda enbart baserat på listplacering — personkryss
+simuleras inte. Kandidater från partier som inte registrerat sina listor
+ännu visas inte.
+""")
+
     # ── Tab 7: Data ──
     with tab7:
         st.subheader("Senaste opinionsundersökningar")
@@ -2919,8 +3190,10 @@ för den regionala offsetmodellen.
         disp = polls_df[["PublDate", "Company", "n"] + PARTIES].tail(show_n).copy()
         disp["PublDate"] = disp["PublDate"].dt.strftime("%Y-%m-%d")
         disp = disp.sort_values("PublDate", ascending=False)
+        fmt = {p: "{:.1f}" for p in PARTIES}
+        fmt["n"] = "{:.0f}"
         st.dataframe(
-            disp.style.format({p: "{:.1f}" for p in PARTIES}),
+            disp.style.format(fmt),
             hide_index=True, use_container_width=True,
         )
 
@@ -2944,6 +3217,17 @@ för den regionala offsetmodellen.
             color_weight, subset=["Vikt"]
         ).format({"MAE (pp)": "{:.3f}", "Vikt": "{:.3f}"})
         st.dataframe(styled_hw, hide_index=True, use_container_width=True)
+
+        _indikator_row = house_weights_df[house_weights_df["Institut"] == "Indikator"]
+        if not _indikator_row.empty:
+            _ind_vikt = float(_indikator_row["Vikt"].iloc[0])
+            _ind_mae  = float(_indikator_row["MAE (pp)"].iloc[0])
+            st.caption(
+                f"ℹ️ **Indikator** får vikten **{_ind_vikt:.3f}** "
+                f"(MAE mot 2022 års val: {_ind_mae:.3f} pp)."
+            )
+        else:
+            st.caption("ℹ️ Indikator saknas i 2022-data och får standardvikt 1,0.")
 
         # Litet stapeldiagram för vikterna
         fig_hw = go.Figure(go.Bar(
@@ -2969,8 +3253,11 @@ för den regionala offsetmodellen.
 
         st.subheader("Valresultat 2022 per valkrets (referensdata)")
         _c22 = pd.DataFrame(CONSTITUENCIES_2022).T
+        _c22_fmt = {p: "{:.2f}" for p in PARTIES if p in _c22.columns}
+        if "seats" in _c22.columns:
+            _c22_fmt["seats"] = "{:.0f}"
         st.dataframe(
-            _c22.style.format({p: "{:.2f}" for p in PARTIES if p in _c22.columns}),
+            _c22.style.format(_c22_fmt),
             use_container_width=True,
         )
 
@@ -3002,8 +3289,8 @@ Det är en förenkling, men transparent och vanlig i valanalys.
 
 `prediktion = 2022-lokalt + nationell opinionssving (sedan 2022)`
 
-Institutsviktning och backtesting-korrigering tillämpas alltid på mandatprognosen
-och simuleringen. Regionkartan visar alltid okorrigerade pollsiffror.
+Institutsviktning tillämpas på mandatprognosen och simuleringen.
+Alla estimat bygger på Kalman-smoothade pollsiffror utan historisk korrigering.
 **Lokalpartier** ingår inte i modellen — de kan ha ett betydande stöd i enskilda kommuner.
 Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
 """)
