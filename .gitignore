@@ -19,3 +19,8 @@ Thumbs.db
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Stora datafiler (laddas ner on-demand av data_loader.py)
+data/raw/
+data/cache/
+
