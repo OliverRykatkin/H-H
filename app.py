@@ -20,10 +20,17 @@ import pandas as pd
 import numpy as np
 import requests
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from io import StringIO
 import plotly.express as px
 import plotly.graph_objects as go
+
+from nowcast import (
+    compute_nowcast,
+    project_mandates,
+    simulate_election_night,
+    PARTIES as NOWCAST_PARTIES,
+)
 
 # ─────────────────────────────────────────────
 # KONFIGURATION
@@ -2196,6 +2203,180 @@ def compute_backtesting(polls_df: pd.DataFrame, house_weights_df: pd.DataFrame) 
 
 
 # ─────────────────────────────────────────────
+# VALNATT (nowcasting)
+# ─────────────────────────────────────────────
+
+@st.cache_data(show_spinner=False)
+def _load_nowcast_data() -> tuple[pd.DataFrame, pd.DataFrame] | None:
+    """Hämta 2018 (baslinje) + 2022 (faktiskt) distriktsresultat.
+
+    Resultatet cachas av Streamlit. Returnerar None om data inte kan laddas
+    (t ex offline-läge utan nedladdad cache).
+    """
+    try:
+        from data_loader import load_aligned_pair
+        return load_aligned_pair()
+    except Exception as e:
+        st.error(f"Kunde inte ladda valdistriktsdata: {e}")
+        return None
+
+
+def _render_valnatt_tab() -> None:
+    """Innehåll för Valnatt-fliken. Demoläge fram till 2026-09-13."""
+    st.subheader("🌙 Nowcasting — realtidsprognos på valnatten")
+    st.markdown(
+        "Under valnatten är råräkningen systematiskt missvisande eftersom små "
+        "distrikt rapporterar först. **Nowcast-metoden** korrigerar för detta "
+        "genom att jämföra *förändringen* (delta) i partistöd mellan räknade "
+        "distrikt och baslinjevalet, snarare än att titta på absoluta nivåer. "
+        "Vid 5 % täckning halveras prognosfelet jämfört med råräkningen."
+    )
+    st.caption(
+        "Metod: [Nowcasting på valnatten – valprognos.se](https://www.nationalekonomi.se/artikel/nowcasting-pa-valnatten-metod-och-utvardering-fran-valprognos-se/)"
+    )
+
+    _is_election_day = date.today() == date(2026, 9, 13)
+    if _is_election_day:
+        st.info(
+            "📡 **Live-läge aktiverat.** Hämtar resultat från Valmyndigheten."
+        )
+        st.warning(
+            "Live-feed-integration är inte färdigställd. Använd demoläget nedan "
+            "för att utvärdera metoden mot 2022 års valresultat."
+        )
+    else:
+        _days_left = (date(2026, 9, 13) - date.today()).days
+        st.info(
+            f"📅 **Demoläge.** Live-prognos aktiveras automatiskt på valdagen "
+            f"({_days_left} dagar kvar). Spela upp 2022 års val nedan för att se "
+            f"hur metoden hade presterat då."
+        )
+
+    st.markdown("### Demo — spela upp riksdagsvalet 2022")
+    with st.spinner("Laddar valdistriktsdata (första gången: ~30 sek)..."):
+        pair = _load_nowcast_data()
+    if pair is None:
+        return
+    baseline, actual = pair
+
+    coverage = st.slider(
+        "Täckningsgrad (andel räknade distrikt)",
+        min_value=1, max_value=100, value=5, step=1,
+        format="%d %%",
+        help="Lägre täckning = tidigare på valnatten. Vid 5 % har normalt små "
+             "landsbygdsdistrikt räknats. Vid 50 % har de flesta städer börjat "
+             "räknas.",
+    ) / 100.0
+
+    counting_order = (
+        actual.sort_values("total_valid_votes")["district_id"].tolist()
+    )
+    n_total = len(counting_order)
+    n_counted = max(1, int(round(coverage * n_total)))
+    counted_ids = set(counting_order[:n_counted])
+    counted = actual[actual["district_id"].isin(counted_ids)]
+
+    nowcast = compute_nowcast(counted, baseline, NOWCAST_PARTIES)
+    true_total = actual["total_valid_votes"].sum()
+    true_shares = {
+        p: actual[f"votes_{p}"].sum() / true_total for p in NOWCAST_PARTIES
+    }
+    counted_total = counted["total_valid_votes"].sum()
+    raw_shares = {
+        p: counted[f"votes_{p}"].sum() / counted_total for p in NOWCAST_PARTIES
+    }
+
+    rows = []
+    for p in NOWCAST_PARTIES:
+        rows.append({
+            "Parti": PARTY_NAMES.get(p, p),
+            "Råräkning (%)": round(raw_shares[p] * 100, 2),
+            "Nowcast (%)": round(nowcast[p] * 100, 2),
+            "Slutresultat 2022 (%)": round(true_shares[p] * 100, 2),
+            "Råfel (pe)": round(abs(raw_shares[p] - true_shares[p]) * 100, 2),
+            "Nowcast-fel (pe)": round(abs(nowcast[p] - true_shares[p]) * 100, 2),
+        })
+    df_compare = pd.DataFrame(rows)
+
+    raw_mae = df_compare["Råfel (pe)"].mean()
+    nowcast_mae = df_compare["Nowcast-fel (pe)"].mean()
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Räknade distrikt", f"{n_counted:,} av {n_total:,}".replace(",", " "))
+    with c2:
+        st.metric("MAE råräkning", f"{raw_mae:.2f} pe")
+    with c3:
+        st.metric(
+            "MAE nowcast", f"{nowcast_mae:.2f} pe",
+            delta=f"{(nowcast_mae - raw_mae):+.2f} pe", delta_color="inverse",
+        )
+
+    fig = go.Figure()
+    party_codes = list(NOWCAST_PARTIES)
+    party_labels = [PARTY_NAMES.get(p, p) for p in party_codes]
+    fig.add_bar(
+        name="Råräkning",
+        x=party_labels,
+        y=[raw_shares[p] * 100 for p in party_codes],
+        marker_color="#cccccc",
+    )
+    fig.add_bar(
+        name="Nowcast",
+        x=party_labels,
+        y=[nowcast[p] * 100 for p in party_codes],
+        marker_color="#29BFA2",
+    )
+    fig.add_trace(go.Scatter(
+        name="Slutresultat 2022",
+        x=party_labels,
+        y=[true_shares[p] * 100 for p in party_codes],
+        mode="markers",
+        marker=dict(symbol="diamond", size=12, color="black"),
+    ))
+    fig.update_layout(
+        barmode="group",
+        yaxis_title="Röstandel (%)",
+        height=380,
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center"),
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.dataframe(df_compare, hide_index=True, use_container_width=True)
+
+    with st.expander("Mandatprognos enligt nowcast (nationell Sainte-Laguë)"):
+        mandates = project_mandates(
+            {p: nowcast[p] for p in NOWCAST_PARTIES},
+            parties=list(NOWCAST_PARTIES),
+        )
+        st.caption(
+            "Förenkling: mandat fördelas nationellt utan utjämningsmandat per "
+            "valkrets. Använd huvudfliken Mandat för exakt fördelning."
+        )
+        df_mand = pd.DataFrame([
+            {"Parti": PARTY_NAMES.get(p, p), "Mandat": mandates[p]}
+            for p in NOWCAST_PARTIES
+        ])
+        st.dataframe(df_mand, hide_index=True, use_container_width=True)
+
+    with st.expander("Om metoden"):
+        st.markdown("""
+        **Algoritm:**
+        1. För varje parti p: beräkna delta_p = (current_share − baseline_share) bland räknade distrikt
+        2. För oräknade distrikt: prognosticerad andel = baseline_share + delta_p
+        3. Slutlig prognos = viktat genomsnitt av faktiska + prognosticerade röster
+
+        **Begränsningar i denna implementation:**
+        - 5 316 av 6 264 distrikt (boundary changes mellan 2018→2022 droppas)
+        - Räkningsordning = sorterad på storlek (worst-case proxy). Verkliga
+          tidsstämplar från Valmyndighetens PDF-protokoll skulle ge bättre
+          räkningsordning.
+        - Mandatfördelning sker nationellt, inte per valkrets.
+        """)
+
+
+# ─────────────────────────────────────────────
 # STREAMLIT-APP
 # ─────────────────────────────────────────────
 
@@ -2408,11 +2589,23 @@ def main():
     seats_2022_const = compute_2022_mandates()
     seats_2022_total = {p: sum(seats_2022_const[c].get(p, 0) for c in seats_2022_const) for p in PARTIES}
 
-    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = st.tabs([
+    _tab_labels = [
         "📊 Opinion", "🏛️ Mandat", "🗺️ Valkretsar",
         "🎲 Simulering", "👤 Kandidater",
         "📍 Regional", "📋 Data", "ℹ️ Metod", "🙋 Om mig",
-    ])
+    ]
+    _show_valnatt = (
+        "valnatt" in st.query_params or date.today() >= date(2026, 9, 13)
+    )
+    if _show_valnatt:
+        _tab_labels.insert(8, "🌙 Valnatt")  # före "Om mig"
+
+    _tabs = st.tabs(_tab_labels)
+    if _show_valnatt:
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab_valnatt, tab9 = _tabs
+    else:
+        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = _tabs
+        tab_valnatt = None
 
     # ── Tab 1: Nationell opinion ──
     with tab1:
@@ -4030,6 +4223,11 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                     mime="text/csv",
                 )
 
+
+    # ── Tab Valnatt (dold tills valdagen 2026-09-13 eller ?valnatt=1) ──
+    if tab_valnatt is not None:
+        with tab_valnatt:
+            _render_valnatt_tab()
 
     # ── Tab 9: Om mig ──
     with tab9:
