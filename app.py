@@ -346,6 +346,21 @@ def _scb_get_region_codes(api_url: str) -> list:
     return region_var["values"] if region_var else []
 
 
+@st.cache_data(show_spinner=False)
+def _load_scb_cache_file() -> dict:
+    """Läser data/scb_2022.json om den finns. Tom dict om filen saknas."""
+    import json as _json
+    import os as _os
+    path = _os.path.join(_os.path.dirname(__file__), "data", "scb_2022.json")
+    if not _os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    except Exception:
+        return {}
+
+
 @st.cache_data(ttl=86400, show_spinner=False)
 def load_scb_results(
     api_url: str,
@@ -354,14 +369,26 @@ def load_scb_results(
     party_codes: list | None = None,
 ) -> pd.DataFrame:
     """
-    Hämtar 2022 valresultat per geografisk enhet från SCB PX-Web API.
-    SCB kräver att Region-koder anges explicit i frågan (utelämning ger rikssnitt).
-    region_codes=None → hämtar alla 4-siffriga kommuner automatiskt.
-    party_codes=None  → hämtar de 8 riksdagspartierna (SCB_PARTIES_RAW).
+    Hämtar 2022 valresultat per geografisk enhet. Läser i första hand från
+    data/scb_2022.json (genererad av fetch_scb_cache.py); faller tillbaka på
+    live SCB PX-Web API om filen saknas eller frågan inte finns cachad.
+
+    region_codes=None → alla 4-siffriga kommunkoder.
+    party_codes=None  → de 8 riksdagspartierna (SCB_PARTIES_RAW).
     Returnerar DataFrame med kolumner: region_code, party, pct_2022
     """
     import re as _re
 
+    # ── Försök läsa från lokal cache ──
+    cache = _load_scb_cache_file()
+    for q in cache.get("queries", []):
+        if (q.get("api_url") == api_url
+                and q.get("contents_code") == contents_code
+                and q.get("region_codes") == region_codes
+                and q.get("party_codes") == party_codes):
+            return pd.DataFrame(q.get("rows", []), columns=["region_code", "party", "pct_2022"])
+
+    # ── Fallback: live API ──
     if region_codes is None:
         all_codes = _scb_get_region_codes(api_url)
         region_codes = [c for c in all_codes if _re.match(r"^\d{4}$", c)]
