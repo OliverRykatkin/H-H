@@ -4,7 +4,9 @@
 
 **Mandatorn** (internt: Riksdagsprediction) är en interaktiv webb-app byggd i Python/Streamlit som aggregerar svenska riksdagsopinionsmätningar och beräknar en fullständig mandatprognos inför riksdagsvalet 2026.
 
-Live-app: `riksdagsprediction.streamlit.app` (uppdatera när deployad)
+Live-app: `https://mandatorn.se` (Google Cloud Run, region `europe-north1`).
+Backup-URL: `https://mandatorn-851345615769.europe-north1.run.app`.
+Legacy Streamlit Cloud-deploy (`riksdagsprediction.streamlit.app`) — avvecklas.
 
 ---
 
@@ -26,9 +28,12 @@ riksdagsprediction/
 ├── data/                     # Gitignored — XLSX-råfiler + CSV-cache laddas on-demand
 ├── logo.svg                  # Hemicykel-logotyp (520×152 px)
 ├── favicon.svg / favicon.png # Favicon som trendgraf
-├── requirements.txt          # Produktionsberoenden (Streamlit Cloud)
+├── requirements.txt          # Produktionsberoenden
 ├── requirements-dev.txt      # + pytest för utveckling
-├── runtime.txt               # Python-version för Streamlit Cloud
+├── runtime.txt               # Python-version (legacy, Streamlit Cloud)
+├── Dockerfile                # Cloud Run-container (Python 3.11-slim + Streamlit)
+├── .dockerignore             # Utesluter data/raw, tests, CLAUDE.md från image
+├── .streamlit/config.toml    # Server-config (headless, CORS off för Cloud Run)
 ├── README.md
 └── CLAUDE.md                 # Den här filen
 ```
@@ -47,7 +52,7 @@ isolera ny logik från den 4 000-radersfilen fram till efter september-valet.
 | Datavisualisering | Plotly (go + express) |
 | Databehandling | Pandas, NumPy |
 | Datahämtning | requests (live från GitHub + Valmyndigheten) |
-| Deployment | Streamlit Community Cloud |
+| Deployment | Google Cloud Run (region `europe-north1`) |
 
 ---
 
@@ -197,11 +202,29 @@ python validate_nowcast.py   # Reproducerar valprognos.se:s MAE-siffror
 bygger inte på arm64. Kör Streamlit i molnet eller på x86_64. Nowcast-modulerna
 fungerar dock fristående lokalt.
 
-## Deploya (Streamlit Community Cloud)
+## Deploya (Google Cloud Run)
 
-1. Pusha till GitHub (`main`-branch, `app.py` i roten)
-2. Gå till share.streamlit.io → New app → välj repo/branch/fil
-3. Deploy
+Förutsättningar:
+- `gcloud` CLI installerad (`winget install --id Google.CloudSDK` på Windows)
+- Inloggad: `gcloud auth login`
+- Projekt aktivt: `gcloud config set project mandatorn-prod`
+- Billing kopplat till projektet
+- API:er aktiverade: `run`, `cloudbuild`, `artifactregistry`
+
+Deploy från repo-roten (en rad):
+
+```powershell
+gcloud run deploy mandatorn --source . --region europe-north1 --allow-unauthenticated --memory 1Gi --cpu 1 --min-instances 1 --max-instances 3 --port 8080 --timeout 3600
+```
+
+Cloud Build packar `Dockerfile` → pushar till Artifact Registry → deployar.
+Första bygget: 3-5 min. Subsequent: 1-2 min (cache reuse på pip-layern).
+
+Custom domain `mandatorn.se` är mappad via `gcloud beta run domain-mappings`.
+DNS hostas på One.com. SSL-cert utfärdas automatiskt av Google (Let's Encrypt).
+
+**Legacy:** Streamlit Community Cloud (`share.streamlit.io`) — avvecklas
+efter Cloud Run-cutover bekräftats stabil.
 
 ---
 
