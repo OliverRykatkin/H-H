@@ -19,20 +19,24 @@ Aktiv feature-branch i utveckling: `feature/nowcast` — innehåller nowcasting-
 
 ```
 riksdagsprediction/
-├── app.py                    # Streamlit-appen (~4 200 rader)
+├── app.py                    # Streamlit-appen (~4 300 rader)
 ├── nowcast.py                # Delta-baserad nowcasting-algoritm (valprognos.se-metoden)
 ├── data_loader.py            # Hämtar 2018+2022 valdistriktsdata från Valmyndigheten
 ├── validate_nowcast.py       # Offline-validering mot 2022 års val
+├── fetch_scb_cache.py        # Pre-hämtar 2022 SCB-data → data/scb_2022.json
 ├── tests/
 │   └── test_nowcast.py       # Pytest-enhetstester (10 st)
-├── data/                     # Gitignored — XLSX-råfiler + CSV-cache laddas on-demand
+├── data/
+│   ├── scb_2022.json         # Committad — pre-cachad SCB 2022-data (~550 kB)
+│   ├── raw/                  # Gitignored — XLSX-råfiler (laddas on-demand)
+│   └── cache/                # Gitignored — CSV-cache för nowcast
 ├── logo.svg                  # Hemicykel-logotyp (520×152 px)
 ├── favicon.svg / favicon.png # Favicon som trendgraf
 ├── requirements.txt          # Produktionsberoenden
 ├── requirements-dev.txt      # + pytest för utveckling
 ├── runtime.txt               # Python-version (legacy, Streamlit Cloud)
 ├── Dockerfile                # Cloud Run-container (Python 3.11-slim + Streamlit)
-├── .dockerignore             # Utesluter data/raw, tests, CLAUDE.md från image
+├── .dockerignore             # Utesluter data/raw, data/cache, tests, CLAUDE.md
 ├── .streamlit/config.toml    # Server-config (headless, CORS off för Cloud Run)
 ├── README.md
 └── CLAUDE.md                 # Den här filen
@@ -56,12 +60,18 @@ isolera ny logik från den 4 000-radersfilen fram till efter september-valet.
 
 ---
 
-## Datakällor (live-hämtning vid varje körning)
+## Datakällor
 
+**Live-hämtning vid varje körning (1 h - 24 h cache):**
 - **Opinionsundersökningar:** `https://raw.githubusercontent.com/MansMeg/SwedishPolls/master/Data/Polls.csv`
 - **GeoJSON-karta:** `https://raw.githubusercontent.com/okfse/sweden-geojson/master/swedish_regions.geojson`
 - **Kandidatdata 2026:** `https://data.val.se/filer/val2026/parti/kandidaturer.csv`
-- **Kommunal-/regiondata:** SCB PX-Web API (dynamiska queries i appen)
+
+**Pre-cachad (committad i repot):**
+- **2022 SCB-data (riksdag/region/kommun):** `data/scb_2022.json` — genereras
+  av `python fetch_scb_cache.py`. `load_scb_results()` i app.py läser filen
+  först, faller tillbaka på live SCB PX-Web-API om filen saknas eller queryn
+  inte är cachad. Skippar ~6-12 sek per Cloud Run-cold-start.
 
 ---
 
@@ -98,15 +108,15 @@ Naiv uniform swing ("offset-modell"):
 
 | Flik | Nyckelinnehåll |
 |---|---|
-| 📊 Opinion | Kalman-trendgraf, partistöd-tabell, mandatprognos, stöd per valkrets |
+| 📊 Opinion | Kalman-trendgraf per parti **+ blocktidslinje (Höger vs Vänster)**, partistöd-tabell, mandatprognos, stöd per valkrets |
 | 🏛️ Mandat | Hemicykelvy, konfidensintervall, blockanalys |
 | 🗺️ Valkretsar | Mandattabeller + detaljerade stapeldiagram per valkrets |
 | 🎲 Simulering | Monte Carlo-sannolikheter, koalitionsanalys, majoritetsanalys |
 | 👤 Kandidater | Förväntade invalda baserat på Valmyndighetens listor |
-| 📍 Regional & kommunal | Region- och kommunprognos via SCB-data |
+| 📍 Regional & kommunal | Region- och kommunprognos via SCB-data (kartan borttagen för snabbare laddning; selectbox + stapeldiagram kvar) |
 | 📋 Data | Rådata, institutvikter |
 | ℹ️ Metod | Metodbeskrivning, backtesting |
-| 🌙 Valnatt | **Dold** — aktiveras 2026-09-13 eller via `?valnatt=1`. Nowcasting-prognos. |
+| 🌙 Valnatt | **Dold** — aktiveras 2026-09-13 eller via `?valnatt=1`. Nowcasting-prognos + full riksdagsmandat-fördelning + förväntade invalda. |
 | 🙋 Om mig | Författarinfo |
 
 ---
@@ -136,6 +146,16 @@ vid 5 % täckning (0.42→0.18 pe vs artikelns 1.03→0.52 pe). Absoluta skillna
 beror på storleksbaserad räkningsordningsproxy istället för riktiga tidsstämplar.
 
 **Test:** `pip install -r requirements-dev.txt && pytest tests/` — 10 cases.
+
+**Valnatt-flikens sektioner** (efter den befintliga demo-tabellen):
+1. **Riksdagen — mandatfördelning enligt nowcast** — kör `nowcast`-rösterna
+   genom `allocate_all_mandates()` (samma motor som opinionsfliken) → full
+   mandat-bar, tabell med fasta/utjämning/totalt, blockmajoritets-metrics.
+2. **Per valkrets** — selectbox + tabell med röstandel och fasta mandat per parti
+   för den valda valkretsen.
+3. **Förväntade invalda enligt nowcast** — återanvänder `predict_elected_candidates()`
+   + `predict_adjustment_*()`-mappningen från Kandidater-fliken, driven av
+   nowcast-mandaten istället för opinions-mandaten.
 
 ---
 
@@ -172,7 +192,8 @@ Valkrets-mapping: 29 svenska valkretsar med eget namn-schema (se `VALKRETS_MAPPI
 
 - [ ] Valkrets-modellen är naiv (uniform swing) – lokal variation fångas ej
 - [ ] Institutvikterna är hårdkodade baserat på 2022 års prestation
-- [ ] SCB-kommundata laddas synkront och kan göra appen trög
+- [x] ~~SCB-kommundata laddas synkront och kan göra appen trög~~ — cachas nu
+      i `data/scb_2022.json` (genererad av `fetch_scb_cache.py`)
 - [x] ~~Inga automatiska tester~~ — pytest finns för `nowcast.py` (tests/, 10 cases)
 - [ ] `app.py` är ~4 000+ rader – uppdelning väntar tills efter valet 2026
 - [ ] Nowcast använder storlekssortering som räkningsordningsproxy — för
@@ -196,6 +217,9 @@ streamlit run app.py
 pip install -r requirements-dev.txt
 pytest tests/
 python validate_nowcast.py   # Reproducerar valprognos.se:s MAE-siffror
+
+# Uppdatera SCB-cachen (körs sällan, bara om SCB rättar 2022-siffror)
+python fetch_scb_cache.py    # → data/scb_2022.json
 ```
 
 **OBS Windows arm64:** Streamlits transitiva beroenden (httptools, pyarrow)
