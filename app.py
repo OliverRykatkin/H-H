@@ -1710,6 +1710,104 @@ def make_trend_chart(df: pd.DataFrame, window_days: int, timeseries: dict = None
     return fig
 
 
+def make_block_trend_chart(timeseries: dict) -> go.Figure:
+    """
+    Trendgraf för Höger- och Vänsterblocket över tid.
+    Summerar Kalman-tidsserierna per block; konfidensbandet är approximativt
+    (variansadditiv, samma stil som per-partitrenden).
+    """
+    fig = go.Figure()
+
+    block_colors = {
+        "Högerblocket": "#29BFA2",
+        "Vänsterblocket": "#EF718C",
+    }
+
+    for block_name, party_list in BLOC_PARTIES.items():
+        eval_dates = None
+        smooth_sum = None
+        var_sum = None
+        for p in party_list:
+            ts = timeseries.get(p)
+            if not ts or not ts.get("smooth_y"):
+                continue
+            sy = np.array(ts["smooth_y"], dtype=float)
+            ss = np.array(ts["smooth_std"], dtype=float)
+            if eval_dates is None:
+                eval_dates = list(pd.to_datetime(ts["eval_dates"]))
+                smooth_sum = sy.copy()
+                var_sum = ss ** 2
+            else:
+                smooth_sum = smooth_sum + sy
+                var_sum = var_sum + ss ** 2
+        if eval_dates is None:
+            continue
+
+        std = np.sqrt(var_sum)
+        upper = (smooth_sum + 1.96 * std).tolist()
+        lower = (smooth_sum - 1.96 * std).tolist()
+
+        color = block_colors.get(block_name, "#888")
+        fill_color = hex_to_rgba(color, alpha=0.12)
+        party_label = " + ".join(party_list)
+
+        fig.add_trace(go.Scatter(
+            x=eval_dates + eval_dates[::-1],
+            y=upper + lower[::-1],
+            fill="toself",
+            fillcolor=fill_color,
+            line=dict(width=0),
+            showlegend=False,
+            legendgroup=block_name,
+            hoverinfo="skip",
+        ))
+
+        fig.add_trace(go.Scatter(
+            x=eval_dates,
+            y=smooth_sum.tolist(),
+            mode="lines",
+            line=dict(color=color, width=2.4),
+            name=f"{block_name} ({party_label})",
+            legendgroup=block_name,
+            hovertemplate=(
+                f"<b>{block_name}</b><br>"
+                "Datum: %{x|%Y-%m-%d}<br>"
+                "Stöd: <b>%{y:.1f}%</b>"
+                "<extra></extra>"
+            ),
+        ))
+
+    fig.add_hline(y=50.0, line_dash="dot", line_color="#999999", line_width=1.5,
+                  annotation_text="50 %",
+                  annotation_font=dict(size=10, color="#666666"),
+                  annotation_position="bottom right")
+
+    fig.add_vline(
+        x=datetime(2022, 9, 11).timestamp() * 1000,
+        line_dash="dash",
+        line_color="#555555",
+        line_width=1.2,
+        annotation_text="Val 2022",
+        annotation_font=dict(size=10, color="#555555"),
+        annotation_position="top right",
+    )
+
+    fig.update_layout(
+        **ECONOMIST_LAYOUT,
+        title=dict(text="Blockstöd över tid", font=dict(size=14, color="#111213")),
+        yaxis_title="Röstandel (%)",
+        xaxis_title="",
+        height=320,
+        legend=dict(
+            orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+            font=dict(size=11), bgcolor="rgba(0,0,0,0)",
+        ),
+        margin=dict(t=60, b=20, l=55, r=20),
+        hovermode="closest",
+    )
+    return fig
+
+
 def make_sweden_map(fixed_seats: dict, geojson: dict, selected_party: str = None) -> go.Figure:
     """
     Interaktiv karta över Sverige med Mapbox-underlag.
@@ -2625,6 +2723,11 @@ def main():
                     mime="text/csv",
                     key="dl_trend",
                 )
+            st.plotly_chart(make_block_trend_chart(trend_timeseries), use_container_width=True, key="block_trend_chart_tab1")
+            st.caption(
+                "Blockstödet är summan av partiernas Kalman-smoothade trender. "
+                "Konfidensbandet antar oberoende partifel och är en approximation."
+            )
         with col2:
             st.plotly_chart(make_support_bar(raw_est, reference_2022=NATIONAL_2022), use_container_width=True, key="support_bar_tab1")
             st.subheader("Estimat per parti")
