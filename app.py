@@ -2474,20 +2474,160 @@ def _render_valnatt_tab() -> None:
 
     st.dataframe(df_compare, hide_index=True, use_container_width=True)
 
-    with st.expander("Mandatprognos enligt nowcast (nationell Sainte-Laguë)"):
-        mandates = project_mandates(
-            {p: nowcast[p] for p in NOWCAST_PARTIES},
-            parties=list(NOWCAST_PARTIES),
+    # ─────────────────────────────────────────────────────────────────────
+    # Mandatprojektion: kör nowcast-rösterna genom samma allokeringsmotor
+    # som opinionsfliken så vi får fasta valkretsmandat, utjämningsmandat
+    # och blockanalys driven av räkningen istället för opinionsmätningarna.
+    # ─────────────────────────────────────────────────────────────────────
+    nowcast_pct = {p: nowcast[p] * 100 for p in NOWCAST_PARTIES}
+    mandates_nc = allocate_all_mandates(nowcast_pct)
+
+    st.divider()
+    st.subheader("Riksdagen — mandatfördelning enligt nowcast")
+    st.caption(
+        "Räkneresultaten projiceras till valkretsnivå via uniform swing "
+        "(samma metod som opinionsfliken), och Sainte-Laguë körs på riktigt "
+        "per valkrets + utjämningsmandat. 4 %-spärren tillämpas."
+    )
+    st.plotly_chart(
+        make_mandate_bar(mandates_nc["total"]),
+        use_container_width=True,
+        key="mandate_bar_valnatt",
+    )
+
+    mand_col1, mand_col2 = st.columns(2)
+    with mand_col1:
+        mandate_df_nc = pd.DataFrame([
+            {
+                "Parti": PARTY_NAMES.get(p, p),
+                "Fasta": mandates_nc["fixed_total"].get(p, 0),
+                "Utjämning": mandates_nc["adjustment"].get(p, 0),
+                "Totalt": mandates_nc["total"].get(p, 0),
+            }
+            for p in PARTIES if mandates_nc["total"].get(p, 0) > 0
+        ]).sort_values("Totalt", ascending=False)
+        st.dataframe(mandate_df_nc, hide_index=True, use_container_width=True)
+    with mand_col2:
+        for bloc_name, bloc_parties in BLOC_PARTIES.items():
+            total_bloc = sum(mandates_nc["total"].get(p, 0) for p in bloc_parties)
+            majoritet_delta = total_bloc - 175
+            st.metric(
+                bloc_name,
+                f"{total_bloc} mandat",
+                delta=f"{majoritet_delta:+d} mot majoritet",
+            )
+            for p in bloc_parties:
+                m = mandates_nc["total"].get(p, 0)
+                if m > 0:
+                    st.write(f"  {PARTY_NAMES.get(p, p)}: {m}")
+            st.markdown("---")
+
+    # ── Per valkrets ──
+    st.divider()
+    st.subheader("Per valkrets")
+    const_names_nc = sorted(mandates_nc["fixed"].keys())
+    sel_const_nc = st.selectbox(
+        "Välj valkrets",
+        const_names_nc,
+        key="valnatt_const_sel",
+    )
+    fixed_for_const = mandates_nc["fixed"].get(sel_const_nc, {})
+    votes_for_const = mandates_nc["constituency_votes"].get(sel_const_nc, {})
+    const_rows = []
+    for p in PARTIES:
+        v = votes_for_const.get(p, 0.0)
+        m = fixed_for_const.get(p, 0)
+        if m == 0 and v < 0.5:
+            continue
+        const_rows.append({
+            "Parti": PARTY_NAMES.get(p, p),
+            "Röstandel (%)": round(v, 1),
+            "Fasta mandat": m,
+        })
+    const_df_nc = pd.DataFrame(const_rows).sort_values("Röstandel (%)", ascending=False)
+    st.dataframe(const_df_nc, hide_index=True, use_container_width=True)
+
+    # ── Förväntade invalda ──
+    st.divider()
+    st.subheader("Förväntade invalda enligt nowcast")
+    with st.spinner("Hämtar kandidatdata från Valmyndigheten..."):
+        cand_df_nc = load_candidates()
+    if cand_df_nc.empty:
+        st.info(
+            "Kandidatregistreringen från Valmyndigheten är inte tillgänglig ännu. "
+            "Sektionen aktiveras när kandidatlistorna publicerats."
         )
-        st.caption(
-            "Förenkling: mandat fördelas nationellt utan utjämningsmandat per "
-            "valkrets. Använd huvudfliken Mandat för exakt fördelning."
+    else:
+        elected_nc = predict_elected_candidates(mandates_nc["fixed"], cand_df_nc)
+        adj_consts_nc = predict_adjustment_constituencies(
+            mandates_nc["adjustment"],
+            mandates_nc["fixed"],
+            mandates_nc["constituency_votes"],
         )
-        df_mand = pd.DataFrame([
-            {"Parti": PARTY_NAMES.get(p, p), "Mandat": mandates[p]}
-            for p in NOWCAST_PARTIES
-        ])
-        st.dataframe(df_mand, hide_index=True, use_container_width=True)
+        elected_adj_nc = predict_adjustment_candidates(
+            adj_consts_nc, cand_df_nc, elected_nc
+        )
+
+        cand_const_options = ["Alla valkretsar"] + const_names_nc
+        sel_const_cand = st.selectbox(
+            "Välj valkrets",
+            cand_const_options,
+            key="valnatt_cand_sel",
+        )
+
+        chosen_consts = const_names_nc if sel_const_cand == "Alla valkretsar" else [sel_const_cand]
+        cand_rows = []
+        for c_name in chosen_consts:
+            seats_in_c = mandates_nc["fixed"].get(c_name, {})
+            elected_in_c = elected_nc.get(c_name, {})
+            for p in PARTIES:
+                n_seats = seats_in_c.get(p, 0)
+                if n_seats == 0:
+                    continue
+                cands = elected_in_c.get(p, [])
+                if cands:
+                    for c in cands:
+                        cand_rows.append({
+                            "Valkrets": c_name,
+                            "Parti": PARTY_NAMES.get(p, p),
+                            "Listplats": int(c["ordning"]) if pd.notna(c["ordning"]) else "–",
+                            "Namn": c["namn"],
+                            "Mandattyp": "Fast",
+                        })
+                else:
+                    for rank in range(1, n_seats + 1):
+                        cand_rows.append({
+                            "Valkrets": c_name,
+                            "Parti": PARTY_NAMES.get(p, p),
+                            "Listplats": rank,
+                            "Namn": "Ej registrerad ännu",
+                            "Mandattyp": "Fast",
+                        })
+
+        for p, cands_adj in elected_adj_nc.items():
+            for c in cands_adj:
+                c_name = c.get("adj_valkrets", "–")
+                if sel_const_cand != "Alla valkretsar" and c_name != sel_const_cand:
+                    continue
+                cand_rows.append({
+                    "Valkrets": c_name,
+                    "Parti": PARTY_NAMES.get(p, p),
+                    "Listplats": int(c["ordning"]) if pd.notna(c.get("ordning")) else "–",
+                    "Namn": c.get("namn", "–"),
+                    "Mandattyp": "Utjämning",
+                })
+
+        if cand_rows:
+            cand_df_show = pd.DataFrame(cand_rows)
+            n_total_seats = sum(mandates_nc["total"].get(p, 0) for p in PARTIES)
+            n_registered = (cand_df_show["Namn"] != "Ej registrerad ännu").sum()
+            st.caption(
+                f"{n_registered} av {len(cand_df_show)} förväntade mandat har "
+                f"registrerade kandidater. Totalt {n_total_seats} mandat i riksdagen."
+            )
+            st.dataframe(cand_df_show, hide_index=True, use_container_width=True)
+        else:
+            st.info("Inga mandat att visa för vald valkrets.")
 
     with st.expander("Om metoden"):
         st.markdown("""
