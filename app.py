@@ -4202,23 +4202,12 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
 """)
 
         # ── Kontroller ──
-        col_radio, col_view = st.columns([2, 1])
-        with col_radio:
-            val_type = st.radio(
-                "Valtyp",
-                ["Riksdag per kommun", "Regionval per region", "Kommunalval per kommun"],
-                horizontal=False,
-                key="map_val_type",
-            )
-        with col_view:
-            view_opts = ["Ledande parti"] + [PARTY_NAMES.get(p, p) for p in PARTIES]
-            view_sel = st.selectbox("Färgläggning", view_opts, key="map_view_sel")
-
-        if view_sel == "Ledande parti":
-            view_mode = "leading"
-        else:
-            party_name_to_code = {v: k for k, v in PARTY_NAMES.items()}
-            view_mode = party_name_to_code.get(view_sel, "S")
+        val_type = st.radio(
+            "Valtyp",
+            ["Riksdag per kommun", "Regionval per region", "Kommunalval per kommun"],
+            horizontal=False,
+            key="map_val_type",
+        )
 
         # ── Hämta SCB-data ──
         is_kommunal = False
@@ -4306,16 +4295,7 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                 ovriga_per_area=ovriga_per_area,
             )
 
-            # ── Karta ──
-            with st.spinner("Renderar karta…"):
-                fig_map = make_regional_map(
-                    predicted_df, geo, featureidkey, id_col,
-                    view_mode, map_title, name_map=name_map_geo,
-                )
-            st.plotly_chart(fig_map, use_container_width=True, key="regional_map_tab6")
-
             # ── Detaljvy per vald kommun/region ──
-            st.divider()
             st.subheader("Detaljvy — välj en kommun eller region")
 
             # Bygg sorterad lista med visningsnamn
