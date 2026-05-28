@@ -1710,11 +1710,12 @@ def make_trend_chart(df: pd.DataFrame, window_days: int, timeseries: dict = None
     return fig
 
 
-def make_block_trend_chart(timeseries: dict) -> go.Figure:
+def make_block_trend_chart(timeseries: dict, polls_df: pd.DataFrame = None) -> go.Figure:
     """
     Trendgraf för Höger- och Vänsterblocket över tid.
     Summerar Kalman-tidsserierna per block; konfidensbandet är approximativt
-    (variansadditiv, samma stil som per-partitrenden).
+    (variansadditiv, samma stil som per-partitrenden). Om polls_df anges
+    ritas även de enskilda mätningarnas blocksummor som diskreta punkter.
     """
     fig = go.Figure()
 
@@ -1722,6 +1723,11 @@ def make_block_trend_chart(timeseries: dict) -> go.Figure:
         "Högerblocket": "#29BFA2",
         "Vänsterblocket": "#EF718C",
     }
+
+    recent_polls = None
+    if polls_df is not None and not polls_df.empty:
+        cutoff = ELECTION_2022 - timedelta(days=30)
+        recent_polls = polls_df[polls_df["PublDate"] >= cutoff].copy()
 
     for block_name, party_list in BLOC_PARTIES.items():
         eval_dates = None
@@ -1776,6 +1782,31 @@ def make_block_trend_chart(timeseries: dict) -> go.Figure:
                 "<extra></extra>"
             ),
         ))
+
+        if recent_polls is not None:
+            block_poll = recent_polls[["PublDate", "Company", "n"] + party_list].dropna(subset=party_list).copy()
+            if not block_poll.empty:
+                block_poll["BlockSum"] = block_poll[party_list].sum(axis=1)
+                company_labels = block_poll["Company"].fillna("Okänt").tolist()
+                n_labels = pd.to_numeric(block_poll["n"], errors="coerce").fillna(0).astype(int).tolist()
+                fig.add_trace(go.Scatter(
+                    x=block_poll["PublDate"],
+                    y=block_poll["BlockSum"],
+                    mode="markers",
+                    marker=dict(color=color, size=5, opacity=0.40, line=dict(width=0)),
+                    name=block_name,
+                    legendgroup=block_name,
+                    showlegend=False,
+                    customdata=list(zip(company_labels, n_labels)),
+                    hovertemplate=(
+                        f"<b>{block_name}</b><br>"
+                        "Datum: %{x|%Y-%m-%d}<br>"
+                        "Stöd: <b>%{y:.1f}%</b><br>"
+                        "Institut: %{customdata[0]}<br>"
+                        "Urval: %{customdata[1]:,}"
+                        "<extra></extra>"
+                    ),
+                ))
 
     fig.add_hline(y=50.0, line_dash="dot", line_color="#999999", line_width=1.5,
                   annotation_text="50 %",
@@ -2723,7 +2754,7 @@ def main():
                     mime="text/csv",
                     key="dl_trend",
                 )
-            st.plotly_chart(make_block_trend_chart(trend_timeseries), use_container_width=True, key="block_trend_chart_tab1")
+            st.plotly_chart(make_block_trend_chart(trend_timeseries, polls_df=polls_df), use_container_width=True, key="block_trend_chart_tab1")
             st.caption(
                 "Blockstödet är summan av partiernas Kalman-smoothade trender. "
                 "Konfidensbandet antar oberoende partifel och är en approximation."
