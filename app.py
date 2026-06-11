@@ -647,8 +647,11 @@ def load_candidates() -> pd.DataFrame:
     rd["parti"] = rd["PARTIFÖRKORTNING"].str.strip()
     rd["valkrets"] = rd["VALKRETSNAMN"].map(VALKRETS_MAPPING)
     rd["ordning"] = pd.to_numeric(rd["ORDNING"], errors="coerce")
+    # Tomma åldersfält i råfilen är blanksteg (" "), inte NaN — coerce till
+    # numeriskt så att int(c["alder"]) inte kraschar i kandidattabellerna.
+    rd["alder"] = pd.to_numeric(rd["ÅLDER_PÅ_VALDAGEN"], errors="coerce")
 
-    rd = rd[["parti", "valkrets", "NAMN", "ordning", "ÅLDER_PÅ_VALDAGEN", "KÖN", "FOLKBOKFÖRINGSKOMMUN"]].copy()
+    rd = rd[["parti", "valkrets", "NAMN", "ordning", "alder", "KÖN", "FOLKBOKFÖRINGSKOMMUN"]].copy()
     rd.columns = ["parti", "valkrets", "namn", "ordning", "alder", "kon", "hemkommun"]
     rd = rd.dropna(subset=["valkrets", "namn"])
     rd = rd[rd["parti"].isin(PARTIES)]
