@@ -1423,6 +1423,206 @@ def allocate_all_mandates(national_est_raw: dict) -> dict:
 
 
 # ─────────────────────────────────────────────
+# MANDATMARGINAL — känslighetsanalys
+# ─────────────────────────────────────────────
+
+def _perturb_shares(shares: dict, party: str, delta: float) -> dict:
+    """
+    Lägg till `delta` procentenheter på `party` och ta bort dem proportionellt
+    från övriga partier så att totalsumman bevaras. `delta` kan vara negativ.
+    Returnerar en ny dict (muterar inte indata).
+    """
+    total = sum(shares.values())
+    x = shares.get(party, 0.0)
+    # Clampa till [0, total] så scale aldrig blir negativ (negativa andelar)
+    # även om en framtida cap råkar tillåta delta som skjuter över totalen.
+    new_x = min(total, max(0.0, x + delta))
+    others_sum = total - x
+    if others_sum > 1e-9:
+        scale = (total - new_x) / others_sum
+        out = {p: (new_x if p == party else v * scale) for p, v in shares.items()}
+    else:
+        out = dict(shares)
+        out[party] = new_x
+    return out
+
+
+def _first_crossing(eval_fn, base: int, sign: int,
+                    cap: float = 12.0, coarse: float = 0.1, tol: float = 0.01):
+    """
+    Hitta minsta |delta| (procentenheter) i riktning `sign` där mandatantalet
+    (eval_fn(signed_delta)) ändras bort från `base`. sign=+1 söker eval > base
+    (vinna mandat), sign=−1 söker eval < base (förlora mandat).
+
+    Grov linjär svepning hittar FÖRSTA övergången (robust mot icke-monotonicitet
+    från spärr/utjämning), följt av bisektion för precision. Returnerar
+    (delta_pp, nytt_mandatantal) eller (None, None) om ingen ändring inom `cap`.
+    """
+    want_more = sign > 0
+
+    def changed(d):
+        s = eval_fn(sign * d)
+        return s > base if want_more else s < base
+
+    prev, hit = 0.0, None
+    steps = int(round(cap / coarse))
+    for i in range(1, steps + 1):
+        d = round(i * coarse, 6)
+        if changed(d):
+            hit = d
+            break
+        prev = d
+    if hit is None:
+        return None, None
+
+    lo, hi = prev, hit
+    while hi - lo > tol:
+        mid = (lo + hi) / 2
+        if changed(mid):
+            hi = mid
+        else:
+            lo = mid
+    return hi, eval_fn(sign * hi)
+
+
+@st.cache_data(show_spinner=False)
+def compute_national_margins(national_est_raw: dict, cap: float = 12.0) -> dict:
+    """
+    För varje parti: minsta förändring i nationell röstandel (procentenheter) för
+    att TOTALA mandatantalet (fasta + utjämning) ska öka respektive minska med
+    minst ett. Kör den fullständiga mandatmotorn (allocate_all_mandates), så
+    4 %-spärren och utjämningsdynamiken fångas exakt. Skillnaden omfördelas
+    proportionellt på övriga partier.
+    """
+    base_total = allocate_all_mandates(national_est_raw)["total"]
+    out = {}
+    for party in PARTIES:
+        base = base_total.get(party, 0)
+
+        def eval_fn(d, _party=party):
+            return allocate_all_mandates(
+                _perturb_shares(national_est_raw, _party, d)
+            )["total"].get(_party, 0)
+
+        gain_pp, gain_to = _first_crossing(eval_fn, base, +1, cap=cap)
+        lose_pp, lose_to = _first_crossing(eval_fn, base, -1, cap=cap)
+        cur = national_est_raw.get(party, 0.0)
+        out[party] = {
+            "seats": base,
+            "gain_pp": gain_pp,
+            "gain_to": gain_to if gain_to is not None else base,
+            "gain_threshold": gain_pp is not None and cur < THRESHOLD,
+            "lose_pp": lose_pp,
+            "lose_to": lose_to if lose_to is not None else base,
+            "lose_threshold": (
+                lose_pp is not None and base > 0
+                and (cur - lose_pp) < THRESHOLD <= cur
+            ),
+            "cap": cap,
+        }
+    return out
+
+
+@st.cache_data(show_spinner=False)
+def compute_constituency_margins(national_est_raw: dict, const_name: str,
+                                 cap: float = 20.0) -> dict:
+    """
+    För en vald valkrets: minsta förändring i partiets LOKALA röstandel
+    (procentenheter) för att vinna respektive förlora ett FAST valkretsmandat.
+    Endast nationellt spärrkvalificerade partier deltar; skillnaden omfördelas
+    proportionellt bland övriga lokalt deltagande partier.
+    """
+    mandates = allocate_all_mandates(national_est_raw)
+    eligible = mandates["eligible_parties"]
+    cdata = CONSTITUENCIES_2022[const_name]
+    seats = cdata["seats"]
+
+    c_elig = {p: mandates["constituency_votes"][const_name][p] for p in eligible}
+    tot = sum(c_elig.values())
+    if tot <= 0:
+        return {}
+    c_elig = {p: v / tot * 100 for p, v in c_elig.items()}
+    base_alloc = modified_sainte_lague(c_elig, seats)
+
+    out = {}
+    for party in eligible:
+        base = base_alloc.get(party, 0)
+
+        def eval_fn(d, _party=party):
+            return modified_sainte_lague(
+                _perturb_shares(c_elig, _party, d), seats
+            ).get(_party, 0)
+
+        gain_pp, gain_to = _first_crossing(eval_fn, base, +1, cap=cap)
+        lose_pp, lose_to = _first_crossing(eval_fn, base, -1, cap=cap)
+        out[party] = {
+            "local_share": c_elig[party],
+            "seats": base,
+            "gain_pp": gain_pp,
+            "lose_pp": lose_pp,
+            "cap": cap,
+        }
+    return out
+
+
+@st.cache_data(show_spinner=False)
+def compute_closest_fixed_seats(national_est_raw: dict, top_n: int = 15,
+                                cap: float = 8.0) -> list:
+    """
+    Rangordnar landets fasta valkretsmandat efter hur liten lokal röstförändring
+    (procentenheter) som krävs för att mandatet ska byta parti. Per valkrets hittas
+    den utmanare som är närmast att vinna ett mandat och vilket parti som då tappar
+    det. Returnerar en lista sorterad stigande på 'margin_pp'.
+    """
+    mandates = allocate_all_mandates(national_est_raw)
+    eligible = mandates["eligible_parties"]
+    rows = []
+    for name, cdata in CONSTITUENCIES_2022.items():
+        seats = cdata["seats"]
+        c_elig = {p: mandates["constituency_votes"][name][p] for p in eligible}
+        tot = sum(c_elig.values())
+        if tot <= 0:
+            continue
+        c_elig = {p: v / tot * 100 for p, v in c_elig.items()}
+        base_alloc = modified_sainte_lague(c_elig, seats)
+
+        best = None
+        for challenger in eligible:
+            base = base_alloc.get(challenger, 0)
+            if base >= seats:
+                continue
+
+            def eval_fn(d, _p=challenger):
+                return modified_sainte_lague(
+                    _perturb_shares(c_elig, _p, d), seats
+                ).get(_p, 0)
+
+            gain_pp, _ = _first_crossing(eval_fn, base, +1, cap=cap)
+            if gain_pp is None:
+                continue
+            if best is None or gain_pp < best[0]:
+                new_alloc = modified_sainte_lague(
+                    _perturb_shares(c_elig, challenger, gain_pp + 1e-3), seats
+                )
+                loser = next(
+                    (p for p in eligible
+                     if new_alloc.get(p, 0) < base_alloc.get(p, 0)), None
+                )
+                best = (gain_pp, challenger, loser)
+
+        if best is not None:
+            rows.append({
+                "Valkrets": name,
+                "seats": seats,
+                "challenger": best[1],
+                "loser": best[2],
+                "margin_pp": best[0],
+            })
+    rows.sort(key=lambda r: r["margin_pp"])
+    return rows[:top_n]
+
+
+# ─────────────────────────────────────────────
 # VISUALISERING
 # ─────────────────────────────────────────────
 
@@ -3128,43 +3328,124 @@ def main():
                         st.write(f"  {PARTY_NAMES.get(p, p)}: {m}")
                 st.markdown("---")
 
-        # Riksdagshemicykel
-        st.subheader("Riksdagen – visuell fördelning")
-        fig_hem = go.Figure()
-        seat_list = []
-        for p in ["SD", "M", "KD", "L", "C", "MP", "V", "S"]:
-            seat_list.extend([(p, PARTY_COLORS.get(p, "#888"))] * mandates["total"].get(p, 0))
-
-        x_pos, y_pos, colors_hem, hover_texts = [], [], [], []
-        seats_per_row = [55, 58, 60, 62, 64, 50]
-        idx = 0
-        for row, n_seats in enumerate(seats_per_row):
-            r = 1 + row * 0.2
-            angles = np.linspace(np.pi, 0, min(n_seats, len(seat_list) - idx))
-            for angle in angles:
-                if idx >= len(seat_list):
-                    break
-                p, color = seat_list[idx]
-                x_pos.append(r * np.cos(angle))
-                y_pos.append(r * np.sin(angle))
-                colors_hem.append(color)
-                hover_texts.append(PARTY_NAMES.get(p, p))
-                idx += 1
-
-        fig_hem.add_trace(go.Scatter(
-            x=x_pos, y=y_pos, mode="markers",
-            marker=dict(color=colors_hem, size=8, line=dict(width=0.5, color="white")),
-            text=hover_texts, hoverinfo="text",
-        ))
-        fig_hem.update_layout(
-            height=300, showlegend=False,
-            xaxis=dict(visible=False, range=[-1.6, 1.6]),
-            yaxis=dict(visible=False, range=[-0.1, 1.4]),
-            plot_bgcolor="white",
-            paper_bgcolor="white",
-            margin=dict(t=10, b=10, l=10, r=10),
+        # ── Mandatmarginal ──
+        st.divider()
+        st.subheader("Mandatmarginal – hur nära nästa mandat?")
+        st.caption(
+            "Minsta förändring i röstandel (procentenheter) som krävs för att ett "
+            "parti ska vinna ett mandat till respektive förlora ett mandat. "
+            "Skillnaden fördelas proportionellt på övriga partier (totalen hålls "
+            "konstant). Beräknat med den fullständiga mandatmotorn, så 4 %-spärren "
+            "och utjämningsdynamiken är inräknade."
         )
-        st.plotly_chart(fig_hem, use_container_width=True, key="hemisphere_tab2")
+
+        # Nationellt – totala mandat
+        st.markdown("**Nationellt — totala mandat (349)**")
+        _nat = compute_national_margins(raw_est)
+        _nat_cap = next((m["cap"] for m in _nat.values()), 12.0)
+
+        def _fmt_gain(m):
+            if m["gain_pp"] is None:
+                return "—"
+            if m["gain_threshold"]:
+                return f"+{m['gain_pp']:.2f} → når 4 %-spärren (+{m['gain_to'] - m['seats']})"
+            jump = m["gain_to"] - m["seats"]
+            return f"+{m['gain_pp']:.2f}" + (f"  (+{jump})" if jump > 1 else "")
+
+        def _fmt_lose(m, cap):
+            if m["seats"] == 0:
+                return "—"
+            if m["lose_pp"] is None:
+                return f"> {cap:.0f}"
+            if m["lose_threshold"]:
+                return f"−{m['lose_pp']:.2f} → under 4 %-spärren (−{m['seats']})"
+            jump = m["seats"] - m["lose_to"]
+            return f"−{m['lose_pp']:.2f}" + (f"  (−{jump})" if jump > 1 else "")
+
+        _nat_rows = [
+            {
+                "Parti": PARTY_NAMES.get(p, p),
+                "Andel (%)": f"{raw_est.get(p, 0):.1f}",
+                "Mandat": _nat[p]["seats"],
+                "För +1 mandat (pp)": _fmt_gain(_nat[p]),
+                "För −1 mandat (pp)": _fmt_lose(_nat[p], _nat_cap),
+            }
+            for p in PARTIES
+        ]
+        st.dataframe(pd.DataFrame(_nat_rows), hide_index=True, use_container_width=True)
+
+        # Sammanfattning: närmast att vinna / tappa ett mandat
+        _gain_cand = [(p, _nat[p]["gain_pp"]) for p in PARTIES if _nat[p]["gain_pp"] is not None]
+        _lose_cand = [(p, _nat[p]["lose_pp"]) for p in PARTIES
+                      if _nat[p]["lose_pp"] is not None and _nat[p]["seats"] > 0]
+        if _gain_cand and _lose_cand:
+            _g = min(_gain_cand, key=lambda t: t[1])
+            _l = min(_lose_cand, key=lambda t: t[1])
+            st.caption(
+                f"Närmast ett nytt mandat: **{PARTY_NAMES.get(_g[0], _g[0])}** "
+                f"(+{_g[1]:.2f} pp). Närmast att tappa ett mandat: "
+                f"**{PARTY_NAMES.get(_l[0], _l[0])}** (−{_l[1]:.2f} pp)."
+            )
+
+        # Lokalt – fasta valkretsmandat
+        st.markdown("**Lokalt — fasta valkretsmandat per valkrets**")
+        _mc1, _ = st.columns([1, 2])
+        with _mc1:
+            _margin_const = st.selectbox(
+                "Välj valkrets",
+                sorted(CONSTITUENCIES_2022.keys()),
+                key="margin_const_sel",
+            )
+        _seats_here = CONSTITUENCIES_2022[_margin_const]["seats"]
+        st.caption(
+            f"{_margin_const}: {_seats_here} fasta mandat. Marginalen avser partiets "
+            "lokala röstandel i valkretsen."
+        )
+        _loc = compute_constituency_margins(raw_est, _margin_const)
+        _loc_cap = next((m["cap"] for m in _loc.values()), 20.0)
+        _loc_rows = []
+        for p in PARTIES:
+            if p not in _loc:
+                continue
+            m = _loc[p]
+            _g = "—" if m["gain_pp"] is None else f"+{m['gain_pp']:.2f}"
+            if m["seats"] == 0:
+                _l = "—"
+            elif m["lose_pp"] is None:
+                _l = f"> {_loc_cap:.0f}"
+            else:
+                _l = f"−{m['lose_pp']:.2f}"
+            _loc_rows.append({
+                "Parti": PARTY_NAMES.get(p, p),
+                "Lokal andel (%)": f"{m['local_share']:.1f}",
+                "Fasta mandat": m["seats"],
+                "För +1 fast mandat (pp)": _g,
+                "För −1 fast mandat (pp)": _l,
+            })
+        if _loc_rows:
+            st.dataframe(pd.DataFrame(_loc_rows), hide_index=True, use_container_width=True)
+        else:
+            st.info("Inga spärrkvalificerade partier att visa för vald valkrets.")
+
+        # Landets jämnaste fasta mandat
+        st.markdown("**Landets jämnaste fasta mandat**")
+        st.caption(
+            "De valkretsmandat där minst lokal röstförändring krävs för att mandatet "
+            "ska byta parti — i praktiken där valet avgörs."
+        )
+        _closest = compute_closest_fixed_seats(raw_est, top_n=15)
+        if _closest:
+            _close_df = pd.DataFrame([
+                {
+                    "Valkrets": r["Valkrets"],
+                    "Mandat i valkr.": r["seats"],
+                    "Närmast vinner": PARTY_NAMES.get(r["challenger"], r["challenger"]),
+                    "Tappar till": PARTY_NAMES.get(r["loser"], r["loser"]) if r["loser"] else "–",
+                    "Marginal (pp)": f"+{r['margin_pp']:.2f}",
+                }
+                for r in _closest
+            ])
+            st.dataframe(_close_df, hide_index=True, use_container_width=True)
 
     # ── Tab 3: Valkretsar ──
     with tab3:

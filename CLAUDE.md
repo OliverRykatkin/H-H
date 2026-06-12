@@ -109,7 +109,7 @@ Naiv uniform swing ("offset-modell"):
 | Flik | Nyckelinnehåll |
 |---|---|
 | 📊 Opinion | Kalman-trendgraf per parti **+ blocktidslinje (Höger vs Vänster)**, partistöd-tabell, mandatprognos, stöd per valkrets |
-| 🏛️ Mandat | Hemicykelvy, konfidensintervall, blockanalys |
+| 🏛️ Mandat | Mandatöversikt, konfidensintervall, blockanalys, **mandatmarginal** (nationellt + per valkrets + landets jämnaste mandat) |
 | 🗺️ Valkretsar | Mandattabeller + detaljerade stapeldiagram per valkrets |
 | 🎲 Simulering | Monte Carlo-sannolikheter, koalitionsanalys, majoritetsanalys |
 | 👤 Kandidater | Förväntade invalda baserat på Valmyndighetens listor |
