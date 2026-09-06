@@ -2657,29 +2657,15 @@ def _fetch_live_nowcast() -> dict | None:
 
 
 def _render_live_nowcast(live: dict) -> dict:
-    """Rendera live-metrik + råräkning-vs-nowcast-graf. Returnerar nowcast-dict."""
+    """Rendera live-jämförelsegraf (råräkning/nowcast/2022) + metrik. Returnerar nowcast."""
     nowcast = live["nowcast"]
     st.success(
         f"📡 **Live** · uppdaterad {live['updated_at']} · "
         f"{live['n_counted_districts']:,} av {live['n_total_districts']:,} distrikt "
         f"räknade".replace(",", " ")
     )
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Täckning (röster)", f"{live['coverage'] * 100:.1f} %")
-    with c2:
-        st.metric(
-            "Räknade distrikt",
-            f"{live['n_counted_districts']:,} / {live['n_total_districts']:,}".replace(",", " "),
-        )
-    with c3:
-        st.metric("Räkningsläge", live["stage"] or "preliminär")
-    if live["n_dropped"]:
-        st.caption(
-            f"{live['n_dropped']} räknade distrikt saknar motsvarighet i 2022 års "
-            "baslinje (nya/ombildade) och ingår inte i deltaberäkningen."
-        )
 
+    # ── Jämförelsegraf högst upp: råräkning vs nowcast vs valresultat 2022 ──
     party_codes = list(NOWCAST_PARTIES)
     party_labels = [PARTY_NAMES.get(p, p) for p in party_codes]
     fig = go.Figure()
@@ -2695,14 +2681,38 @@ def _render_live_nowcast(live: dict) -> dict:
         y=[nowcast[p] * 100 for p in party_codes],
         marker_color="#29BFA2",
     )
+    fig.add_trace(go.Scatter(
+        name="Valresultat 2022",
+        x=party_labels,
+        y=[float(NATIONAL_2022.get(p, 0)) for p in party_codes],
+        mode="markers",
+        marker=dict(symbol="diamond", size=12, color="black"),
+    ))
     fig.update_layout(
         barmode="group",
         yaxis_title="Röstandel (%)",
-        height=380,
+        height=400,
         margin=dict(l=10, r=10, t=30, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center"),
     )
     st.plotly_chart(fig, use_container_width=True, key="live_bar_valnatt")
+
+    # ── Metrik under grafen ──
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Täckning (röster)", f"{live['coverage'] * 100:.1f} %")
+    with c2:
+        st.metric(
+            "Räknade distrikt",
+            f"{live['n_counted_districts']:,} / {live['n_total_districts']:,}".replace(",", " "),
+        )
+    with c3:
+        st.metric("Räkningsläge", live["stage"] or "preliminär")
+    if live["n_dropped"]:
+        st.caption(
+            f"{live['n_dropped']} räknade distrikt saknar motsvarighet i 2022 års "
+            "baslinje (nya/ombildade) och ingår inte i deltaberäkningen."
+        )
     return nowcast
 
 
