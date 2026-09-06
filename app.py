@@ -2756,6 +2756,112 @@ def _render_area_mandat(am) -> None:
         st.caption(f"Övriga partier: {am.ovriga_andel:.1f} % (under spärren, 0 mandat)")
 
 
+@st.cache_data(show_spinner=False)
+def _load_muni_structure_cached():
+    """Läs committad 2022-struktur (KF/RF) för opinions-mandat + selectbox-namn."""
+    try:
+        from muni_mandates import load_structure
+        return load_structure()
+    except Exception:
+        return None
+
+
+def _render_valnatt_local_mandates() -> None:
+    """Live KF/RF-mandatfördelning per vald kommun och region (Valnatt-fliken)."""
+    from muni_mandates import list_areas
+
+    st.divider()
+    st.subheader("Kommun & region — aktuell mandatfördelning (live)")
+    st.caption(
+        "Officiell preliminär mandatfördelning direkt från Valmyndighetens "
+        "resultatfeed (uppdateras löpande på valnatten). Inkluderar lokala "
+        "partier; visar inte enskilda invalda."
+    )
+    struct = _load_muni_structure_cached()
+    if struct is None:
+        st.info("Referensdata för kommuner/regioner saknas.")
+        return
+
+    kf_areas = list_areas(struct, "KF")
+    rf_areas = list_areas(struct, "RF")
+    col1, col2 = st.columns(2)
+    with col1:
+        kf_name = st.selectbox("Kommun", [n for _, n in kf_areas], key="valnatt_kf_sel")
+    with col2:
+        rf_name = st.selectbox("Region", [n for _, n in rf_areas], key="valnatt_rf_sel")
+    kf_kod = {n: k for k, n in kf_areas}[kf_name]
+    rf_kod = {n: k for k, n in rf_areas}[rf_name]
+
+    st.markdown(f"**{kf_name} — kommunfullmäktige**")
+    with st.spinner("Hämtar resultat från Valmyndigheten..."):
+        am_kf = _fetch_area_mandat_cached("KF", kf_kod)
+    if am_kf is None or am_kf.parties.empty:
+        st.warning("📡 Inga resultat ännu för den valda kommunen.")
+    else:
+        _render_area_mandat(am_kf)
+
+    st.markdown(f"**{rf_name} — regionfullmäktige**")
+    with st.spinner("Hämtar resultat från Valmyndigheten..."):
+        am_rf = _fetch_area_mandat_cached("RF", rf_kod)
+    if am_rf is None or am_rf.parties.empty:
+        st.warning("📡 Inga resultat ännu för den valda regionen.")
+    else:
+        _render_area_mandat(am_rf)
+
+
+def _render_opinion_area_mandat(area: dict, swing: dict, area_label: str) -> None:
+    """Opinionsbaserad mandatuppskattning för ett valområde (Regional-fliken)."""
+    from muni_mandates import PARTIES as _MP, allocate_area_mandates
+
+    res = allocate_area_mandates(area, swing)
+    total = res["total"]
+    if sum(total.values()) == 0:
+        st.info("Kunde inte beräkna en mandatfördelning för detta område.")
+        return
+
+    st.subheader(f"Mandatuppskattning — {area['namn']} ({area_label})")
+    st.caption(
+        f"{res['total_seats']} mandat · spärr {res['threshold_pct']:.0f} % · "
+        f"{res['n_utjamning']} utjämningsmandat. Uniform swing (nationell "
+        "riksdagssving sedan 2022) applicerad per valkrets, full Sainte-Laguë "
+        "+ utjämning. **Endast riksdagspartier modelleras** — lokala partier "
+        "ingår ej, så fördelningen är en approximation."
+    )
+
+    seated = sorted(
+        [(p, total[p]) for p in _MP if total[p] > 0], key=lambda x: -x[1]
+    )
+    fig = go.Figure()
+    fig.add_bar(
+        x=[p for p, _ in seated],
+        y=[s for _, s in seated],
+        marker_color=[PARTY_COLORS.get(p, "#888888") for p, _ in seated],
+    )
+    fig.update_layout(
+        yaxis_title="Mandat", height=340,
+        margin=dict(l=10, r=10, t=30, b=10), showlegend=False,
+    )
+    st.plotly_chart(
+        fig, use_container_width=True,
+        key=f"opinion_mandat_{area['valtyp']}_{area['kod']}",
+    )
+
+    rows = [
+        {
+            "Parti": PARTY_NAMES.get(p, p),
+            "Röstandel (%)": round(res["projected_share"][p], 1),
+            "Mandat": total[p],
+            "Fasta": res["fixed"][p],
+            "Utjämning": res["adjustment"][p],
+        }
+        for p in _MP if total[p] > 0 or res["projected_share"][p] >= 1.0
+    ]
+    st.dataframe(
+        pd.DataFrame(rows).sort_values("Mandat", ascending=False),
+        hide_index=True, use_container_width=True,
+    )
+
+
 def _render_demo_nowcast() -> dict | None:
     """Demo: spela upp riksdagsvalet 2022. Returnerar nowcast-dict eller None."""
     st.markdown("### Demo — spela upp riksdagsvalet 2022")
@@ -2896,9 +3002,17 @@ def _render_valnatt_tab() -> None:
 
     if nowcast is None:
         nowcast = _render_demo_nowcast()
-    if nowcast is None:
-        return
 
+    if nowcast is not None:
+        _render_rd_downstream(nowcast)
+
+    # ── Lokal nowcast: officiell KF/RF-mandatfördelning per kommun/region ──
+    if _live_requested:
+        _render_valnatt_local_mandates()
+
+
+def _render_rd_downstream(nowcast: dict) -> None:
+    """Riksdagsmandat, per valkrets och förväntade invalda drivet av nowcasten."""
     # ─────────────────────────────────────────────────────────────────────
     # Mandatprojektion: kör nowcast-rösterna genom samma allokeringsmotor
     # som opinionsfliken så vi får fasta valkretsmandat, utjämningsmandat
@@ -4983,44 +5097,32 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                     mime="text/csv",
                 )
 
-            # ── Live: aktuell mandatfördelning (KF/RF) från Valmyndigheten ──
-            # Endast för kommunal-/regionval och bara i live-läge (valdagen / ?live=1).
-            if _is_live_mode() and val_type in (
-                "Kommunalval per kommun", "Regionval per region"
-            ):
+            # ── Opinionsbaserad mandatuppskattning (KF/RF) ──
+            # Full kommunal/regional modell driven av uniform swing. Alltid
+            # tillgänglig (till skillnad från live-feeden på Valnatt-fliken).
+            if val_type in ("Kommunalval per kommun", "Regionval per region"):
                 st.divider()
+                _struct = _load_muni_structure_cached()
                 if val_type == "Kommunalval per kommun":
-                    _area_valtyp, _area_kod = "KF", sel_area_code
+                    _area = (_struct or {}).get("KF", {}).get(str(sel_area_code))
                     _area_label = "kommunfullmäktige"
                 else:
-                    _area_valtyp = "RF"
-                    _area_kod = REGION_NAME_TO_LAN.get(sel_area_name)
+                    _lan = REGION_NAME_TO_LAN.get(sel_area_name)
+                    _area = (_struct or {}).get("RF", {}).get(_lan) if _lan else None
                     _area_label = "regionfullmäktige"
 
-                st.subheader(
-                    f"🔴 Aktuell mandatfördelning — {sel_area_name} ({_area_label})"
-                )
-                st.caption(
-                    "Officiell preliminär mandatfördelning direkt från Valmyndighetens "
-                    "resultatfeed (uppdateras löpande på valnatten). Inkluderar lokala "
-                    "partier; visar inte enskilda invalda."
-                )
-                if _area_kod is None:
+                if _area is None:
                     st.info(
-                        f"{sel_area_name} saknar {_area_label} (t.ex. Gotland som är "
-                        "en region-kommun utan regionval)."
+                        f"{sel_area_name} saknar {_area_label}-struktur (t.ex. Gotland "
+                        "som är en region-kommun utan regionval), eller så saknas "
+                        "referensdata (kör `python fetch_muni_cache.py`)."
                     )
                 else:
-                    with st.spinner("Hämtar resultat från Valmyndigheten..."):
-                        _am = _fetch_area_mandat_cached(_area_valtyp, _area_kod)
-                    if _am is None or _am.parties.empty:
-                        st.warning(
-                            "📡 Inga resultat från Valmyndigheten ännu för detta "
-                            "valområde (feeden inte publicerad eller inga distrikt "
-                            "räknade)."
-                        )
-                    else:
-                        _render_area_mandat(_am)
+                    _swing = {
+                        p: float(raw_est.get(p, 0)) - float(NATIONAL_2022.get(p, 0))
+                        for p in PARTIES
+                    }
+                    _render_opinion_area_mandat(_area, _swing, _area_label)
 
 
     # ── Tab Valnatt (dold tills valdagen 2026-09-13 eller ?valnatt=1) ──

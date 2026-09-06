@@ -21,14 +21,17 @@ Aktiv feature-branch i utveckling: `feature/nowcast` — innehåller nowcasting-
 riksdagsprediction/
 ├── app.py                    # Streamlit-appen (~4 400 rader)
 ├── nowcast.py                # Delta-baserad nowcasting-algoritm (valprognos.se-metoden)
-├── val_feed.py               # Live-feed-klient: hämtar/parsar Valmyndighetens RD-resultatfiler
+├── val_feed.py               # Live-feed-klient: RD-röster + KF/RF-mandat + valkretsstruktur
+├── muni_mandates.py          # Opinionsbaserad kommunal/regional mandatmodell (full Sainte-Laguë)
 ├── data_loader.py            # Hämtar 2018+2022 valdistriktsdata från Valmyndigheten
 ├── validate_nowcast.py       # Offline-validering mot 2022 års val
 ├── fetch_scb_cache.py        # Pre-hämtar 2022 SCB-data → data/scb_2022.json
+├── fetch_muni_cache.py       # Pre-hämtar 2022 KF/RF-struktur → data/muni_structure_2022.json
 ├── tests/
 │   └── test_nowcast.py       # Pytest-enhetstester (10 st)
 ├── data/
 │   ├── scb_2022.json         # Committad — pre-cachad SCB 2022-data (~550 kB)
+│   ├── muni_structure_2022.json  # Committad — KF/RF-valkretsstruktur 2022 (~93 kB)
 │   ├── raw/                  # Gitignored — XLSX-råfiler (laddas on-demand)
 │   └── cache/                # Gitignored — CSV-cache för nowcast
 ├── logo.svg                  # Hemicykel-logotyp (520×152 px)
@@ -114,10 +117,10 @@ Naiv uniform swing ("offset-modell"):
 | 🗺️ Valkretsar | Mandattabeller + detaljerade stapeldiagram per valkrets |
 | 🎲 Simulering | Monte Carlo-sannolikheter, koalitionsanalys, majoritetsanalys |
 | 👤 Kandidater | Förväntade invalda baserat på Valmyndighetens listor |
-| 📍 Regional & kommunal | Region- och kommunprognos via SCB-data (kartan borttagen för snabbare laddning; selectbox + stapeldiagram kvar) |
+| 📍 Regional & kommunal | Region- och kommunprognos via SCB-data (selectbox + stapeldiagram) **+ opinionsbaserad mandatuppskattning** för KF/RF (full kommunal Sainte-Laguë via `muni_mandates`, alltid tillgänglig) |
 | 📋 Data | Rådata, institutvikter |
 | ℹ️ Metod | Metodbeskrivning, backtesting |
-| 🌙 Valnatt | **Dold** — aktiveras 2026-09-13 eller via `?valnatt=1`. Nowcasting-prognos + full riksdagsmandat-fördelning + förväntade invalda. |
+| 🌙 Valnatt | **Dold** — aktiveras 2026-09-13 eller via `?valnatt=1`. RD-nowcasting-prognos + full riksdagsmandat-fördelning + förväntade invalda **+ live KF/RF-mandatfördelning** (officiell feed-siffra) per vald kommun/region. |
 | 🙋 Om mig | Författarinfo |
 
 ---
@@ -146,8 +149,18 @@ inner-joinade på distriktskod (5 316 av 6 264 ordinarie 2022-distrikt;
 vid 5 % täckning (0.42→0.18 pe vs artikelns 1.03→0.52 pe). Absoluta skillnaden
 beror på storleksbaserad räkningsordningsproxy istället för riktiga tidsstämplar.
 
-**Test:** `pip install -r requirements-dev.txt && pytest tests/` — 32 cases
-(10 för `nowcast.py`, 22 för `val_feed.py`).
+**Test:** `pip install -r requirements-dev.txt && pytest tests/` — 46 cases
+(10 `nowcast.py`, 28 `val_feed.py`, 8 `muni_mandates.py`).
+
+**Kommunal/regional mandatmodell (`muni_mandates.py`):** opinionsbaserad
+mandatuppskattning för kommun-/regionfullmäktige (Regional-fliken). Full modell:
+uniform swing (nationell riksdagssving sedan 2022) appliceras per valkrets →
+Sainte-Laguë (divisor 1,2) för fasta mandat + utjämningsmandat (divisor 1,0) +
+2/3 %-spärr. Struktur (mandat/valkrets, utjämning, spärr, 2022-röster) läses från
+committad `data/muni_structure_2022.json` (genererad av `fetch_muni_cache.py` från
+KF/RF-feedfilernas `valkretsLista`). Nollsving reproducerar 2022 exakt
+(Stockholm KF = 101). Begränsning: bara de 8 riksdagspartierna — lokala partier
+prognosticeras ej, så summorna är en approximation (disclaimer i UI).
 
 **Live-feed (`val_feed.py`):** Valmyndigheten publicerar preliminära resultat som
 zippade JSON-filer; `index.md5` listar alla filer med md5. För riksdag (RD) ligger
@@ -156,6 +169,9 @@ hela riket i EN fil: `./p/rd/Val_<datum>_preliminar_00_RD.zip`. Publika funktion
   md5-verifiera → parsa. Returnerar `FeedResult`.
 - `FeedResult.counted()` — räknade ordinarie distrikt i `compute_nowcast`-schemat.
 - `parse_rostfordelning(data)` / `parse_rd_zip(bytes)` — offline-parsning.
+- `fetch_area_mandat(year, valtyp, kod)` — officiell KF/RF-mandatfördelning
+  (kommun/region) direkt ur feedens `mandatfordelning`-block → `AreaMandat`.
+- `parse_area_structure(data)` — valkretsstruktur + 2022-röster (för cachen).
 
 Verifierad mot 2022 (`val2022`-filerna ligger kvar): 6264/6264 distrikt joinar mot
 baslinjen, nationella andelar matchar XLSX inom ±0,02 pe. Röster:

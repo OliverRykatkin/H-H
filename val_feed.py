@@ -350,6 +350,71 @@ def parse_area_mandat(data: dict) -> AreaMandat:
     )
 
 
+def parse_area_structure(data: dict, parties: list[str] = PARTIES) -> dict:
+    """Extrahera valkretsstruktur + 2022-röster ur en KF/RF mandatfördelning.
+
+    Används för att bygga en committad referenstabell (mandatantal per valkrets,
+    utjämningsmandat, spärr) som driver den opinionsbaserade mandatuppskattningen
+    på Regional-fliken. Returnerar en JSON-serialiserbar dict:
+
+        {namn, kod, valtyp, threshold_pct, total_seats, n_utjamning,
+         valkretsar: [{kod, namn, fasta, total_2022, votes_2022: {P: n}}]}
+
+    votes_2022 innehåller bara de 8 riksdagspartierna; total_2022 är alla giltiga
+    röster (inkl. lokala partier) så att korrekta andelar kan räknas.
+    """
+    vo = data.get("valomrade", {})
+
+    def _votes8(rf_block: dict) -> dict:
+        out = {p: 0 for p in parties}
+        for pr in rf_block.get("partiRoster", []):
+            fk = pr.get("partiforkortning")
+            if fk in out:
+                out[fk] = _to_int(pr.get("antalRoster"))
+        return out
+
+    valkretsar = []
+    for vk in vo.get("valkretsLista", []) or []:
+        rf = vk.get("rostfordelning", {}).get("rosterPaverkaMandat", {})
+        fasta = sum(
+            _to_int(pl.get("antalFastaMandat"))
+            for pl in vk.get("mandatfordelning", {}).get("partiLista", [])
+        )
+        valkretsar.append({
+            "kod": str(vk.get("kod", "")),
+            "namn": str(vk.get("namnValkrets", "")),
+            "fasta": fasta,
+            "total_2022": _to_int(rf.get("antalRoster")),
+            "votes_2022": _votes8(rf),
+        })
+
+    # Område utan valkretsindelning → behandla hela området som en valkrets.
+    if not valkretsar:
+        rf = vo.get("rostfordelning", {}).get("rosterPaverkaMandat", {})
+        fasta = sum(
+            _to_int(pl.get("antalFastaMandat"))
+            for pl in vo.get("mandatfordelning", {}).get("partiLista", [])
+        )
+        valkretsar.append({
+            "kod": str(vo.get("kod", "")),
+            "namn": str(vo.get("namn", "")),
+            "fasta": fasta,
+            "total_2022": _to_int(rf.get("antalRoster")),
+            "votes_2022": _votes8(rf),
+        })
+
+    mf = vo.get("mandatfordelning", {}).get("partiLista", [])
+    return {
+        "namn": str(vo.get("namn", "")),
+        "kod": str(vo.get("kod", "")),
+        "valtyp": str(data.get("valtyp", "")),
+        "threshold_pct": float(vo.get("valomradessparrProcent") or 0.0),
+        "total_seats": sum(_to_int(p.get("antalMandat")) for p in mf),
+        "n_utjamning": sum(_to_int(p.get("antalUtjamningsmandat")) for p in mf),
+        "valkretsar": valkretsar,
+    }
+
+
 def fetch_area_mandat(year: int | str, valtyp: str, kod: str,
                       preliminary: bool = True) -> AreaMandat:
     """Hämta och parsa mandatfördelningen för en kommun (KF) eller region (RF).
