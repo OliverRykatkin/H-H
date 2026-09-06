@@ -3053,13 +3053,47 @@ def _render_demo_nowcast() -> dict | None:
     return nowcast
 
 
-def _render_valnatt_startlage_rd() -> None:
-    """Utgångsläge för riksdagen innan räkningen börjat: 2022 års valresultat.
+def _render_valnatt_startlage_rd(raw_est: dict) -> None:
+    """Utgångsläge för riksdagen innan räkningen börjat.
 
-    Visar samma grafik (mandatbar, blockanalys, per valkrets, förväntade invalda)
-    som live-läget, fast driven av 2022 års nationella resultat. Byts automatiskt
-    mot nowcast-prognosen så fort Valmyndigheten börjar rapportera in distrikt.
+    Högst upp: lättviktsgraf med nuvarande opinionsläge vs valresultat 2022.
+    Därunder: 2022 års mandatfördelning (bar, blockanalys, per valkrets, förväntade
+    invalda) som utgångsläge. Allt byts mot råräkning/nowcast/live-mandat så fort
+    Valmyndigheten börjar rapportera in distrikt på valnatten.
     """
+    # ── Opinion nu vs valresultat 2022 (högst upp, ingen nedladdning) ──
+    st.markdown("#### Opinionsläget nu vs valresultat 2022")
+    party_codes = list(NOWCAST_PARTIES)
+    party_labels = [PARTY_NAMES.get(p, p) for p in party_codes]
+    fig = go.Figure()
+    fig.add_bar(
+        name="Opinion nu (mätningar)",
+        x=party_labels,
+        y=[float(raw_est.get(p, 0)) for p in party_codes],
+        marker_color="#29BFA2",
+    )
+    fig.add_trace(go.Scatter(
+        name="Valresultat 2022",
+        x=party_labels,
+        y=[float(NATIONAL_2022.get(p, 0)) for p in party_codes],
+        mode="markers",
+        marker=dict(symbol="diamond", size=12, color="black"),
+    ))
+    fig.update_layout(
+        barmode="group",
+        yaxis_title="Röstandel (%)",
+        height=400,
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center"),
+    )
+    st.plotly_chart(fig, use_container_width=True, key="opinion_vs_2022_valnatt")
+    st.caption(
+        "Grön = nuvarande opinionsläge (Kalman-aggregerade mätningar). Svarta romber "
+        "= valresultat 2022. På valnatten ersätts denna av **råräkning vs nowcast vs "
+        "2022** när distrikt börjar räknas."
+    )
+
+    st.divider()
     _days_left = (date(2026, 9, 13) - date.today()).days
     if _days_left > 0:
         st.info(
@@ -3077,7 +3111,7 @@ def _render_valnatt_startlage_rd() -> None:
     _render_rd_downstream(nowcast)
 
 
-def _render_valnatt_tab() -> None:
+def _render_valnatt_tab(raw_est: dict) -> None:
     """Valnatt-fliken. Live-räkningen är standardvyn; demon (2022) ligger längst ned.
 
     Fliken hämtar alltid Valmyndighetens live-feed direkt. Så fort distrikt börjar
@@ -3104,7 +3138,7 @@ def _render_valnatt_tab() -> None:
         nowcast = _render_live_nowcast(live)
         _render_rd_downstream(nowcast)
     else:
-        _render_valnatt_startlage_rd()
+        _render_valnatt_startlage_rd(raw_est)
 
     # ── Lokal räkning: KF/RF-mandat per kommun/region ──
     _render_valnatt_local_mandates()
@@ -5224,10 +5258,9 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                     _render_opinion_area_mandat(_area, _swing, _area_label)
 
 
-    # ── Tab Valnatt (dold tills valdagen 2026-09-13 eller ?valnatt=1) ──
-    if tab_valnatt is not None:
-        with tab_valnatt:
-            _render_valnatt_tab()
+    # ── Tab Valnatt (alltid synlig; live-räkning som standard, demo längst ned) ──
+    with tab_valnatt:
+        _render_valnatt_tab(raw_est)
 
     # ── Tab 9: Om mig ──
     with tab9:
