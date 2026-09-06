@@ -94,6 +94,12 @@ Naiv uniform swing ("offset-modell"):
 - Utgångsläge: faktiska valresultat per valkrets 2022
 - Justering: nationell procentuell förändring appliceras proportionellt per valkrets
 - Känd begränsning: fångar inte lokal variation utöver 2022 års avvikelsemönster
+- **Svingen är nollsummerad** (`compute_national_swing`): polls och 2022
+  normaliseras till samma bas (andel bland de 8 riksdagspartierna) innan
+  differensen tas, så svingen summerar till ~0. Annars förstärker
+  per-område-normaliseringen stora partiers sving proportionellt mot deras lokala
+  storlek (t.ex. M i Nacka fick −1,9 istf −1,7). Används i `apply_uniform_swing`,
+  mandatuppskattningen och sving-tabellen på Regional-fliken.
 
 ### 3. Mandatberäkning
 - Modifierad Sainte-Laguë (första divisor 1,2 i valkretsar, 1,0 i landet)

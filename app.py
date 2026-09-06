@@ -456,6 +456,32 @@ def load_scb_results(
 
 
 
+def compute_national_swing(
+    current: dict, baseline: dict, parties: list | None = None
+) -> dict:
+    """Nollsummerad nationell sving (procentenheter).
+
+    Normaliserar både nuläget (polls) och 2022 till samma bas — summa 100 över de
+    8 riksdagspartierna — innan differensen tas. Polls saknar "övriga" medan 2022
+    reserverar ~1,5 pp för övriga, så en rå differens (current − 2022) summerar
+    till ~+1,5 pp. Den per-område-normaliseringen i uniform swing-modellen fördelar
+    då det överskottet proportionellt mot partistorlek, vilket felaktigt förstärker
+    stora partiers sving i områden där de är starka. Nollsummering tar bort det:
+    svingen blir enhetlig över alla områden och mäter andelsförändring bland de 8
+    riksdagspartierna (exkl. övriga).
+    """
+    parties = parties or PARTIES
+
+    def _norm(d: dict) -> dict:
+        s = sum(float(d.get(p, 0)) for p in parties)
+        if s <= 0:
+            return {p: 0.0 for p in parties}
+        return {p: float(d.get(p, 0)) / s * 100.0 for p in parties}
+
+    cur, base = _norm(current), _norm(baseline)
+    return {p: cur[p] - base[p] for p in parties}
+
+
 def apply_uniform_swing(
     df: pd.DataFrame,
     national_current: dict,
@@ -465,24 +491,18 @@ def apply_uniform_swing(
     """
     Uniform swing-modell:
       predicted[p][area] = 2022_local[p][area] + total_swing[p]
-      total_swing[p] = national_current[p] − national_2022[p]
+      total_swing[p] = nollsummerad nationell sving (se compute_national_swing)
 
     Normaliseras per geografisk enhet.
     Om ovriga_per_area anges (kommunalval/regionval) summeras de 8 partierna
     till (100 − ÖVRIGA%) per område, så att ÖVRIGA antas hålla sin 2022-nivå.
+    Svingen är nollsummerad så att den inte förstärks proportionellt mot
+    partistorlek vid omnormaliseringen.
     """
     if df.empty:
         return df
 
-    effective_current = {
-        p: float(national_current.get(p, 0))
-        for p in PARTIES
-    }
-
-    swings = {
-        p: effective_current[p] - float(national_2022.get(p, 0))
-        for p in PARTIES
-    }
+    swings = compute_national_swing(national_current, national_2022)
 
     result = df.copy()
     result["swing"] = result["party"].map(swings).fillna(0.0)
@@ -5052,20 +5072,22 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
             st.divider()
             st.subheader("Nationell svängning sedan 2022")
             st.caption(
-                "Visar den nationella opinionsförändringen sedan 2022 som appliceras "
-                "uniformt i alla kommuner och regioner."
+                "Den nationella opinionsförändringen sedan 2022 som appliceras "
+                "uniformt i alla kommuner och regioner. Svingen är **nollsummerad** "
+                "(polls och 2022 på samma bas, andel bland de 8 riksdagspartierna) "
+                "så att den blir enhetlig över alla områden och inte förstärks för "
+                "stora partier. Därför kan den skilja sig något från polls minus 2022."
             )
+            _zero_swing = compute_national_swing(raw_est, NATIONAL_2022)
             swing_rows = []
             for p in PARTIES:
                 cur = float(raw_est.get(p, 0))
-                # Använd alltid riksdagsvalet 2022 som referens
                 ref = float(NATIONAL_2022.get(p, 0))
-                opinion_swing = round(cur - ref, 1)
                 swing_rows.append({
                     "Parti": PARTY_NAMES.get(p, p),
                     "Riksdag 2022 (%)": round(ref, 1),
                     "Nu i polls (%)": round(cur, 1),
-                    "Opinionssving (pp)": f"{opinion_swing:+.1f}",
+                    "Opinionssving (pp)": f"{_zero_swing[p]:+.1f}",
                 })
             swing_df = pd.DataFrame(swing_rows)
 
@@ -5139,10 +5161,7 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                         "referensdata (kör `python fetch_muni_cache.py`)."
                     )
                 else:
-                    _swing = {
-                        p: float(raw_est.get(p, 0)) - float(NATIONAL_2022.get(p, 0))
-                        for p in PARTIES
-                    }
+                    _swing = compute_national_swing(raw_est, NATIONAL_2022)
                     _render_opinion_area_mandat(_area, _swing, _area_label)
 
 
