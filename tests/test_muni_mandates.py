@@ -16,11 +16,20 @@ from muni_mandates import (
 ZERO = {p: 0.0 for p in PARTIES}
 
 
-def _area(valkretsar, total_seats, n_utjamning=0, threshold=3.0, namn="Test", kod="0001"):
+def _area(valkretsar, total_seats, n_utjamning=0, threshold=3.0, namn="Test",
+          kod="0001", party_meta=None, seats_2022=None):
+    if party_meta is None:
+        party_meta = {}
+        for vk in valkretsar:
+            for p in vk["votes_2022"]:
+                party_meta.setdefault(
+                    p, {"namn": p, "farg": "#111111", "national": p in PARTIES}
+                )
     return {
         "namn": namn, "kod": kod, "valtyp": "KF",
         "threshold_pct": threshold, "total_seats": total_seats,
         "n_utjamning": n_utjamning, "valkretsar": valkretsar,
+        "party_meta": party_meta, "seats_2022": seats_2022 or {},
     }
 
 
@@ -79,6 +88,35 @@ def test_swing_shifts_seats():
     swung = allocate_area_mandates(area, {**ZERO, "SD": 20.0, "M": -20.0})
     assert swung["total"]["SD"] > base["total"]["SD"]
     assert swung["total"]["M"] < base["total"]["M"]
+
+
+def test_local_party_held_at_2022_and_wins_seat():
+    """Lokalt parti (icke-nationellt) hålls vid 2022 och konkurrerar om mandat."""
+    votes = {"M": 400, "S": 400, "LOK": 200}
+    area = _area(
+        [_vk("01", 20, votes)], total_seats=20, threshold=3.0,
+        party_meta={
+            "M": {"namn": "M", "farg": "#1", "national": True},
+            "S": {"namn": "S", "farg": "#2", "national": True},
+            "LOK": {"namn": "Lokalpartiet", "farg": "#3", "national": False},
+        },
+    )
+    res = allocate_area_mandates(area, ZERO)
+    assert res["total"]["LOK"] > 0                 # lokalpartiet vinner mandat
+    assert "LOK" in res["parties"]
+
+    # Stor sving till riksdagspartier ska INTE ändra lokalpartiets röstbas
+    swung = allocate_area_mandates(area, {**ZERO, "M": 30.0})
+    # lokalpartiets projicerade röster = 2022 (hålls), oberoende av svingen
+    assert swung["total"]["LOK"] >= 1
+
+
+def test_seats_2022_passthrough():
+    area = _area([_vk("01", 10, {"M": 600, "S": 400})], total_seats=10,
+                 seats_2022={"M": 6, "S": 4})
+    res = allocate_area_mandates(area, ZERO)
+    assert res["seats_2022"]["M"] == 6
+    assert res["seats_2022"]["S"] == 4
 
 
 def test_empty_area_returns_zeros():

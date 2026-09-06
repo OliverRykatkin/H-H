@@ -350,60 +350,82 @@ def parse_area_mandat(data: dict) -> AreaMandat:
     )
 
 
-def parse_area_structure(data: dict, parties: list[str] = PARTIES) -> dict:
-    """Extrahera valkretsstruktur + 2022-röster ur en KF/RF mandatfördelning.
+def parse_area_structure(data: dict, national: list[str] = PARTIES) -> dict:
+    """Extrahera valkretsstruktur, 2022-röster och 2022-mandat ur en KF/RF-fil.
 
-    Används för att bygga en committad referenstabell (mandatantal per valkrets,
-    utjämningsmandat, spärr) som driver den opinionsbaserade mandatuppskattningen
-    på Regional-fliken. Returnerar en JSON-serialiserbar dict:
+    Används för att bygga en committad referenstabell som driver den
+    opinionsbaserade mandatuppskattningen på Regional-fliken. JSON-schema:
 
         {namn, kod, valtyp, threshold_pct, total_seats, n_utjamning,
+         party_meta: {P: {namn, farg, national}},
+         seats_2022: {P: mandat},
          valkretsar: [{kod, namn, fasta, total_2022, votes_2022: {P: n}}]}
 
-    votes_2022 innehåller bara de 8 riksdagspartierna; total_2022 är alla giltiga
-    röster (inkl. lokala partier) så att korrekta andelar kan räknas.
+    votes_2022 innehåller ALLA namngivna partier (riksdagspartier + lokala) så
+    att lokalpartier kan modelleras (hållna vid sitt 2022-resultat). total_2022
+    är alla giltiga röster inkl. den anonyma "Övriga"-svansen. party_meta['P']
+    ['national'] anger om partiet är ett av de 8 riksdagspartierna. seats_2022
+    är Valmyndighetens officiella mandatfördelning 2022 (för jämförelse).
     """
+    national = set(national)
     vo = data.get("valomrade", {})
+    party_meta: dict[str, dict] = {}
 
-    def _votes8(rf_block: dict) -> dict:
-        out = {p: 0 for p in parties}
+    def _key(entry: dict) -> str:
+        """Partinyckel: förkortning om den finns, annars 'p'+partikod.
+
+        Vissa lokalpartier saknar partiforkortning i feeden (bara partibeteckning)
+        men vinner mandat — de nyklas på partikod så de inte tappas bort.
+        """
+        fk = entry.get("partiforkortning")
+        return fk if fk else "p" + str(entry.get("partikod") or "")
+
+    def _all_votes(rf_block: dict) -> dict:
+        out: dict[str, int] = {}
         for pr in rf_block.get("partiRoster", []):
-            fk = pr.get("partiforkortning")
-            if fk in out:
-                out[fk] = _to_int(pr.get("antalRoster"))
+            k = _key(pr)
+            if not k or k == "p":
+                continue
+            out[k] = _to_int(pr.get("antalRoster"))
+            if k not in party_meta:
+                fk = pr.get("partiforkortning")
+                party_meta[k] = {
+                    "namn": pr.get("partibeteckning", k),
+                    "farg": pr.get("fargkod", "") or "",
+                    "national": bool(fk) and fk in national,
+                }
         return out
+
+    def _fasta(mf_block: dict) -> int:
+        return sum(
+            _to_int(pl.get("antalFastaMandat"))
+            for pl in mf_block.get("partiLista", [])
+        )
 
     valkretsar = []
     for vk in vo.get("valkretsLista", []) or []:
         rf = vk.get("rostfordelning", {}).get("rosterPaverkaMandat", {})
-        fasta = sum(
-            _to_int(pl.get("antalFastaMandat"))
-            for pl in vk.get("mandatfordelning", {}).get("partiLista", [])
-        )
         valkretsar.append({
             "kod": str(vk.get("kod", "")),
             "namn": str(vk.get("namnValkrets", "")),
-            "fasta": fasta,
+            "fasta": _fasta(vk.get("mandatfordelning", {})),
             "total_2022": _to_int(rf.get("antalRoster")),
-            "votes_2022": _votes8(rf),
+            "votes_2022": _all_votes(rf),
         })
 
     # Område utan valkretsindelning → behandla hela området som en valkrets.
     if not valkretsar:
         rf = vo.get("rostfordelning", {}).get("rosterPaverkaMandat", {})
-        fasta = sum(
-            _to_int(pl.get("antalFastaMandat"))
-            for pl in vo.get("mandatfordelning", {}).get("partiLista", [])
-        )
         valkretsar.append({
             "kod": str(vo.get("kod", "")),
             "namn": str(vo.get("namn", "")),
-            "fasta": fasta,
+            "fasta": _fasta(vo.get("mandatfordelning", {})),
             "total_2022": _to_int(rf.get("antalRoster")),
-            "votes_2022": _votes8(rf),
+            "votes_2022": _all_votes(rf),
         })
 
     mf = vo.get("mandatfordelning", {}).get("partiLista", [])
+    seats_2022 = {_key(p): _to_int(p.get("antalMandat")) for p in mf}
     return {
         "namn": str(vo.get("namn", "")),
         "kod": str(vo.get("kod", "")),
@@ -411,6 +433,8 @@ def parse_area_structure(data: dict, parties: list[str] = PARTIES) -> dict:
         "threshold_pct": float(vo.get("valomradessparrProcent") or 0.0),
         "total_seats": sum(_to_int(p.get("antalMandat")) for p in mf),
         "n_utjamning": sum(_to_int(p.get("antalUtjamningsmandat")) for p in mf),
+        "party_meta": party_meta,
+        "seats_2022": seats_2022,
         "valkretsar": valkretsar,
     }
 

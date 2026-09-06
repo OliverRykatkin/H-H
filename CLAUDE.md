@@ -117,7 +117,7 @@ Naiv uniform swing ("offset-modell"):
 | 🗺️ Valkretsar | Mandattabeller + detaljerade stapeldiagram per valkrets |
 | 🎲 Simulering | Monte Carlo-sannolikheter, koalitionsanalys, majoritetsanalys |
 | 👤 Kandidater | Förväntade invalda baserat på Valmyndighetens listor |
-| 📍 Regional & kommunal | Region- och kommunprognos via SCB-data (selectbox + stapeldiagram) **+ opinionsbaserad mandatuppskattning** för KF/RF (full kommunal Sainte-Laguë via `muni_mandates`, alltid tillgänglig) |
+| 📍 Regional & kommunal | Region- och kommunprognos via SCB-data (selectbox + stapeldiagram) **+ opinionsbaserad mandatuppskattning** för KF/RF (full kommunal Sainte-Laguë via `muni_mandates`, lokalpartier hållna vid 2022, jämförelse mot 2022 års mandat, alltid tillgänglig) |
 | 📋 Data | Rådata, institutvikter |
 | ℹ️ Metod | Metodbeskrivning, backtesting |
 | 🌙 Valnatt | **Dold** — aktiveras 2026-09-13 eller via `?valnatt=1`. RD-nowcasting-prognos + full riksdagsmandat-fördelning + förväntade invalda **+ live KF/RF-mandatfördelning** (officiell feed-siffra) per vald kommun/region. |
@@ -149,18 +149,23 @@ inner-joinade på distriktskod (5 316 av 6 264 ordinarie 2022-distrikt;
 vid 5 % täckning (0.42→0.18 pe vs artikelns 1.03→0.52 pe). Absoluta skillnaden
 beror på storleksbaserad räkningsordningsproxy istället för riktiga tidsstämplar.
 
-**Test:** `pip install -r requirements-dev.txt && pytest tests/` — 46 cases
-(10 `nowcast.py`, 28 `val_feed.py`, 8 `muni_mandates.py`).
+**Test:** `pip install -r requirements-dev.txt && pytest tests/` — 48 cases
+(10 `nowcast.py`, 28 `val_feed.py`, 10 `muni_mandates.py`).
 
 **Kommunal/regional mandatmodell (`muni_mandates.py`):** opinionsbaserad
 mandatuppskattning för kommun-/regionfullmäktige (Regional-fliken). Full modell:
-uniform swing (nationell riksdagssving sedan 2022) appliceras per valkrets →
-Sainte-Laguë (divisor 1,2) för fasta mandat + utjämningsmandat (divisor 1,0) +
-2/3 %-spärr. Struktur (mandat/valkrets, utjämning, spärr, 2022-röster) läses från
-committad `data/muni_structure_2022.json` (genererad av `fetch_muni_cache.py` från
-KF/RF-feedfilernas `valkretsLista`). Nollsving reproducerar 2022 exakt
-(Stockholm KF = 101). Begränsning: bara de 8 riksdagspartierna — lokala partier
-prognosticeras ej, så summorna är en approximation (disclaimer i UI).
+uniform swing (nationell riksdagssving sedan 2022) appliceras per valkrets på
+**riksdagspartierna**; **lokala partier antas få samma resultat som 2022** (ingen
+opinionsdata finns) och konkurrerar med i modellen. Sedan Sainte-Laguë (divisor
+1,2) för fasta mandat per valkrets + utjämningsmandat (divisor 1,0) + 2/3 %-spärr.
+Utan utjämningsmandat är de fasta mandaten slutgiltiga. Struktur (mandat/valkrets,
+utjämning, spärr, 2022-röster per parti, 2022-mandat, partimetadata) läses från
+committad `data/muni_structure_2022.json` (~515 kB, genererad av
+`fetch_muni_cache.py` från KF/RF-feedfilernas `valkretsLista`). UI visar
+mandatuppskattningen jämte 2022 års mandat (Δ). **Validering:** nollsving
+reproducerar 2022 års officiella mandatfördelning **exakt för alla 310 områden**
+(inkl. lokalpartier). Lokalpartier utan `partiforkortning` i feeden nyklas på
+partikod (`parse_area_structure`).
 
 **Live-feed (`val_feed.py`):** Valmyndigheten publicerar preliminära resultat som
 zippade JSON-filer; `index.md5` listar alla filer med md5. För riksdag (RD) ligger

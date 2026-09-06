@@ -2811,54 +2811,75 @@ def _render_valnatt_local_mandates() -> None:
 
 def _render_opinion_area_mandat(area: dict, swing: dict, area_label: str) -> None:
     """Opinionsbaserad mandatuppskattning för ett valområde (Regional-fliken)."""
-    from muni_mandates import PARTIES as _MP, allocate_area_mandates
+    from muni_mandates import allocate_area_mandates
 
     res = allocate_area_mandates(area, swing)
     total = res["total"]
+    seats_2022 = res["seats_2022"]
+    meta = res["party_meta"]
+    parties = res["parties"]
     if sum(total.values()) == 0:
         st.info("Kunde inte beräkna en mandatfördelning för detta område.")
         return
 
+    def _is_local(p: str) -> bool:
+        return not bool(meta.get(p, {}).get("national")) and p not in PARTIES
+
+    def _label(p: str) -> str:
+        # Riksdagsparti → förkortning; lokalt parti → (förkortat) partinamn
+        return p if not _is_local(p) else meta.get(p, {}).get("namn", p)
+
+    def _fullname(p: str) -> str:
+        return PARTY_NAMES.get(p, meta.get(p, {}).get("namn", p))
+
+    def _color(p: str) -> str:
+        if p in PARTY_COLORS:
+            return PARTY_COLORS[p]
+        return meta.get(p, {}).get("farg") or "#888888"
+
     st.subheader(f"Mandatuppskattning — {area['namn']} ({area_label})")
     st.caption(
         f"{res['total_seats']} mandat · spärr {res['threshold_pct']:.0f} % · "
-        f"{res['n_utjamning']} utjämningsmandat. Uniform swing (nationell "
-        "riksdagssving sedan 2022) applicerad per valkrets, full Sainte-Laguë "
-        "+ utjämning. **Endast riksdagspartier modelleras** — lokala partier "
-        "ingår ej, så fördelningen är en approximation."
+        f"{res['n_utjamning']} utjämningsmandat. Riksdagspartier får den nationella "
+        "opinionssvingen sedan 2022; **lokala partier antas få samma resultat som "
+        "2022**. Full modell: Sainte-Laguë per valkrets + utjämning."
     )
 
-    seated = sorted(
-        [(p, total[p]) for p in _MP if total[p] > 0], key=lambda x: -x[1]
-    )
+    seated = sorted([p for p in parties if total.get(p, 0) > 0],
+                    key=lambda p: -total[p])
     fig = go.Figure()
     fig.add_bar(
-        x=[p for p, _ in seated],
-        y=[s for _, s in seated],
-        marker_color=[PARTY_COLORS.get(p, "#888888") for p, _ in seated],
+        x=[_label(p) for p in seated],
+        y=[total[p] for p in seated],
+        marker_color=[_color(p) for p in seated],
     )
     fig.update_layout(
-        yaxis_title="Mandat", height=340,
-        margin=dict(l=10, r=10, t=30, b=10), showlegend=False,
+        yaxis_title="Mandat", height=360,
+        margin=dict(l=10, r=10, t=30, b=60), showlegend=False,
     )
     st.plotly_chart(
         fig, use_container_width=True,
         key=f"opinion_mandat_{area['valtyp']}_{area['kod']}",
     )
 
-    rows = [
-        {
-            "Parti": PARTY_NAMES.get(p, p),
-            "Röstandel (%)": round(res["projected_share"][p], 1),
-            "Mandat": total[p],
-            "Fasta": res["fixed"][p],
-            "Utjämning": res["adjustment"][p],
-        }
-        for p in _MP if total[p] > 0 or res["projected_share"][p] >= 1.0
-    ]
+    rows = []
+    for p in parties:
+        m, o = total.get(p, 0), seats_2022.get(p, 0)
+        if m == 0 and o == 0 and res["projected_share"].get(p, 0) < 1.0:
+            continue
+        rows.append({
+            "Parti": _fullname(p),
+            "Röstandel (%)": round(res["projected_share"].get(p, 0), 1),
+            "Mandat 2026 (est.)": m,
+            "Mandat 2022": o,
+            "Δ": f"{m - o:+d}",
+        })
     st.dataframe(
-        pd.DataFrame(rows).sort_values("Mandat", ascending=False),
+        pd.DataFrame(rows).sort_values("Mandat 2026 (est.)", ascending=False),
         hide_index=True, use_container_width=True,
+    )
+    st.caption(
+        "Δ = förändring mot 2022. Lokala partier visas med sitt fullständiga namn."
     )
 
 
