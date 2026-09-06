@@ -126,7 +126,7 @@ Naiv uniform swing ("offset-modell"):
 | 📍 Regional & kommunal | Region- och kommunprognos via SCB-data (selectbox + stapeldiagram) **+ opinionsbaserad mandatuppskattning** för KF/RF (full kommunal Sainte-Laguë via `muni_mandates`, lokalpartier hållna vid 2022, jämförelse mot 2022 års mandat, alltid tillgänglig) |
 | 📋 Data | Rådata, institutvikter |
 | ℹ️ Metod | Metodbeskrivning, backtesting |
-| 🌙 Valnatt | **Dold** — aktiveras 2026-09-13 eller via `?valnatt=1`. RD-nowcasting-prognos + full riksdagsmandat-fördelning + förväntade invalda **+ live KF/RF-mandatfördelning** (officiell feed-siffra) per vald kommun/region. |
+| 🌙 Valnatt | **Alltid synlig.** Live-räkningen är standardvyn (hämtar Valmyndighetens feed direkt): RD-nowcast + full riksdagsmandat-fördelning + förväntade invalda **+ live KF/RF-mandatfördelning** per vald kommun/region. Innan valdagen visas en väntan-hälsning; **demon** (uppspelning av 2022) ligger i en expander längst ned (utfälld tills live-data finns). |
 | 🙋 Om mig | Författarinfo |
 
 ---

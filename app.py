@@ -2706,11 +2706,6 @@ def _render_live_nowcast(live: dict) -> dict:
     return nowcast
 
 
-def _is_live_mode() -> bool:
-    """Live-läge: från valdagen 2026-09-13 eller manuellt via ?live=1 i URL:en."""
-    return date.today() >= date(2026, 9, 13) or "live" in st.query_params
-
-
 @st.cache_data(ttl=60, show_spinner=False)
 def _fetch_area_mandat_cached(valtyp: str, kod: str):
     """Hämta officiell KF/RF-mandatfördelning från Valmyndighetens feed (60 s cache)."""
@@ -3001,11 +2996,12 @@ def _render_demo_nowcast() -> dict | None:
 
 
 def _render_valnatt_tab() -> None:
-    """Innehåll för Valnatt-fliken. Live på valdagen, annars demoläge.
+    """Valnatt-fliken. Live-räkningen är standardvyn; demon (2022) ligger längst ned.
 
-    Live-läge aktiveras automatiskt från 2026-09-13, eller manuellt via
-    ?live=1 i URL:en (för test mot Valmyndighetens genrep-feed). Om feeden
-    inte publicerat några resultat ännu faller fliken tillbaka på demoläget.
+    Fliken hämtar alltid Valmyndighetens live-feed direkt. Så fort distrikt börjar
+    rapporteras in på valnatten visas nowcast-prognosen, riksdagsmandaten och
+    KF/RF-mandaten automatiskt. Innan dess visas en väntan-hälsning och demon
+    (uppspelning av valet 2022) är utfälld längst ned.
     """
     st.subheader("🌙 Nowcasting — realtidsprognos på valnatten")
     st.markdown(
@@ -3019,37 +3015,37 @@ def _render_valnatt_tab() -> None:
         "Metod: [Nowcasting på valnatten – valprognos.se](https://www.nationalekonomi.se/artikel/nowcasting-pa-valnatten-metod-och-utvardering-fran-valprognos-se/)"
     )
 
-    _live_requested = _is_live_mode()
-
-    nowcast = None
-    if _live_requested:
-        with st.spinner("Hämtar resultat från Valmyndigheten..."):
-            live = _fetch_live_nowcast()
-        if live is not None:
-            nowcast = _render_live_nowcast(live)
-        else:
-            st.warning(
-                "📡 Live-läge aktivt, men inga resultat från Valmyndigheten ännu "
-                "(inga distrikt räknade eller feeden inte publicerad). Demoläget "
-                "nedan spelar upp 2022 tills siffror börjar komma in."
-            )
+    # ── Live-räkning (standardvy) ──
+    with st.spinner("Hämtar resultat från Valmyndigheten..."):
+        live = _fetch_live_nowcast()
+    if live is not None:
+        nowcast = _render_live_nowcast(live)
+        _render_rd_downstream(nowcast)
     else:
         _days_left = (date(2026, 9, 13) - date.today()).days
-        st.info(
-            f"📅 **Demoläge.** Live-prognos aktiveras automatiskt på valdagen "
-            f"({_days_left} dagar kvar), eller lägg till ?live=1 i URL:en för att "
-            f"testa mot Valmyndighetens feed. Spela upp 2022 nedan."
-        )
+        if _days_left > 0:
+            st.info(
+                f"📡 **Live-räkningen startar på valdagen** ({_days_left} dagar kvar). "
+                "Så fort Valmyndigheten börjar rapportera in distrikt visas nowcast-"
+                "prognosen och mandatfördelningen här automatiskt. Under tiden kan du "
+                "spela upp valet 2022 längst ned."
+            )
+        else:
+            st.warning(
+                "📡 Väntar på de första resultaten från Valmyndigheten — inga "
+                "distrikt räknade ännu. Sidan uppdateras när du laddar om."
+            )
 
-    if nowcast is None:
-        nowcast = _render_demo_nowcast()
+    # ── Lokal räkning: KF/RF-mandat per kommun/region ──
+    _render_valnatt_local_mandates()
 
-    if nowcast is not None:
-        _render_rd_downstream(nowcast)
-
-    # ── Lokal nowcast: officiell KF/RF-mandatfördelning per kommun/region ──
-    if _live_requested:
-        _render_valnatt_local_mandates()
+    # ── Demo längst ned (utfälld före valet, hopfälld när live-data finns) ──
+    st.divider()
+    with st.expander(
+        "🔬 Demo — spela upp riksdagsvalet 2022 (metodvalidering)",
+        expanded=(live is None),
+    ):
+        _render_demo_nowcast()
 
 
 def _render_rd_downstream(nowcast: dict) -> None:
@@ -3443,18 +3439,11 @@ def main():
         "🎲 Simulering", "👤 Kandidater",
         "📍 Regional", "📋 Data", "ℹ️ Metod", "🙋 Om mig",
     ]
-    _show_valnatt = (
-        "valnatt" in st.query_params or date.today() >= date(2026, 9, 13)
-    )
-    if _show_valnatt:
-        _tab_labels.insert(8, "🌙 Valnatt")  # före "Om mig"
+    # Valnatt-fliken är alltid synlig — live-räkningen är standardvyn, demon längst ned.
+    _tab_labels.insert(8, "🌙 Valnatt")  # före "Om mig"
 
     _tabs = st.tabs(_tab_labels)
-    if _show_valnatt:
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab_valnatt, tab9 = _tabs
-    else:
-        tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9 = _tabs
-        tab_valnatt = None
+    tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab_valnatt, tab9 = _tabs
 
     # ── Tab 1: Nationell opinion ──
     with tab1:
