@@ -19,8 +19,9 @@ Aktiv feature-branch i utveckling: `feature/nowcast` — innehåller nowcasting-
 
 ```
 riksdagsprediction/
-├── app.py                    # Streamlit-appen (~4 300 rader)
+├── app.py                    # Streamlit-appen (~4 400 rader)
 ├── nowcast.py                # Delta-baserad nowcasting-algoritm (valprognos.se-metoden)
+├── val_feed.py               # Live-feed-klient: hämtar/parsar Valmyndighetens RD-resultatfiler
 ├── data_loader.py            # Hämtar 2018+2022 valdistriktsdata från Valmyndigheten
 ├── validate_nowcast.py       # Offline-validering mot 2022 års val
 ├── fetch_scb_cache.py        # Pre-hämtar 2022 SCB-data → data/scb_2022.json
@@ -145,7 +146,23 @@ inner-joinade på distriktskod (5 316 av 6 264 ordinarie 2022-distrikt;
 vid 5 % täckning (0.42→0.18 pe vs artikelns 1.03→0.52 pe). Absoluta skillnaden
 beror på storleksbaserad räkningsordningsproxy istället för riktiga tidsstämplar.
 
-**Test:** `pip install -r requirements-dev.txt && pytest tests/` — 10 cases.
+**Test:** `pip install -r requirements-dev.txt && pytest tests/` — 32 cases
+(10 för `nowcast.py`, 22 för `val_feed.py`).
+
+**Live-feed (`val_feed.py`):** Valmyndigheten publicerar preliminära resultat som
+zippade JSON-filer; `index.md5` listar alla filer med md5. För riksdag (RD) ligger
+hela riket i EN fil: `./p/rd/Val_<datum>_preliminar_00_RD.zip`. Publika funktioner:
+- `fetch_live(year=2026, preliminary=True)` — index → hitta RD-fil → ladda ner →
+  md5-verifiera → parsa. Returnerar `FeedResult`.
+- `FeedResult.counted()` — räknade ordinarie distrikt i `compute_nowcast`-schemat.
+- `parse_rostfordelning(data)` / `parse_rd_zip(bytes)` — offline-parsning.
+
+Verifierad mot 2022 (`val2022`-filerna ligger kvar): 6264/6264 distrikt joinar mot
+baslinjen, nationella andelar matchar XLSX inom ±0,02 pe. Röster:
+`rosterPaverkaMandat.antalRoster` = giltiga; distriktskod (`"01800101"`) → int
+matchar `district_id`. Poll max ~1 gång/minut (Valmyndighetens rekommendation).
+Full teknisk beskrivning för 2026 kommer ~2026-09-13; formatet är identiskt med
+2022 (nya summeringar på riks-/läns-/kommunnivå tillkommer).
 
 **Valnatt-flikens sektioner** (efter den befintliga demo-tabellen):
 1. **Riksdagen — mandatfördelning enligt nowcast** — kör `nowcast`-rösterna
@@ -196,13 +213,23 @@ Valkrets-mapping: 29 svenska valkretsar med eget namn-schema (se `VALKRETS_MAPPI
       i `data/scb_2022.json` (genererad av `fetch_scb_cache.py`)
 - [x] ~~Inga automatiska tester~~ — pytest finns för `nowcast.py` (tests/, 10 cases)
 - [ ] `app.py` är ~4 000+ rader – uppdelning väntar tills efter valet 2026
-- [ ] Nowcast använder storlekssortering som räkningsordningsproxy — för
-      verkliga MAE-siffror behöver tidsstämplar parsas från
-      `resultat.val.se/protokoll/protokoll_Val_20220911_00_RD_valkrets_NN.pdf`
-- [ ] Nowcast: live-feed mot `resultat.val.se/val2026/...` inte färdig —
-      URL-schemat dokumenteras formellt först närmare valdagen
+- [x] ~~Nowcast: live-feed mot `resultat.val.se/val2026/...`~~ — klar i
+      `val_feed.py`. Pollar `index.md5` → hämtar den nationella RD-zip:en
+      (`./p/rd/Val_<datum>_preliminar_00_RD.zip`) → md5-verifierar → parsar
+      röstfördelningen till distrikts-schemat. Kopplad till Valnatt-fliken via
+      `_fetch_live_nowcast()` (60 s cache, baslinje = 2022). Live aktiveras
+      2026-09-13 eller via `?live=1`.
+- [ ] Nowcast: demo-fliken använder fortfarande storlekssortering som
+      räkningsordningsproxy. Live-feeden innehåller `rapporteringsTid` per
+      distrikt (riktiga tidsstämplar) — demo-backtestet kan nu byta till
+      faktisk räkningsordning via `val_feed` istället för PDF-parsning.
 - [ ] Nowcast: ~948 distrikt droppas pga 2018→2022 boundary changes; bör
-      hanteras via `data/raw/jamforelser-2018-2022-valdistrikt.xlsx`
+      hanteras via `data/raw/jamforelser-2018-2022-valdistrikt.xlsx`. Samma
+      gäller live: distrikt utan 2022-motsvarighet droppas ur deltaberäkningen
+      (`_fetch_live_nowcast` rapporterar antalet).
+- [ ] Nowcast live: `_load_baseline_2022()` laddar 2022-XLSX on-demand (~30 s
+      cold-start på Cloud Run). Överväg att pre-cacha till committad JSON som
+      SCB-datan (`fetch_scb_cache.py`-mönstret) inför valnatten.
 
 ---
 

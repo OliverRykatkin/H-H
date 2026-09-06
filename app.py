@@ -222,6 +222,12 @@ SCB_REGIONVAL_TO_GEOJSON = {
 # Exakta regionval-koder att begära från SCB (20 st, Gotland exkluderas)
 SCB_REGIONVAL_CODES = list(SCB_REGIONVAL_TO_GEOJSON.keys())
 
+# GeoJSON-regionnamn → 2-siffrig länskod (RF-filkod i Valmyndighetens feed).
+# Härleds från SCB-koderna ("20LG" → "20"). Gotland saknas (region-kommun, ingen RF).
+REGION_NAME_TO_LAN = {
+    name: code[:2] for code, name in SCB_REGIONVAL_TO_GEOJSON.items()
+}
+
 # Riksdagsvalet 2022 – per valkrets
 CONSTITUENCIES_2022 = {
     "Blekinge":         {"seats": 5,  "M": 17.86, "L": 3.51, "C": 4.84,  "KD": 5.54,  "S": 31.14, "V": 4.44,  "MP": 2.91,  "SD": 28.53},
@@ -2580,42 +2586,183 @@ def _load_nowcast_data() -> tuple[pd.DataFrame, pd.DataFrame] | None:
         return None
 
 
-def _render_valnatt_tab() -> None:
-    """Innehåll för Valnatt-fliken. Demoläge fram till 2026-09-13."""
-    st.subheader("🌙 Nowcasting — realtidsprognos på valnatten")
-    st.markdown(
-        "Under valnatten är råräkningen systematiskt missvisande eftersom små "
-        "distrikt rapporterar först. **Nowcast-metoden** korrigerar för detta "
-        "genom att jämföra *förändringen* (delta) i partistöd mellan räknade "
-        "distrikt och baslinjevalet, snarare än att titta på absoluta nivåer. "
-        "Vid 5 % täckning halveras prognosfelet jämfört med råräkningen."
+@st.cache_data(show_spinner=False)
+def _load_baseline_2022() -> pd.DataFrame | None:
+    """2022 års distriktsresultat som baslinje för 2026-års live-nowcast."""
+    try:
+        from data_loader import load_2022_districts
+        return load_2022_districts()
+    except Exception as e:
+        st.error(f"Kunde inte ladda 2022 baslinjedata: {e}")
+        return None
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _fetch_live_nowcast() -> dict | None:
+    """Hämta senaste RD-resultatet från Valmyndigheten och beräkna nowcast.
+
+    Cachas i 60 s (Valmyndighetens rekommendation: max ~1 hämtning/minut).
+    Baslinje = 2022 års distriktsresultat; distrikt som saknas i baslinjen
+    (nya/ombildade sedan 2022) droppas ur deltaberäkningen. Returnerar None
+    om inga resultat publicerats ännu eller om data inte kan hämtas.
+    """
+    try:
+        from val_feed import fetch_live
+        res = fetch_live(2026, preliminary=True)
+    except Exception:
+        return None
+    counted = res.counted()
+    if counted.empty:
+        return None
+    baseline = _load_baseline_2022()
+    if baseline is None or baseline.empty:
+        return None
+    base_ids = set(baseline["district_id"])
+    known = counted[counted["district_id"].isin(base_ids)]
+    if known.empty:
+        return None
+    nc = compute_nowcast(known, baseline, NOWCAST_PARTIES)
+    counted_total = known["total_valid_votes"].sum()
+    raw = {p: known[f"votes_{p}"].sum() / counted_total for p in NOWCAST_PARTIES}
+    return {
+        "nowcast": nc,
+        "raw": raw,
+        "coverage": nc["coverage"],
+        "updated_at": res.updated_at,
+        "stage": res.stage,
+        "n_counted_districts": int(len(known)),
+        "n_total_districts": int(res.n_total),
+        "n_dropped": int(len(counted) - len(known)),
+    }
+
+
+def _render_live_nowcast(live: dict) -> dict:
+    """Rendera live-metrik + råräkning-vs-nowcast-graf. Returnerar nowcast-dict."""
+    nowcast = live["nowcast"]
+    st.success(
+        f"📡 **Live** · uppdaterad {live['updated_at']} · "
+        f"{live['n_counted_districts']:,} av {live['n_total_districts']:,} distrikt "
+        f"räknade".replace(",", " ")
     )
-    st.caption(
-        "Metod: [Nowcasting på valnatten – valprognos.se](https://www.nationalekonomi.se/artikel/nowcasting-pa-valnatten-metod-och-utvardering-fran-valprognos-se/)"
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Täckning (röster)", f"{live['coverage'] * 100:.1f} %")
+    with c2:
+        st.metric(
+            "Räknade distrikt",
+            f"{live['n_counted_districts']:,} / {live['n_total_districts']:,}".replace(",", " "),
+        )
+    with c3:
+        st.metric("Räkningsläge", live["stage"] or "preliminär")
+    if live["n_dropped"]:
+        st.caption(
+            f"{live['n_dropped']} räknade distrikt saknar motsvarighet i 2022 års "
+            "baslinje (nya/ombildade) och ingår inte i deltaberäkningen."
+        )
+
+    party_codes = list(NOWCAST_PARTIES)
+    party_labels = [PARTY_NAMES.get(p, p) for p in party_codes]
+    fig = go.Figure()
+    fig.add_bar(
+        name="Råräkning",
+        x=party_labels,
+        y=[live["raw"][p] * 100 for p in party_codes],
+        marker_color="#cccccc",
+    )
+    fig.add_bar(
+        name="Nowcast",
+        x=party_labels,
+        y=[nowcast[p] * 100 for p in party_codes],
+        marker_color="#29BFA2",
+    )
+    fig.update_layout(
+        barmode="group",
+        yaxis_title="Röstandel (%)",
+        height=380,
+        margin=dict(l=10, r=10, t=30, b=10),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center"),
+    )
+    st.plotly_chart(fig, use_container_width=True, key="live_bar_valnatt")
+    return nowcast
+
+
+def _is_live_mode() -> bool:
+    """Live-läge: från valdagen 2026-09-13 eller manuellt via ?live=1 i URL:en."""
+    return date.today() >= date(2026, 9, 13) or "live" in st.query_params
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _fetch_area_mandat_cached(valtyp: str, kod: str):
+    """Hämta officiell KF/RF-mandatfördelning från Valmyndighetens feed (60 s cache)."""
+    try:
+        from val_feed import fetch_area_mandat
+        return fetch_area_mandat(2026, valtyp, kod, preliminary=True)
+    except Exception:
+        return None
+
+
+def _render_area_mandat(am) -> None:
+    """Rendera KF/RF-mandatfördelning: metrik, mandatstaplar, tabell. Inga kandidater."""
+    st.success(
+        f"📡 Live · uppdaterad {am.updated_at} · "
+        f"{am.n_counted:,} av {am.n_total:,} distrikt räknade".replace(",", " ")
+    )
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Mandat totalt", am.total_seats)
+    with c2:
+        st.metric("Täckning (distrikt)", f"{am.coverage_by_district * 100:.0f} %")
+    with c3:
+        st.metric("Spärr", f"{am.threshold_pct:.0f} %")
+
+    seated = am.parties[am.parties["antalMandat"] > 0].sort_values(
+        "antalMandat", ascending=False
+    )
+    if seated.empty:
+        st.info("Inga mandat fördelade ännu — för få distrikt räknade.")
+        return
+
+    fig = go.Figure()
+    fig.add_bar(
+        x=seated["partiforkortning"],
+        y=seated["antalMandat"],
+        marker_color=[
+            c if isinstance(c, str) and c.startswith("#") else "#888888"
+            for c in seated["fargkod"]
+        ],
+    )
+    fig.update_layout(
+        yaxis_title="Mandat",
+        height=340,
+        margin=dict(l=10, r=10, t=30, b=10),
+        showlegend=False,
+    )
+    st.plotly_chart(
+        fig, use_container_width=True,
+        key=f"area_mandat_bar_{am.valtyp}_{am.kod}",
     )
 
-    _is_election_day = date.today() == date(2026, 9, 13)
-    if _is_election_day:
-        st.info(
-            "📡 **Live-läge aktiverat.** Hämtar resultat från Valmyndigheten."
-        )
-        st.warning(
-            "Live-feed-integration är inte färdigställd. Använd demoläget nedan "
-            "för att utvärdera metoden mot 2022 års valresultat."
-        )
-    else:
-        _days_left = (date(2026, 9, 13) - date.today()).days
-        st.info(
-            f"📅 **Demoläge.** Live-prognos aktiveras automatiskt på valdagen "
-            f"({_days_left} dagar kvar). Spela upp 2022 års val nedan för att se "
-            f"hur metoden hade presterat då."
-        )
+    tbl = am.parties[(am.parties["antalMandat"] > 0) | (am.parties["andelRoster"] >= 1.0)]
+    tbl = tbl.sort_values(["antalMandat", "andelRoster"], ascending=False)
+    show = pd.DataFrame({
+        "Parti": tbl["partiforkortning"],
+        "Röstandel (%)": tbl["andelRoster"].round(1),
+        "Mandat": tbl["antalMandat"],
+        "Fasta": tbl["antalFastaMandat"],
+        "Utjämning": tbl["antalUtjamningsmandat"],
+    })
+    st.dataframe(show, hide_index=True, use_container_width=True)
+    if am.ovriga_andel > 0:
+        st.caption(f"Övriga partier: {am.ovriga_andel:.1f} % (under spärren, 0 mandat)")
 
+
+def _render_demo_nowcast() -> dict | None:
+    """Demo: spela upp riksdagsvalet 2022. Returnerar nowcast-dict eller None."""
     st.markdown("### Demo — spela upp riksdagsvalet 2022")
     with st.spinner("Laddar valdistriktsdata (första gången: ~30 sek)..."):
         pair = _load_nowcast_data()
     if pair is None:
-        return
+        return None
     baseline, actual = pair
 
     coverage = st.slider(
@@ -2703,6 +2850,54 @@ def _render_valnatt_tab() -> None:
     st.plotly_chart(fig, use_container_width=True)
 
     st.dataframe(df_compare, hide_index=True, use_container_width=True)
+    return nowcast
+
+
+def _render_valnatt_tab() -> None:
+    """Innehåll för Valnatt-fliken. Live på valdagen, annars demoläge.
+
+    Live-läge aktiveras automatiskt från 2026-09-13, eller manuellt via
+    ?live=1 i URL:en (för test mot Valmyndighetens genrep-feed). Om feeden
+    inte publicerat några resultat ännu faller fliken tillbaka på demoläget.
+    """
+    st.subheader("🌙 Nowcasting — realtidsprognos på valnatten")
+    st.markdown(
+        "Under valnatten är råräkningen systematiskt missvisande eftersom små "
+        "distrikt rapporterar först. **Nowcast-metoden** korrigerar för detta "
+        "genom att jämföra *förändringen* (delta) i partistöd mellan räknade "
+        "distrikt och baslinjevalet, snarare än att titta på absoluta nivåer. "
+        "Vid 5 % täckning halveras prognosfelet jämfört med råräkningen."
+    )
+    st.caption(
+        "Metod: [Nowcasting på valnatten – valprognos.se](https://www.nationalekonomi.se/artikel/nowcasting-pa-valnatten-metod-och-utvardering-fran-valprognos-se/)"
+    )
+
+    _live_requested = _is_live_mode()
+
+    nowcast = None
+    if _live_requested:
+        with st.spinner("Hämtar resultat från Valmyndigheten..."):
+            live = _fetch_live_nowcast()
+        if live is not None:
+            nowcast = _render_live_nowcast(live)
+        else:
+            st.warning(
+                "📡 Live-läge aktivt, men inga resultat från Valmyndigheten ännu "
+                "(inga distrikt räknade eller feeden inte publicerad). Demoläget "
+                "nedan spelar upp 2022 tills siffror börjar komma in."
+            )
+    else:
+        _days_left = (date(2026, 9, 13) - date.today()).days
+        st.info(
+            f"📅 **Demoläge.** Live-prognos aktiveras automatiskt på valdagen "
+            f"({_days_left} dagar kvar), eller lägg till ?live=1 i URL:en för att "
+            f"testa mot Valmyndighetens feed. Spela upp 2022 nedan."
+        )
+
+    if nowcast is None:
+        nowcast = _render_demo_nowcast()
+    if nowcast is None:
+        return
 
     # ─────────────────────────────────────────────────────────────────────
     # Mandatprojektion: kör nowcast-rösterna genom samma allokeringsmotor
@@ -4787,6 +4982,45 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                     file_name="regional_prediktion_2026.csv",
                     mime="text/csv",
                 )
+
+            # ── Live: aktuell mandatfördelning (KF/RF) från Valmyndigheten ──
+            # Endast för kommunal-/regionval och bara i live-läge (valdagen / ?live=1).
+            if _is_live_mode() and val_type in (
+                "Kommunalval per kommun", "Regionval per region"
+            ):
+                st.divider()
+                if val_type == "Kommunalval per kommun":
+                    _area_valtyp, _area_kod = "KF", sel_area_code
+                    _area_label = "kommunfullmäktige"
+                else:
+                    _area_valtyp = "RF"
+                    _area_kod = REGION_NAME_TO_LAN.get(sel_area_name)
+                    _area_label = "regionfullmäktige"
+
+                st.subheader(
+                    f"🔴 Aktuell mandatfördelning — {sel_area_name} ({_area_label})"
+                )
+                st.caption(
+                    "Officiell preliminär mandatfördelning direkt från Valmyndighetens "
+                    "resultatfeed (uppdateras löpande på valnatten). Inkluderar lokala "
+                    "partier; visar inte enskilda invalda."
+                )
+                if _area_kod is None:
+                    st.info(
+                        f"{sel_area_name} saknar {_area_label} (t.ex. Gotland som är "
+                        "en region-kommun utan regionval)."
+                    )
+                else:
+                    with st.spinner("Hämtar resultat från Valmyndigheten..."):
+                        _am = _fetch_area_mandat_cached(_area_valtyp, _area_kod)
+                    if _am is None or _am.parties.empty:
+                        st.warning(
+                            "📡 Inga resultat från Valmyndigheten ännu för detta "
+                            "valområde (feeden inte publicerad eller inga distrikt "
+                            "räknade)."
+                        )
+                    else:
+                        _render_area_mandat(_am)
 
 
     # ── Tab Valnatt (dold tills valdagen 2026-09-13 eller ?valnatt=1) ──
