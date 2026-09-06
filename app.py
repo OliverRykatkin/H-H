@@ -2781,16 +2781,64 @@ def _load_muni_structure_cached():
         return None
 
 
+def _render_area_seats_2022(area_struct: dict, area_label: str) -> None:
+    """Utgångsläge: 2022 års officiella mandatfördelning för ett KF/RF-område."""
+    seats = area_struct.get("seats_2022", {})
+    meta = area_struct.get("party_meta", {})
+    total = sum(seats.values())
+    if total == 0:
+        st.info("Ingen 2022-mandatfördelning tillgänglig för området.")
+        return
+
+    def _is_local(p):
+        return not bool(meta.get(p, {}).get("national")) and p not in PARTIES
+
+    def _label(p):
+        return meta.get(p, {}).get("namn", p) if _is_local(p) else p
+
+    def _color(p):
+        if p in PARTY_COLORS:
+            return PARTY_COLORS[p]
+        return meta.get(p, {}).get("farg") or "#888888"
+
+    def _fullname(p):
+        return PARTY_NAMES.get(p, meta.get(p, {}).get("namn", p))
+
+    seated = sorted([p for p in seats if seats[p] > 0], key=lambda p: -seats[p])
+    fig = go.Figure()
+    fig.add_bar(
+        x=[_label(p) for p in seated],
+        y=[seats[p] for p in seated],
+        marker_color=[_color(p) for p in seated],
+    )
+    fig.update_layout(
+        yaxis_title="Mandat", height=360,
+        margin=dict(l=10, r=10, t=30, b=60), showlegend=False,
+    )
+    st.plotly_chart(
+        fig, use_container_width=True,
+        key=f"seats2022_{area_struct.get('valtyp', '')}_{area_struct.get('kod', '')}",
+    )
+    st.dataframe(
+        pd.DataFrame([{"Parti": _fullname(p), "Mandat 2022": seats[p]} for p in seated]),
+        hide_index=True, use_container_width=True,
+    )
+    st.caption(
+        f"⏳ Utgångsläge — officiell mandatfördelning {area_label} 2022 "
+        f"({total} mandat). Uppdateras live när Valmyndigheten börjar räkna."
+    )
+
+
 def _render_valnatt_local_mandates() -> None:
-    """Live KF/RF-mandatfördelning per vald kommun och region (Valnatt-fliken)."""
+    """KF/RF-mandatfördelning per vald kommun/region. Live på valnatten, annars 2022."""
     from muni_mandates import list_areas
 
     st.divider()
-    st.subheader("Kommun & region — aktuell mandatfördelning (live)")
+    st.subheader("Kommun & region — mandatfördelning")
     st.caption(
         "Officiell preliminär mandatfördelning direkt från Valmyndighetens "
-        "resultatfeed (uppdateras löpande på valnatten). Inkluderar lokala "
-        "partier; visar inte enskilda invalda."
+        "resultatfeed på valnatten. Innan räkningen börjat visas 2022 års resultat "
+        "som utgångsläge. Inkluderar lokala partier; visar inte enskilda invalda."
     )
     struct = _load_muni_structure_cached()
     if struct is None:
@@ -2811,7 +2859,7 @@ def _render_valnatt_local_mandates() -> None:
     with st.spinner("Hämtar resultat från Valmyndigheten..."):
         am_kf = _fetch_area_mandat_cached("KF", kf_kod)
     if am_kf is None or am_kf.parties.empty:
-        st.warning("📡 Inga resultat ännu för den valda kommunen.")
+        _render_area_seats_2022(struct["KF"][kf_kod], "kommunfullmäktige")
     else:
         _render_area_mandat(am_kf)
 
@@ -2819,7 +2867,7 @@ def _render_valnatt_local_mandates() -> None:
     with st.spinner("Hämtar resultat från Valmyndigheten..."):
         am_rf = _fetch_area_mandat_cached("RF", rf_kod)
     if am_rf is None or am_rf.parties.empty:
-        st.warning("📡 Inga resultat ännu för den valda regionen.")
+        _render_area_seats_2022(struct["RF"][rf_kod], "regionfullmäktige")
     else:
         _render_area_mandat(am_rf)
 
@@ -2995,6 +3043,30 @@ def _render_demo_nowcast() -> dict | None:
     return nowcast
 
 
+def _render_valnatt_startlage_rd() -> None:
+    """Utgångsläge för riksdagen innan räkningen börjat: 2022 års valresultat.
+
+    Visar samma grafik (mandatbar, blockanalys, per valkrets, förväntade invalda)
+    som live-läget, fast driven av 2022 års nationella resultat. Byts automatiskt
+    mot nowcast-prognosen så fort Valmyndigheten börjar rapportera in distrikt.
+    """
+    _days_left = (date(2026, 9, 13) - date.today()).days
+    if _days_left > 0:
+        st.info(
+            f"📡 **Live-räkningen startar på valdagen** ({_days_left} dagar kvar). "
+            "Grafiken nedan visar **utgångsläget (valresultat 2022)** och uppdateras "
+            "automatiskt till nowcast-prognos så fort distrikt rapporteras in."
+        )
+    else:
+        st.info(
+            "📡 **Väntar på de första resultaten.** Grafiken visar **utgångsläget "
+            "(valresultat 2022)** och uppdateras när distrikt börjar räknas — ladda "
+            "om för att hämta senaste."
+        )
+    nowcast = {p: float(NATIONAL_2022.get(p, 0)) / 100.0 for p in NOWCAST_PARTIES}
+    _render_rd_downstream(nowcast)
+
+
 def _render_valnatt_tab() -> None:
     """Valnatt-fliken. Live-räkningen är standardvyn; demon (2022) ligger längst ned.
 
@@ -3022,19 +3094,7 @@ def _render_valnatt_tab() -> None:
         nowcast = _render_live_nowcast(live)
         _render_rd_downstream(nowcast)
     else:
-        _days_left = (date(2026, 9, 13) - date.today()).days
-        if _days_left > 0:
-            st.info(
-                f"📡 **Live-räkningen startar på valdagen** ({_days_left} dagar kvar). "
-                "Så fort Valmyndigheten börjar rapportera in distrikt visas nowcast-"
-                "prognosen och mandatfördelningen här automatiskt. Under tiden kan du "
-                "spela upp valet 2022 längst ned."
-            )
-        else:
-            st.warning(
-                "📡 Väntar på de första resultaten från Valmyndigheten — inga "
-                "distrikt räknade ännu. Sidan uppdateras när du laddar om."
-            )
+        _render_valnatt_startlage_rd()
 
     # ── Lokal räkning: KF/RF-mandat per kommun/region ──
     _render_valnatt_local_mandates()
