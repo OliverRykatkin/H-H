@@ -663,6 +663,11 @@ def load_candidates() -> pd.DataFrame:
         st.warning(f"Kunde inte hämta kandidatdata: {e}")
         return pd.DataFrame()
 
+    # Namnfrekvens över HELA rådatan (innan filtrering) — används längre ner
+    # för att avgöra vilken stavning som är den "riktiga" när samma person
+    # råkar förekomma dubbelt med en stavningsvariant.
+    name_freq = df["NAMN"].value_counts()
+
     rd = df[df["VALTYP"] == "RD"].copy()
 
     # Filtrera bort rikslistan ("HELA LANDET") — den innehåller nationellt
@@ -681,6 +686,19 @@ def load_candidates() -> pd.DataFrame:
     rd.columns = ["parti", "valkrets", "namn", "ordning", "alder", "kon", "hemkommun"]
     rd = rd.dropna(subset=["valkrets", "namn"])
     rd = rd[rd["parti"].isin(PARTIES)]
+
+    # Rådatan innehåller ibland dubbletter av samma kandidat på samma
+    # listplats med en stavningsvariant i namnet (t.ex. "Rinqvist" vs
+    # "Ringqvist" för samma person). Två kandidater kan inte dela listplats
+    # på riktigt, så en krock på (parti, valkrets, ordning) är alltid ett
+    # datafel i källan. Behåll den vanligast förekommande stavningen
+    # (namnfrekvensen inkluderar rikslistans "HELA LANDET"-rader, där den
+    # riktiga stavningen upprepas per valkrets) och släpp resten.
+    rd["_namefreq"] = rd["namn"].map(name_freq)
+    rd = rd.sort_values("_namefreq", ascending=False)
+    rd = rd.drop_duplicates(subset=["parti", "valkrets", "ordning"], keep="first")
+    rd = rd.drop(columns="_namefreq").sort_values(["valkrets", "parti", "ordning"])
+
     return rd.reset_index(drop=True)
 
 
