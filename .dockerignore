@@ -26,3 +26,7 @@ Thumbs.db
 README.md
 CLAUDE.md
 requirements-dev.txt
+
+.agents/
+.claude/
+skills-lock.json

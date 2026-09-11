@@ -1034,7 +1034,7 @@ def compute_backtesting_correction(
     ref = ELECTION_2022 - timedelta(days=1)
     est = aggregate_polls_kalman(
         _polls_df,
-        _house_weights=_house_weights_df,
+        house_weights=_house_weights_df,
         reference_date=ref,
         window_days=365,
     )
@@ -1086,15 +1086,14 @@ def aggregate_polls(
 
 @st.cache_data(show_spinner=False)
 def aggregate_polls_kalman(
-    _df: pd.DataFrame,
-    _house_weights: pd.DataFrame = None,
+    df: pd.DataFrame,
+    house_weights: pd.DataFrame = None,
     reference_date: datetime = None,
     sigma_process_per_day: float = 0.10,
     window_days: int = 365,
 ) -> dict:
-    # Rename underscored params (required by @st.cache_data unhashable convention)
-    df = _df
-    house_weights = _house_weights
+    # df/house_weights hashas medvetet (inget understreck) så cachen
+    # invalideras när nya opinionsmätningar tillkommer.
 
     # Referensdatum: idag om inget annat anges.
     # Det gör att estimatet uppdateras varje dag fönstret rullar
@@ -1189,8 +1188,8 @@ def aggregate_polls_kalman(
 
 @st.cache_data(show_spinner=False)
 def aggregate_polls_kalman_timeseries(
-    _df: pd.DataFrame,
-    _house_weights: pd.DataFrame = None,
+    df: pd.DataFrame,
+    house_weights: pd.DataFrame = None,
     reference_date: datetime = None,
     sigma_process_per_day: float = 0.10,
     window_days: int = 365,
@@ -1200,11 +1199,11 @@ def aggregate_polls_kalman_timeseries(
     tidsserien (300 interpolerade punkter t.o.m. idag) per parti.
     Används av make_trend_chart så att trenden överensstämmer med estimaten.
 
+    df/house_weights hashas medvetet (inget understreck) så cachen
+    invalideras när nya opinionsmätningar tillkommer.
+
     Returns: {parti: {"eval_dates": [...], "smooth_y": [...], "smooth_std": [...]}}
     """
-    df = _df
-    house_weights = _house_weights
-
     now = reference_date or datetime.now()
     cutoff = now - timedelta(days=window_days)
     recent = df[(df["PublDate"] >= cutoff) & (df["PublDate"] <= now)].copy()
@@ -2589,7 +2588,7 @@ def compute_backtesting(polls_df: pd.DataFrame, house_weights_df: pd.DataFrame) 
         ref = election_date - timedelta(days=days_before)
         est = aggregate_polls_kalman(
             polls_df,
-            _house_weights=house_weights_df,
+            house_weights=house_weights_df,
             reference_date=ref,
             window_days=365,
         )
@@ -3458,7 +3457,7 @@ def main():
     latest_date = polls_df["PublDate"].max().strftime("%Y-%m-%d")
     raw_est = aggregate_polls_kalman(
         polls_df,
-        _house_weights=house_weights_df,
+        house_weights=house_weights_df,
         window_days=window_days,
     )
 
@@ -3468,7 +3467,7 @@ def main():
     _trend_days = (datetime.now() - (ELECTION_2022 - timedelta(days=30))).days
     _raw_timeseries = aggregate_polls_kalman_timeseries(
         polls_df,
-        _house_weights=house_weights_df,
+        house_weights=house_weights_df,
         window_days=_trend_days,
     )
 
