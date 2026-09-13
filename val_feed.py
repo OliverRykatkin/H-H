@@ -208,11 +208,11 @@ def parse_rostfordelning(data: dict, parties: list[str] = PARTIES) -> FeedResult
     for vd in data.get("valdistrikt", []):
         if vd.get("valdistriktstyp") != ORDINARIE:
             continue
-        rf = vd.get("rostfordelning", {}).get("rosterPaverkaMandat", {})
+        rf = (vd.get("rostfordelning") or {}).get("rosterPaverkaMandat") or {}
         valid = _to_int(rf.get("antalRoster"))
         by_party = {
             pr.get("partiforkortning"): _to_int(pr.get("antalRoster"))
-            for pr in rf.get("partiRoster", [])
+            for pr in rf.get("partiRoster") or []
         }
         rapport = vd.get("rapporteringsTid")
         if rapport in ("None", ""):
@@ -312,13 +312,13 @@ def parse_area_mandat(data: dict) -> AreaMandat:
     utan mandat (under spärren) får 0 mandat.
     """
     vo = data.get("valomrade", {})
-    rf = vo.get("rostfordelning", {}).get("rosterPaverkaMandat", {})
+    rf = (vo.get("rostfordelning") or {}).get("rosterPaverkaMandat") or {}
     seats_by_kod = {
         str(pl.get("partikod")): pl
-        for pl in vo.get("mandatfordelning", {}).get("partiLista", [])
+        for pl in (vo.get("mandatfordelning") or {}).get("partiLista") or []
     }
     rows = []
-    for pr in rf.get("partiRoster", []):
+    for pr in rf.get("partiRoster") or []:
         kod = str(pr.get("partikod"))
         seat = seats_by_kod.get(kod, {})
         rows.append({
@@ -382,7 +382,7 @@ def parse_area_structure(data: dict, national: list[str] = PARTIES) -> dict:
 
     def _all_votes(rf_block: dict) -> dict:
         out: dict[str, int] = {}
-        for pr in rf_block.get("partiRoster", []):
+        for pr in rf_block.get("partiRoster") or []:
             k = _key(pr)
             if not k or k == "p":
                 continue
@@ -399,32 +399,32 @@ def parse_area_structure(data: dict, national: list[str] = PARTIES) -> dict:
     def _fasta(mf_block: dict) -> int:
         return sum(
             _to_int(pl.get("antalFastaMandat"))
-            for pl in mf_block.get("partiLista", [])
+            for pl in mf_block.get("partiLista") or []
         )
 
     valkretsar = []
     for vk in vo.get("valkretsLista", []) or []:
-        rf = vk.get("rostfordelning", {}).get("rosterPaverkaMandat", {})
+        rf = (vk.get("rostfordelning") or {}).get("rosterPaverkaMandat") or {}
         valkretsar.append({
             "kod": str(vk.get("kod", "")),
             "namn": str(vk.get("namnValkrets", "")),
-            "fasta": _fasta(vk.get("mandatfordelning", {})),
+            "fasta": _fasta(vk.get("mandatfordelning") or {}),
             "total_2022": _to_int(rf.get("antalRoster")),
             "votes_2022": _all_votes(rf),
         })
 
     # Område utan valkretsindelning → behandla hela området som en valkrets.
     if not valkretsar:
-        rf = vo.get("rostfordelning", {}).get("rosterPaverkaMandat", {})
+        rf = (vo.get("rostfordelning") or {}).get("rosterPaverkaMandat") or {}
         valkretsar.append({
             "kod": str(vo.get("kod", "")),
             "namn": str(vo.get("namn", "")),
-            "fasta": _fasta(vo.get("mandatfordelning", {})),
+            "fasta": _fasta(vo.get("mandatfordelning") or {}),
             "total_2022": _to_int(rf.get("antalRoster")),
             "votes_2022": _all_votes(rf),
         })
 
-    mf = vo.get("mandatfordelning", {}).get("partiLista", [])
+    mf = (vo.get("mandatfordelning") or {}).get("partiLista") or []
     seats_2022 = {_key(p): _to_int(p.get("antalMandat")) for p in mf}
     return {
         "namn": str(vo.get("namn", "")),
