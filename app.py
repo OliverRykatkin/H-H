@@ -3136,6 +3136,12 @@ def _render_valnatt_tab(raw_est: dict) -> None:
     KF/RF-mandaten automatiskt. Innan dess visas en väntan-hälsning och demon
     (uppspelning av valet 2022) är utfälld längst ned.
     """
+    try:
+        from streamlit_autorefresh import st_autorefresh
+        st_autorefresh(interval=60_000, key="valnatt_autorefresh")
+    except Exception:
+        pass
+
     st.subheader("🌙 Nowcasting — realtidsprognos på valnatten")
     st.markdown(
         "Under valnatten är råräkningen systematiskt missvisande eftersom små "
