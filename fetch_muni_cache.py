@@ -1,15 +1,21 @@
-"""Pre-hämta 2022 års kommun-/regionvalsstruktur → data/muni_structure_2022.json.
+"""Pre-hämta kommun-/regionvalsstruktur → data/muni_structure_<år>.json.
 
 Laddar ner Valmyndighetens slutliga KF- (290 kommuner) och RF-filer (20 regioner)
-för 2022, extraherar valkretsstruktur (mandat per valkrets, utjämningsmandat, spärr)
-och 2022 års röster per parti och valkrets, och committar allt som en enda JSON.
+för ett givet valår, extraherar valkretsstruktur (mandat per valkrets,
+utjämningsmandat, spärr) och röster per parti och valkrets, och committar allt
+som en enda JSON.
+
+OBS: fältnamnen (`votes_2022`, `total_2022`, `seats_2022`) behålls oavsett år
+för bakåtkompabilitet med muni_mandates.py och testerna — namnet betyder i
+praktiken "baseline year". Byt vid en större refaktorering.
 
 Filen driver den *opinionsbaserade* mandatuppskattningen på Regional-fliken
 (full kommunal modell: Sainte-Laguë per valkrets + utjämningsmandat + spärr) och
 levererar namn↔kod-mappningen för kommun-/region-selectboxarna.
 
-Körs sällan — bara om Valmyndigheten rättar 2022-siffror:
-    python fetch_muni_cache.py
+Körs sällan — bara efter val eller om Valmyndigheten rättar siffror:
+    python fetch_muni_cache.py          # default = 2026 (aktiv baslinje)
+    python fetch_muni_cache.py 2022     # historisk baslinje
 """
 from __future__ import annotations
 
@@ -30,7 +36,14 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 DATA_DIR = Path(__file__).parent / "data"
-OUT_PATH = DATA_DIR / "muni_structure_2022.json"
+
+
+def out_path_for(year: int | str) -> Path:
+    return DATA_DIR / f"muni_structure_{year}.json"
+
+
+# Bakåtkompabilitet — kod som importerar OUT_PATH får 2022-filen.
+OUT_PATH = out_path_for(2022)
 
 
 def _codes_for(index: dict[str, str], valtyp: str, preliminary: bool = False) -> list[str]:
@@ -69,12 +82,14 @@ def build(year: int | str = 2022, preliminary: bool = False) -> dict:
 
 
 if __name__ == "__main__":
+    year = int(sys.argv[1]) if len(sys.argv) > 1 else 2026
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    data = build(2022, preliminary=False)
-    OUT_PATH.write_text(
+    data = build(year, preliminary=False)
+    path = out_path_for(year)
+    path.write_text(
         json.dumps(data, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
     )
-    size_kb = OUT_PATH.stat().st_size / 1024
+    size_kb = path.stat().st_size / 1024
     n_kf, n_rf = len(data["KF"]), len(data["RF"])
-    print(f"\nSkrev {OUT_PATH} ({size_kb:.0f} kB): {n_kf} kommuner, {n_rf} regioner")
+    print(f"\nSkrev {path} ({size_kb:.0f} kB): {n_kf} kommuner, {n_rf} regioner")

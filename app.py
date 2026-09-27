@@ -168,19 +168,47 @@ COALITIONS = {
     "S + MP + C + L": ["S", "MP", "C", "L"],
 }
 
-# Riksdagsvalet 2022 – nationellt slutresultat
+# Riksdagsvalet 2022 – nationellt slutresultat (behålls som historisk konstant
+# för backtesting mot 2022 års val — appens *aktiva* baslinje är nu 2026).
 NATIONAL_2022 = {
     "M": 19.10, "L": 4.61, "C": 6.71, "KD": 5.34,
     "S": 30.33, "V": 6.75, "MP": 5.08, "SD": 20.54,
 }
 
 # Valens datum
-ELECTION_2026 = datetime(2026, 9, 13)   # Preliminärt: andra söndagen i september 2026
+ELECTION_2026 = datetime(2026, 9, 13)
 ELECTION_2022 = datetime(2022, 9, 11)
 
-# Nationella valresultat 2022 — används som referens i valkrets- och swing-modellen
-# compute_polling_bias_2022() och compute_model_correction_2022()
-# baserat på aggregatorns faktiska prestanda dagen innan valet 2022.
+
+def _load_election_2026() -> dict:
+    """Läser data/election_2026.json (genererad av fetch_election_2026.py)."""
+    import json as _json
+    import os as _os
+    path = _os.path.join(_os.path.dirname(__file__), "data", "election_2026.json")
+    if not _os.path.exists(path):
+        return {}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return _json.load(f)
+    except Exception:
+        return {}
+
+
+_ELECTION_2026 = _load_election_2026()
+
+# Riksdagsvalet 2026 – nationellt slutresultat. Faller tillbaka till 2022 om
+# election_2026.json saknas (t.ex. i lokal utveckling utan cachad fil).
+NATIONAL_2026 = _ELECTION_2026.get("national", NATIONAL_2022).copy()
+
+# Nationell mandatfördelning 2026 (per parti: total/fasta/utjamning).
+SEATS_NATIONAL_2026 = _ELECTION_2026.get("seats_national", {})
+
+# Aktiv baslinje för swing-, referens- och jämförelselogik. Alla nya
+# beräkningar utgår från 2026 års utfall; koden som backtestar 2022 använder
+# NATIONAL_2022 direkt.
+BASELINE = NATIONAL_2026
+BASELINE_YEAR = 2026
+BASELINE_ELECTION_DATE = ELECTION_2026
 
 # ── Kart-URLs ──
 MUNI_GEOJSON_URL = (
@@ -261,6 +289,12 @@ CONSTITUENCIES_2022 = {
     "Östergötland":     {"seats": 14, "M": 19.83, "L": 4.41, "C": 6.48,  "KD": 5.97,  "S": 30.55, "V": 5.62,  "MP": 4.63,  "SD": 21.20},
 }
 
+# Riksdagsvalet 2026 – per valkrets (laddas från data/election_2026.json).
+# Faller tillbaka till 2022 om filen saknas. Detta är den aktiva baslinjen för
+# swing-modellen och valkretsprognoser.
+CONSTITUENCIES_2026 = _ELECTION_2026.get("constituencies", CONSTITUENCIES_2022)
+CONSTITUENCIES = CONSTITUENCIES_2026  # ny alias för swing/baslinje-uppslag
+
 # Kartans 21 län → valkrets(er)
 COUNTY_TO_CONSTITUENCIES = {
     "Stockholm":      ["Stockholms stad", "Stockholms län"],
@@ -305,6 +339,21 @@ def load_polls() -> pd.DataFrame:
         return pd.DataFrame()
 
     df["PublDate"] = pd.to_datetime(df["PublDate"], errors="coerce")
+
+    # SwedishPolls bulkimporterar ibland äldre mätningar (t.ex. hela
+    # Infostats månadsserie 2025–2026) och sätter samma PublDate på alla
+    # rader — då klumpas hela historiken ihop på ett datum i Kalman-filtret.
+    # När insamlingsperioden är känd och PublDate ligger minst 14 dagar
+    # efter collectPeriodTo (eller approxPeriod=TRUE), använd istället
+    # mittpunkten av insamlingsperioden som effektivt mätningsdatum.
+    collect_from = pd.to_datetime(df.get("collectPeriodFrom"), errors="coerce")
+    collect_to = pd.to_datetime(df.get("collectPeriodTo"), errors="coerce")
+    midpoint = collect_from + (collect_to - collect_from) / 2
+    gap_days = (df["PublDate"] - collect_to).dt.days
+    approx = df.get("approxPeriod", pd.Series(index=df.index)).astype(str).str.upper().eq("TRUE")
+    needs_fix = midpoint.notna() & (approx | (gap_days >= 14))
+    df.loc[needs_fix, "PublDate"] = midpoint[needs_fix]
+
     df = df.dropna(subset=["PublDate"])
     for p in PARTIES:
         df[p] = pd.to_numeric(df[p], errors="coerce")
@@ -765,7 +814,7 @@ def predict_elected_candidates(fixed_seats: dict, candidates_df: pd.DataFrame) -
                 party_wins_in.setdefault(p, set()).add(c)
 
     listed_in: set[tuple] = set(zip(cdf["parti"], cdf["namn"], cdf["valkrets"]))
-    const_seats_dict = {k: v["seats"] for k, v in CONSTITUENCIES_2022.items()}
+    const_seats_dict = {k: v["seats"] for k, v in CONSTITUENCIES.items()}
 
     locked_to: dict[str, str] = {}   # "{parti}|{namn}" → hemmavalkrets
 
@@ -879,7 +928,7 @@ def predict_adjustment_constituencies(
     # mot antalet röstberättigade. Genom att multiplicera röstandel med
     # mandatantal approximerar vi faktiska röstetal — annars "vinner" alltid
     # Gotland (2 mandat, delar med 1,2) mot Stockholm (42 mandat, delar med 17).
-    const_seats = {k: v["seats"] for k, v in CONSTITUENCIES_2022.items()}
+    const_seats = {k: v["seats"] for k, v in CONSTITUENCIES.items()}
 
     # Startläge: antal fasta mandat per (parti, valkrets)
     seat_tally: dict = {}
@@ -973,41 +1022,52 @@ def predict_adjustment_candidates(
 # ─────────────────────────────────────────────
 
 @st.cache_data
-def compute_house_weights(df: pd.DataFrame) -> pd.DataFrame:
+def compute_house_weights(
+    df: pd.DataFrame,
+    election_date: pd.Timestamp | None = None,
+    actual: dict | None = None,
+    label: str = "2026",
+) -> pd.DataFrame:
     """
-    Beräknar träffsäkerhetsvikter per opinionsinsitut baserat på 2022 års val.
+    Beräknar träffsäkerhetsvikter per opinionsinsitut baserat på ett tidigare val.
+
+    Standardläge: mäter mot 2026 års riksdagsval (aktuellt facit).
+    Kan köras mot valfritt val genom att skicka `election_date` + `actual`.
 
     Metod:
-      1. Hämta alla mätningar de 90 dagarna *före* riksdagsvalet 11 sept 2022
+      1. Hämta alla mätningar de 90 dagarna *före* valdagen
       2. Beräkna medelabsolut fel (MAE) mot faktiskt valresultat per parti
       3. Vikt = 1 / MAE, normaliserad så att genomsnittet = 1
          (okända institut får standardvikt 1,0)
     """
-    ELECTION_DATE = pd.Timestamp("2022-09-11")
-    ACTUAL = NATIONAL_2022
+    if election_date is None:
+        election_date = pd.Timestamp(BASELINE_ELECTION_DATE)
+    if actual is None:
+        actual = BASELINE
 
     window = df[
-        (df["PublDate"] >= ELECTION_DATE - pd.Timedelta(days=90))
-        & (df["PublDate"] < ELECTION_DATE)
+        (df["PublDate"] >= election_date - pd.Timedelta(days=90))
+        & (df["PublDate"] < election_date)
         & (df["house"] != "Election")
     ].copy()
 
+    n_col = f"Antal mätningar ({label})"
     rows = []
     for house, grp in window.groupby("Company"):
         maes = []
         for p in PARTIES:
             vals = grp[p].dropna()
             if len(vals) > 0:
-                maes.append(abs(vals.mean() - ACTUAL[p]))
+                maes.append(abs(vals.mean() - actual[p]))
         if maes:
             rows.append({
                 "Institut": house,
                 "MAE (pp)": round(float(np.mean(maes)), 3),
-                "Antal mätningar (2022)": len(grp),
+                n_col: len(grp),
             })
 
     if not rows:
-        return pd.DataFrame(columns=["Institut", "MAE (pp)", "Antal mätningar (2022)", "Vikt"])
+        return pd.DataFrame(columns=["Institut", "MAE (pp)", n_col, "Vikt"])
 
     house_df = pd.DataFrame(rows).sort_values("MAE (pp)")
     inv_mae = 1.0 / house_df["MAE (pp)"].values
@@ -1020,25 +1080,35 @@ def compute_house_weights(df: pd.DataFrame) -> pd.DataFrame:
 def compute_backtesting_correction(
     _polls_df: pd.DataFrame,
     _house_weights_df: pd.DataFrame,
+    election_date: datetime | None = None,
+    actual: dict | None = None,
 ) -> dict:
     """
     Backtesting-korrigering: kör aggregatorn med standardinställningar
-    dagen innan riksdagsvalet 2022 och returnerar det totala felet.
+    dagen innan valdagen och returnerar det totala felet.
 
-    Korrigering[p] = NATIONAL_2022[p] − modellestimат[p]
+    Korrigering[p] = actual[p] − modellestimat[p]
                    = −(Fel pp från backtesting-tabellen vid valdagen)
 
     Täcker alla systematiska fel: pollingbias, modellspecifika fel
     och institutsviktningens effekt — allt i ett tal per parti.
+
+    Default: 2026 års val (aktivt facit). Kan köras mot 2022 genom att skicka
+    `election_date=ELECTION_2022, actual=NATIONAL_2022`.
     """
-    ref = ELECTION_2022 - timedelta(days=1)
+    if election_date is None:
+        election_date = BASELINE_ELECTION_DATE
+    if actual is None:
+        actual = BASELINE
+
+    ref = election_date - timedelta(days=1)
     est = aggregate_polls_kalman(
         _polls_df,
         house_weights=_house_weights_df,
         reference_date=ref,
         window_days=365,
     )
-    return {p: round(NATIONAL_2022.get(p, 0) - est.get(p, 0), 2) for p in PARTIES}
+    return {p: round(actual.get(p, 0) - est.get(p, 0), 2) for p in PARTIES}
 
 
 def aggregate_polls(
@@ -1061,7 +1131,7 @@ def aggregate_polls(
     cutoff = now - timedelta(days=window_days)
     recent = df[(df["PublDate"] >= cutoff) & (df["PublDate"] < now)].copy()
     if recent.empty:
-        return NATIONAL_2022.copy()
+        return BASELINE.copy()
 
     recent["days_ago"] = (now - recent["PublDate"]).dt.days
     decay = np.log(2) / decay_halflife_days
@@ -1080,7 +1150,7 @@ def aggregate_polls(
     result = {}
     for p in PARTIES:
         valid = recent[recent[p].notna()].copy()
-        result[p] = float(np.average(valid[p], weights=valid["weight"])) if not valid.empty else NATIONAL_2022[p]
+        result[p] = float(np.average(valid[p], weights=valid["weight"])) if not valid.empty else BASELINE[p]
     return result
 
 
@@ -1103,7 +1173,7 @@ def aggregate_polls_kalman(
     recent = df[(df["PublDate"] >= cutoff) & (df["PublDate"] <= now)].copy()
 
     if recent.empty:
-        return NATIONAL_2022.copy()
+        return BASELINE.copy()
 
     recent = recent.sort_values("PublDate").reset_index(drop=True)
 
@@ -1123,7 +1193,7 @@ def aggregate_polls_kalman(
         valid  = y_col.notna()
 
         if valid.sum() == 0:
-            results[party] = NATIONAL_2022.get(party, 0.0)
+            results[party] = BASELINE.get(party, 0.0)
             continue
 
         t_obs = (recent.loc[valid, "PublDate"] - t0).dt.days.astype(float).values
@@ -1309,7 +1379,7 @@ def modified_sainte_lague(votes: dict, n_seats: int) -> dict:
 def estimate_constituency_votes(national_est: dict, constituency: dict) -> dict:
     result = {}
     for p in PARTIES:
-        offset = constituency.get(p, NATIONAL_2022.get(p, 0)) - NATIONAL_2022.get(p, 0)
+        offset = constituency.get(p, BASELINE.get(p, 0)) - BASELINE.get(p, 0)
         result[p] = max(0.0, national_est.get(p, 0) + offset)
     total = sum(result.values())
     return {p: v / total * 100 for p, v in result.items()} if total > 0 else result
@@ -1395,10 +1465,27 @@ def run_simulation(
 
 
 @st.cache_data
-def compute_2022_mandates() -> dict:
-    """Beräknar faktisk mandatfördelning per valkrets från 2022 års valresultat."""
+def compute_baseline_mandates() -> dict:
+    """Faktisk mandatfördelning per valkrets från senaste val (baslinjen).
+
+    Använder ACTUAL mandatfördelning ur data/election_2026.json om den finns
+    (Valmyndighetens officiella siffror). Annars faller vi tillbaka på att
+    reproducera fördelningen genom att köra Sainte-Laguë på 2022 års röstandelar.
+    """
     fixed_seats = {}
-    for name, cdata in CONSTITUENCIES_2022.items():
+    has_real = all(
+        isinstance(cdata.get("mandat"), dict) and cdata["mandat"]
+        for cdata in CONSTITUENCIES.values()
+    )
+    if has_real:
+        for name, cdata in CONSTITUENCIES.items():
+            mandat = cdata.get("mandat") or {}
+            fixed_seats[name] = {
+                p: int(mandat.get(p, {}).get("fasta", 0)) for p in PARTIES
+            }
+        return fixed_seats
+
+    for name, cdata in CONSTITUENCIES.items():
         votes = {p: cdata.get(p, 0) for p in PARTIES}
         total = sum(votes.values())
         if total > 0:
@@ -1406,6 +1493,10 @@ def compute_2022_mandates() -> dict:
         alloc = modified_sainte_lague(votes, cdata["seats"])
         fixed_seats[name] = {p: alloc.get(p, 0) for p in PARTIES}
     return fixed_seats
+
+
+# Bakåtkompatibelt alias — call sites har inte migrerats än.
+compute_2022_mandates = compute_baseline_mandates
 
 
 def allocate_all_mandates(national_est_raw: dict) -> dict:
@@ -1418,7 +1509,7 @@ def allocate_all_mandates(national_est_raw: dict) -> dict:
     const_votes = {}
     party_fixed_total = {p: 0 for p in PARTIES}
 
-    for name, cdata in CONSTITUENCIES_2022.items():
+    for name, cdata in CONSTITUENCIES.items():
         c_votes_all = estimate_constituency_votes(national_est_raw, cdata)
         c_votes_elig = {p: c_votes_all[p] for p in eligible}
         tot = sum(c_votes_elig.values())
@@ -1577,7 +1668,7 @@ def compute_constituency_margins(national_est_raw: dict, const_name: str,
     """
     mandates = allocate_all_mandates(national_est_raw)
     eligible = mandates["eligible_parties"]
-    cdata = CONSTITUENCIES_2022[const_name]
+    cdata = CONSTITUENCIES[const_name]
     seats = cdata["seats"]
 
     c_elig = {p: mandates["constituency_votes"][const_name][p] for p in eligible}
@@ -1620,7 +1711,7 @@ def compute_closest_fixed_seats(national_est_raw: dict, top_n: int = 15,
     mandates = allocate_all_mandates(national_est_raw)
     eligible = mandates["eligible_parties"]
     rows = []
-    for name, cdata in CONSTITUENCIES_2022.items():
+    for name, cdata in CONSTITUENCIES.items():
         seats = cdata["seats"]
         c_elig = {p: mandates["constituency_votes"][name][p] for p in eligible}
         tot = sum(c_elig.values())
@@ -1669,25 +1760,30 @@ def compute_closest_fixed_seats(national_est_raw: dict, top_n: int = 15,
 # VISUALISERING
 # ─────────────────────────────────────────────
 
-def make_support_bar(votes: dict, reference_2022: dict | None = None) -> go.Figure:
+def make_support_bar(
+    votes: dict,
+    reference_2022: dict | None = None,
+    reference_year: int = BASELINE_YEAR,
+) -> go.Figure:
     parties = list(votes.keys())
     values = [votes[p] for p in parties]
     colors = [PARTY_COLORS.get(p, "#888") for p in parties]
     names = [PARTY_NAMES.get(p, p) for p in parties]
 
     fig = go.Figure()
+    ref_label = f"Valresultat {reference_year}"
 
     if reference_2022:
         ref_values = [reference_2022.get(p, 0) for p in parties]
         fig.add_trace(go.Bar(
-            name="Valresultat 2022",
+            name=ref_label,
             x=names, y=ref_values,
             marker_color=colors,
             opacity=0.35,
             marker_pattern_shape="/",
             marker_line_width=0,
             showlegend=True,
-            hovertemplate="%{x}<br>Valresultat 2022: <b>%{y:.1f}%</b><extra></extra>",
+            hovertemplate=f"%{{x}}<br>{ref_label}: <b>%{{y:.1f}}%</b><extra></extra>",
         ))
 
     fig.add_trace(go.Bar(
@@ -1707,7 +1803,7 @@ def make_support_bar(votes: dict, reference_2022: dict | None = None) -> go.Figu
     fig.update_layout(
         **ECONOMIST_LAYOUT,
         barmode="group",
-        title=dict(text="Aktuellt stöd vs valresultat 2022", font=dict(size=13, color="#111213")),
+        title=dict(text=f"Aktuellt stöd vs valresultat {reference_year}", font=dict(size=13, color="#111213")),
         yaxis_title="Röstandel (%)",
         yaxis_range=[0, max(values) * 1.25 + 3],
         height=460,
@@ -2570,13 +2666,21 @@ def make_party_comparison(df: pd.DataFrame, party_x: str, party_y: str, window_d
 
 
 @st.cache_data(ttl=86400)
-def compute_backtesting(polls_df: pd.DataFrame, house_weights_df: pd.DataFrame) -> pd.DataFrame:
+def compute_backtesting(
+    polls_df: pd.DataFrame,
+    house_weights_df: pd.DataFrame,
+    election_date: datetime | None = None,
+    actual: dict | None = None,
+) -> pd.DataFrame:
     """
-    Backtesting: kör aggregatorn månadsvis från 365 dagar före valet 2022-09-11 t.o.m.
+    Backtesting: kör aggregatorn månadsvis från 365 dagar före valet t.o.m.
     7 dagar före. Returnerar DataFrame med estimat, faktiskt resultat och fel (pp)
-    per parti och referensdatum.
+    per parti och referensdatum. Default: baslinjeåret (2026).
     """
-    election_date = datetime(2022, 9, 11)
+    if election_date is None:
+        election_date = BASELINE_ELECTION_DATE
+    if actual is None:
+        actual = BASELINE
 
     # Månadsvis + täta punkter nära valet för hög upplösning
     monthly = list(range(365, 29, -30))          # 365, 335, 305, …, 35
@@ -2598,8 +2702,8 @@ def compute_backtesting(polls_df: pd.DataFrame, house_weights_df: pd.DataFrame) 
                 "Dagar till val": days_before,
                 "Parti": PARTY_NAMES.get(p, p),
                 "Estimat (%)": round(est.get(p, 0), 2),
-                "Faktiskt (%)": NATIONAL_2022[p],
-                "Fel (pp)": round(est.get(p, 0) - NATIONAL_2022[p], 2),
+                "Faktiskt (%)": actual[p],
+                "Fel (pp)": round(est.get(p, 0) - actual[p], 2),
             })
     return pd.DataFrame(rows)
 
@@ -2809,12 +2913,12 @@ def _load_muni_structure_cached():
 
 
 def _render_area_seats_2022(area_struct: dict, area_label: str) -> None:
-    """Utgångsläge: 2022 års officiella mandatfördelning för ett KF/RF-område."""
+    """Utgångsläge: senaste valresultatets officiella mandatfördelning för ett KF/RF-område."""
     seats = area_struct.get("seats_2022", {})
     meta = area_struct.get("party_meta", {})
     total = sum(seats.values())
     if total == 0:
-        st.info("Ingen 2022-mandatfördelning tillgänglig för området.")
+        st.info(f"Ingen {BASELINE_YEAR}-mandatfördelning tillgänglig för området.")
         return
 
     def _is_local(p):
@@ -2851,7 +2955,7 @@ def _render_area_seats_2022(area_struct: dict, area_label: str) -> None:
         hide_index=True, use_container_width=True,
     )
     st.caption(
-        f"⏳ Utgångsläge — officiell mandatfördelning {area_label} 2022 "
+        f"⏳ Utgångsläge — officiell mandatfördelning {area_label} {BASELINE_YEAR} "
         f"({total} mandat). Uppdateras live när Valmyndigheten börjar räkna."
     )
 
@@ -2864,8 +2968,8 @@ def _render_valnatt_local_mandates() -> None:
     st.subheader("Kommun & region — mandatfördelning")
     st.caption(
         "Officiell preliminär mandatfördelning direkt från Valmyndighetens "
-        "resultatfeed på valnatten. Innan räkningen börjat visas 2022 års resultat "
-        "som utgångsläge. Inkluderar lokala partier; visar inte enskilda invalda."
+        f"resultatfeed på valnatten. Innan räkningen börjat visas {BASELINE_YEAR} års "
+        "resultat som utgångsläge. Inkluderar lokala partier; visar inte enskilda invalda."
     )
     struct = _load_muni_structure_cached()
     if struct is None:
@@ -3596,14 +3700,16 @@ def main():
                 "Konfidensbandet antar oberoende partifel och är en approximation."
             )
         with col2:
-            st.plotly_chart(make_support_bar(raw_est, reference_2022=NATIONAL_2022), use_container_width=True, key="support_bar_tab1")
+            st.plotly_chart(make_support_bar(raw_est, reference_2022=BASELINE), use_container_width=True, key="support_bar_tab1")
             st.subheader("Estimat per parti")
+            _baseline_label = f"{BASELINE_YEAR} (%)"
+            _delta_label = "Δ (pp)"
             _est_rows = [
                 {
                     "Parti": PARTY_NAMES.get(p, p),
-                    "2022 (%)": f"{NATIONAL_2022.get(p, 0):.1f}",
+                    _baseline_label: f"{BASELINE.get(p, 0):.1f}",
                     "Nu (%)": f"{raw_est_with_other.get(p, 0):.1f}",
-                    "Δ (pp)": f"{raw_est_with_other.get(p, 0) - NATIONAL_2022.get(p, 0):+.1f}",
+                    _delta_label: f"{raw_est_with_other.get(p, 0) - BASELINE.get(p, 0):+.1f}",
                     "Över spärren": "Ja" if raw_est_with_other.get(p, 0) >= THRESHOLD else "Nej",
                 }
                 for p in PARTIES
@@ -3611,9 +3717,9 @@ def main():
             # Lägg till Övriga (ingen spärr-kolumn relevant)
             _est_rows.append({
                 "Parti": "Övriga",
-                "2022 (%)": f"{max(0, 100 - sum(NATIONAL_2022.values())):.1f}",
+                _baseline_label: f"{max(0, 100 - sum(BASELINE.values())):.1f}",
                 "Nu (%)": f"{raw_est_other:.1f}",
-                "Δ (pp)": f"{raw_est_other - max(0, 100 - sum(NATIONAL_2022.values())):+.1f}",
+                _delta_label: f"{raw_est_other - max(0, 100 - sum(BASELINE.values())):+.1f}",
                 "Över spärren": "–",
             })
             est_df = pd.DataFrame(_est_rows)
@@ -3648,16 +3754,18 @@ def main():
         # ── Partistöd per valkrets ──
         st.divider()
         st.subheader("Partistöd per valkrets")
-        const_names_t1 = sorted(CONSTITUENCIES_2022.keys())
+        const_names_t1 = sorted(CONSTITUENCIES.keys())
         sel_const_t1 = st.selectbox("Välj valkrets", const_names_t1, key="tab1_const_sel")
 
         # Använder raw_est – samma estimat som mandatfördelningen
-        _swing_t1 = {p: raw_est.get(p, 0) - NATIONAL_2022.get(p, 0) for p in PARTIES}
-        _c22_t1 = CONSTITUENCIES_2022[sel_const_t1]
+        _swing_t1 = {p: raw_est.get(p, 0) - BASELINE.get(p, 0) for p in PARTIES}
+        _c22_t1 = CONSTITUENCIES[sel_const_t1]
         _raw_t1 = {p: max(0.0, _c22_t1.get(p, 0) + _swing_t1.get(p, 0)) for p in PARTIES}
         _tot_t1 = sum(_raw_t1.values())
         _pred_t1 = {p: _raw_t1[p] / _tot_t1 * 100 if _tot_t1 > 0 else 0.0 for p in PARTIES}
 
+        _baseline_col_t1 = f"{BASELINE_YEAR} (%)"
+        _now_col_t1 = "Opinion nu (%)"
         const_detail_rows_t1 = []
         for p in PARTIES:
             v22 = _c22_t1.get(p, 0.0)
@@ -3665,38 +3773,39 @@ def main():
             const_detail_rows_t1.append({
                 "parti_kod": p,
                 "Parti": PARTY_NAMES.get(p, p),
-                "2022 (%)": round(v22, 1),
-                "Prediktion 2026 (%)": round(v26, 1),
+                _baseline_col_t1: round(v22, 1),
+                _now_col_t1: round(v26, 1),
                 "Förändring (pp)": round(v26 - v22, 1),
             })
         const_detail_df_t1 = pd.DataFrame(const_detail_rows_t1)
 
         _chart_colors_t1 = [PARTY_COLORS.get(p, "#888") for p in PARTIES]
+        _baseline_label_t1 = f"Valresultat {BASELINE_YEAR}"
         fig_const_t1 = go.Figure()
         fig_const_t1.add_trace(go.Bar(
-            name="Valresultat 2022",
+            name=_baseline_label_t1,
             x=const_detail_df_t1["Parti"],
-            y=const_detail_df_t1["2022 (%)"],
+            y=const_detail_df_t1[_baseline_col_t1],
             marker_color=_chart_colors_t1,
             opacity=0.4,
             marker_pattern_shape="/",
-            hovertemplate="<b>%{x}</b><br>Valresultat 2022: <b>%{y:.1f}%</b><extra></extra>",
+            hovertemplate=f"<b>%{{x}}</b><br>{_baseline_label_t1}: <b>%{{y:.1f}}%</b><extra></extra>",
         ))
         fig_const_t1.add_trace(go.Bar(
-            name="Prediktion 2026",
+            name="Opinion nu",
             x=const_detail_df_t1["Parti"],
-            y=const_detail_df_t1["Prediktion 2026 (%)"],
+            y=const_detail_df_t1[_now_col_t1],
             marker_color=_chart_colors_t1,
             opacity=0.95,
             # Ingen text-attribut – etiketter läggs som annotations för att
             # helt undvika att Plotly duplicerar värdet i hover-tooltip.
-            hovertemplate="<b>%{x}</b><br>Prediktion 2026: <b>%{y:.1f}%</b><extra></extra>",
+            hovertemplate="<b>%{x}</b><br>Opinion nu: <b>%{y:.1f}%</b><extra></extra>",
         ))
 
         # Lägg till stapeletiketter som annotations (helt frikopplade från hover)
         _y_max_t1 = max(
-            const_detail_df_t1["Prediktion 2026 (%)"].max(),
-            const_detail_df_t1["2022 (%)"].max()
+            const_detail_df_t1[_now_col_t1].max(),
+            const_detail_df_t1[_baseline_col_t1].max()
         )
         _annotations_t1 = [
             dict(
@@ -3711,7 +3820,7 @@ def main():
             )
             for parti, val in zip(
                 const_detail_df_t1["Parti"],
-                const_detail_df_t1["Prediktion 2026 (%)"],
+                const_detail_df_t1[_now_col_t1],
             )
         ]
 
@@ -3747,7 +3856,7 @@ def main():
         st.dataframe(
             const_detail_df_t1.drop(columns=["parti_kod"])
             .style
-            .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
+            .format({_baseline_col_t1: "{:.1f}", _now_col_t1: "{:.1f}", "Förändring (pp)": "{:+.1f}"})
             .map(_color_const_chg_t1, subset=["Förändring (pp)"]),
             hide_index=True, use_container_width=True,
         )
@@ -3759,7 +3868,7 @@ def main():
         st.divider()
         st.subheader("Mandatprognos med osäkerhetsintervall")
         st.caption(
-            "Diamant = faktiskt 2022-resultat. Skuggat område = 90 % konfidensintervall "
+            f"Diamant = faktiskt {BASELINE_YEAR}-resultat. Skuggat område = 90 % konfidensintervall "
             "(baserat på 10 000 simuleringar). Tjock del = IQR (25:e–75:e percentil)."
         )
         st.plotly_chart(
@@ -3859,10 +3968,10 @@ def main():
         with _mc1:
             _margin_const = st.selectbox(
                 "Välj valkrets",
-                sorted(CONSTITUENCIES_2022.keys()),
+                sorted(CONSTITUENCIES.keys()),
                 key="margin_const_sel",
             )
-        _seats_here = CONSTITUENCIES_2022[_margin_const]["seats"]
+        _seats_here = CONSTITUENCIES[_margin_const]["seats"]
         st.caption(
             f"{_margin_const}: {_seats_here} fasta mandat. Marginalen avser partiets "
             "lokala röstandel i valkretsen."
@@ -3916,17 +4025,19 @@ def main():
     # ── Tab 3: Valkretsar ──
     with tab3:
         st.subheader("Partistöd per valkrets")
-        const_names = sorted(CONSTITUENCIES_2022.keys())
+        const_names = sorted(CONSTITUENCIES.keys())
         sel_const = st.selectbox("Välj valkrets", const_names, key="tab3_const_sel")
 
         # Beräkna predicted vote share per valkrets med uniform swing
         # Använder raw_est – samma estimat som mandatfördelningen
-        _swing = {p: raw_est.get(p, 0) - NATIONAL_2022.get(p, 0) for p in PARTIES}
-        _c22 = CONSTITUENCIES_2022[sel_const]
+        _swing = {p: raw_est.get(p, 0) - BASELINE.get(p, 0) for p in PARTIES}
+        _c22 = CONSTITUENCIES[sel_const]
         _raw = {p: max(0.0, _c22.get(p, 0) + _swing.get(p, 0)) for p in PARTIES}
         _tot = sum(_raw.values())
         _pred = {p: _raw[p] / _tot * 100 if _tot > 0 else 0.0 for p in PARTIES}
 
+        _baseline_col = f"{BASELINE_YEAR} (%)"
+        _now_col = "Opinion nu (%)"
         const_detail_rows = []
         for p in PARTIES:
             v22 = _c22.get(p, 0.0)
@@ -3934,46 +4045,47 @@ def main():
             const_detail_rows.append({
                 "parti_kod": p,
                 "Parti": PARTY_NAMES.get(p, p),
-                "2022 (%)": round(v22, 1),
-                "Prediktion 2026 (%)": round(v26, 1),
+                _baseline_col: round(v22, 1),
+                _now_col: round(v26, 1),
                 "Förändring (pp)": round(v26 - v22, 1),
             })
         const_detail_df = pd.DataFrame(const_detail_rows)
 
         # Stapeldiagram
         _chart_colors = [PARTY_COLORS.get(p, "#888") for p in PARTIES]
+        _baseline_label = f"Valresultat {BASELINE_YEAR}"
         fig_const = go.Figure()
         fig_const.add_trace(go.Bar(
-            name="Valresultat 2022",
+            name=_baseline_label,
             x=const_detail_df["Parti"],
-            y=const_detail_df["2022 (%)"],
+            y=const_detail_df[_baseline_col],
             marker_color=_chart_colors,
             opacity=0.4,
             marker_pattern_shape="/",
-            hovertemplate="%{x}<br>Valresultat 2022: <b>%{y:.1f}%</b><extra></extra>",
+            hovertemplate=f"%{{x}}<br>{_baseline_label}: <b>%{{y:.1f}}%</b><extra></extra>",
         ))
         fig_const.add_trace(go.Bar(
-            name="Prediktion 2026",
+            name="Opinion nu",
             x=const_detail_df["Parti"],
-            y=const_detail_df["Prediktion 2026 (%)"],
+            y=const_detail_df[_now_col],
             marker_color=_chart_colors,
             opacity=0.95,
-            text=const_detail_df["Prediktion 2026 (%)"].round(1).astype(str) + "%",
+            text=const_detail_df[_now_col].round(1).astype(str) + "%",
             textposition="outside",
-            hovertemplate="%{x}<br>Prediktion 2026: <b>%{y:.1f}%</b><extra></extra>",
+            hovertemplate="%{x}<br>Opinion nu: <b>%{y:.1f}%</b><extra></extra>",
         ))
         fig_const.update_layout(
             **ECONOMIST_BASE,
             barmode="group",
             title=dict(
-                text=f"{sel_const} — partistöd 2022 vs prediktion 2026",
+                text=f"{sel_const} — partistöd {BASELINE_YEAR} vs opinion nu",
                 font=dict(size=13, color="#111213"),
             ),
             xaxis=dict(showgrid=False, showline=True, linecolor="#cccccc", tickfont=dict(size=11)),
             yaxis=dict(
                 showgrid=True, gridcolor="#ebebeb", zeroline=False, ticksuffix="%",
-                range=[0, max(const_detail_df["Prediktion 2026 (%)"].max(),
-                              const_detail_df["2022 (%)"].max()) * 1.2],
+                range=[0, max(const_detail_df[_now_col].max(),
+                              const_detail_df[_baseline_col].max()) * 1.2],
             ),
             height=360,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
@@ -3994,7 +4106,7 @@ def main():
         st.dataframe(
             const_detail_df.drop(columns=["parti_kod"])
             .style
-            .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
+            .format({_baseline_col: "{:.1f}", _now_col: "{:.1f}", "Förändring (pp)": "{:+.1f}"})
             .map(_color_const_chg, subset=["Förändring (pp)"]),
             hide_index=True, use_container_width=True,
         )
@@ -4223,15 +4335,27 @@ krysspådrag kan avsevärt förändra vem som väljs in, särskilt inom S och M.
 mandat aggregeras till länet i kartvisningen.
 """)
 
-        st.subheader("8. Backtesting — träffsäkerhet inför valet 2022")
-        st.markdown(r"""
+        st.subheader("8. Backtesting — träffsäkerhet inför senaste val")
+        _bt_year = st.radio(
+            "Backtesta mot",
+            options=[BASELINE_YEAR, 2022],
+            format_func=lambda y: f"Riksdagsvalet {y}",
+            horizontal=True,
+            key="bt_year_select",
+        )
+        _bt_date = BASELINE_ELECTION_DATE if _bt_year == BASELINE_YEAR else ELECTION_2022
+        _bt_actual = BASELINE if _bt_year == BASELINE_YEAR else NATIONAL_2022
+        st.markdown(rf"""
 Out-of-sample-validering: modellen kördes retrospektivt för varje referensdatum
-under det sista året före riksdagsvalet 11 september 2022. Felet mäts som
-differensen $\hat{e}_p - r_p$ (procentenheter) per parti och datum. Aggregerade
+under det sista året före riksdagsvalet {_bt_year}. Felet mäts som
+differensen $\hat{{e}}_p - r_p$ (procentenheter) per parti och datum. Aggregerade
 mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
 """)
         with st.spinner("Beräknar backtesting..."):
-            bt_df = compute_backtesting(polls_df, house_weights_df)
+            bt_df = compute_backtesting(
+                polls_df, house_weights_df,
+                election_date=_bt_date, actual=_bt_actual,
+            )
 
         # Sammanfattningsstatistik per referensdatum
         err_agg = bt_df.groupby(["Referensdatum", "Dagar till val"])["Fel (pp)"].agg(
@@ -4261,7 +4385,7 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
         ))
         fig_bt.update_layout(
             **ECONOMIST_LAYOUT,
-            title=dict(text="MAE och RMSE per referensdatum — inför valet 2022", font=dict(size=13, color="#111213")),
+            title=dict(text=f"MAE och RMSE per referensdatum — inför valet {_bt_year}", font=dict(size=13, color="#111213")),
             xaxis_title="",
             yaxis_title="Fel (procentenheter)",
             height=340,
@@ -5065,8 +5189,11 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                 }
 
             # ── Applicera uniform swing (riksdagssvingen sedan 2022 appliceras lokalt) ──
-            # Alltid NATIONAL_2022 som referens: sving = raw_est[p] − riksdag_2022[p]
-            # För kommunalval: partierna normaliseras till (100% − ÖVRIGA%) per kommun
+            # SCB:s kommunval-data ligger på 2022; därför förblir NATIONAL_2022
+            # referens här (annars blir baslinjeåret inkonsekvent mot scb_df).
+            # När SCB publicerar 2026 års kommun-/regionvalsresultat kan detta
+            # bytas till BASELINE (=NATIONAL_2026) och scb_df regenereras via
+            # fetch_scb_cache.py.
             predicted_df = apply_uniform_swing(
                 scb_df, raw_est, NATIONAL_2022,
                 ovriga_per_area=ovriga_per_area,

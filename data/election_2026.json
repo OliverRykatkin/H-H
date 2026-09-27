@@ -1,0 +1,1602 @@
+{
+  "meta": {
+    "kalla": "Valmyndigheten, slutlig mandatfördelning RD 2026",
+    "fil": "./s/rd/Val_2026_slutlig_00_RD.zip",
+    "md5": "8162d2cd73ecd0a24ef21632f272dfb2",
+    "senasteUppdateringstid": "2026-09-19T14:53:03",
+    "rakningstillfalle": "slutlig",
+    "total_giltiga_roster": 6767429,
+    "hamtad": ""
+  },
+  "national": {
+    "M": 19.85,
+    "C": 7.03,
+    "L": 5.34,
+    "KD": 6.17,
+    "S": 28.02,
+    "V": 8.4,
+    "MP": 6.12,
+    "SD": 17.48
+  },
+  "seats_national": {
+    "M": {
+      "total": 70,
+      "fasta": 68,
+      "utjamning": 2
+    },
+    "S": {
+      "total": 99,
+      "fasta": 94,
+      "utjamning": 5
+    },
+    "L": {
+      "total": 19,
+      "fasta": 11,
+      "utjamning": 8
+    },
+    "C": {
+      "total": 25,
+      "fasta": 17,
+      "utjamning": 8
+    },
+    "V": {
+      "total": 30,
+      "fasta": 27,
+      "utjamning": 3
+    },
+    "MP": {
+      "total": 22,
+      "fasta": 13,
+      "utjamning": 9
+    },
+    "KD": {
+      "total": 22,
+      "fasta": 20,
+      "utjamning": 2
+    },
+    "SD": {
+      "total": 62,
+      "fasta": 60,
+      "utjamning": 2
+    }
+  },
+  "constituencies": {
+    "Stockholms stad": {
+      "seats": 29,
+      "M": 19.1,
+      "C": 9.79,
+      "L": 7.1,
+      "KD": 3.9,
+      "S": 26.34,
+      "V": 13.04,
+      "MP": 11.14,
+      "SD": 8.35,
+      "mandat": {
+        "M": {
+          "total": 6,
+          "fasta": 6,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 9,
+          "fasta": 8,
+          "utjamning": 1
+        },
+        "L": {
+          "total": 3,
+          "fasta": 2,
+          "utjamning": 1
+        },
+        "C": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 4,
+          "fasta": 4,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 5,
+          "fasta": 3,
+          "utjamning": 2
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 3,
+          "fasta": 2,
+          "utjamning": 1
+        }
+      }
+    },
+    "Stockholms län": {
+      "seats": 41,
+      "M": 23.8,
+      "C": 7.81,
+      "L": 6.63,
+      "KD": 5.71,
+      "S": 25.83,
+      "V": 8.1,
+      "MP": 5.71,
+      "SD": 14.92,
+      "mandat": {
+        "M": {
+          "total": 10,
+          "fasta": 10,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 12,
+          "fasta": 11,
+          "utjamning": 1
+        },
+        "L": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 4,
+          "fasta": 4,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 3,
+          "fasta": 2,
+          "utjamning": 1
+        },
+        "KD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 6,
+          "fasta": 6,
+          "utjamning": 0
+        }
+      }
+    },
+    "Uppsala": {
+      "seats": 12,
+      "M": 18.36,
+      "C": 7.73,
+      "L": 4.98,
+      "KD": 6.64,
+      "S": 27.07,
+      "V": 9.69,
+      "MP": 8.35,
+      "SD": 15.61,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 4,
+          "fasta": 3,
+          "utjamning": 1
+        },
+        "L": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Södermanland": {
+      "seats": 9,
+      "M": 19.57,
+      "C": 5.58,
+      "L": 4.53,
+      "KD": 5.75,
+      "S": 30.54,
+      "V": 7.33,
+      "MP": 4.85,
+      "SD": 20.18,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Östergötland": {
+      "seats": 14,
+      "M": 20.55,
+      "C": 6.82,
+      "L": 4.92,
+      "KD": 6.6,
+      "S": 28.36,
+      "V": 7.06,
+      "MP": 5.63,
+      "SD": 18.48,
+      "mandat": {
+        "M": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 4,
+          "fasta": 4,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 3,
+          "fasta": 2,
+          "utjamning": 1
+        }
+      }
+    },
+    "Jönköping": {
+      "seats": 11,
+      "M": 19.75,
+      "C": 7.0,
+      "L": 4.59,
+      "KD": 10.24,
+      "S": 26.58,
+      "V": 5.96,
+      "MP": 3.82,
+      "SD": 20.58,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        }
+      }
+    },
+    "Kronoberg": {
+      "seats": 6,
+      "M": 19.96,
+      "C": 6.23,
+      "L": 4.38,
+      "KD": 7.98,
+      "S": 27.67,
+      "V": 7.62,
+      "MP": 4.45,
+      "SD": 20.34,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Kalmar": {
+      "seats": 7,
+      "M": 18.74,
+      "C": 6.41,
+      "L": 4.26,
+      "KD": 8.39,
+      "S": 29.03,
+      "V": 6.14,
+      "MP": 4.13,
+      "SD": 21.36,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "V": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Gotland": {
+      "seats": 2,
+      "M": 18.3,
+      "C": 10.73,
+      "L": 5.28,
+      "KD": 5.24,
+      "S": 31.11,
+      "V": 6.74,
+      "MP": 7.88,
+      "SD": 13.49,
+      "mandat": {
+        "M": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        }
+      }
+    },
+    "Blekinge": {
+      "seats": 5,
+      "M": 18.3,
+      "C": 5.44,
+      "L": 4.86,
+      "KD": 7.29,
+      "S": 28.66,
+      "V": 5.86,
+      "MP": 3.82,
+      "SD": 24.41,
+      "mandat": {
+        "M": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Malmö": {
+      "seats": 10,
+      "M": 16.47,
+      "C": 5.86,
+      "L": 4.61,
+      "KD": 3.25,
+      "S": 28.98,
+      "V": 17.17,
+      "MP": 9.28,
+      "SD": 13.2,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        }
+      }
+    },
+    "Skåne V": {
+      "seats": 9,
+      "M": 20.13,
+      "C": 5.32,
+      "L": 5.72,
+      "KD": 5.24,
+      "S": 26.05,
+      "V": 7.82,
+      "MP": 4.38,
+      "SD": 24.06,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "C": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "KD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        }
+      }
+    },
+    "Skåne S": {
+      "seats": 12,
+      "M": 23.25,
+      "C": 7.97,
+      "L": 6.51,
+      "KD": 5.34,
+      "S": 22.77,
+      "V": 6.03,
+      "MP": 7.24,
+      "SD": 19.78,
+      "mandat": {
+        "M": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Skåne N/Ö": {
+      "seats": 10,
+      "M": 20.85,
+      "C": 5.31,
+      "L": 5.5,
+      "KD": 6.86,
+      "S": 23.24,
+      "V": 5.95,
+      "MP": 3.65,
+      "SD": 27.28,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "C": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        }
+      }
+    },
+    "Halland": {
+      "seats": 10,
+      "M": 23.33,
+      "C": 7.54,
+      "L": 5.95,
+      "KD": 7.05,
+      "S": 25.58,
+      "V": 5.25,
+      "MP": 4.4,
+      "SD": 19.57,
+      "mandat": {
+        "M": {
+          "total": 3,
+          "fasta": 2,
+          "utjamning": 1
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Göteborg": {
+      "seats": 18,
+      "M": 18.18,
+      "C": 6.51,
+      "L": 5.94,
+      "KD": 4.85,
+      "S": 27.14,
+      "V": 15.12,
+      "MP": 9.05,
+      "SD": 11.83,
+      "mandat": {
+        "M": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 5,
+          "fasta": 5,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "VG Västra": {
+      "seats": 11,
+      "M": 21.5,
+      "C": 7.37,
+      "L": 6.32,
+      "KD": 7.22,
+      "S": 25.3,
+      "V": 6.34,
+      "MP": 6.3,
+      "SD": 18.2,
+      "mandat": {
+        "M": {
+          "total": 3,
+          "fasta": 2,
+          "utjamning": 1
+        },
+        "S": {
+          "total": 3,
+          "fasta": 2,
+          "utjamning": 1
+        },
+        "L": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "VG Norra": {
+      "seats": 8,
+      "M": 19.06,
+      "C": 5.79,
+      "L": 4.92,
+      "KD": 6.94,
+      "S": 28.57,
+      "V": 7.1,
+      "MP": 4.51,
+      "SD": 21.59,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 2,
+          "utjamning": 1
+        },
+        "L": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "C": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "VG Södra": {
+      "seats": 7,
+      "M": 19.55,
+      "C": 6.7,
+      "L": 4.66,
+      "KD": 7.87,
+      "S": 27.31,
+      "V": 7.1,
+      "MP": 4.31,
+      "SD": 20.74,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "VG Östra": {
+      "seats": 8,
+      "M": 19.95,
+      "C": 6.51,
+      "L": 4.43,
+      "KD": 8.02,
+      "S": 28.07,
+      "V": 5.8,
+      "MP": 4.07,
+      "SD": 21.42,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "V": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Värmland": {
+      "seats": 9,
+      "M": 20.1,
+      "C": 6.05,
+      "L": 4.44,
+      "KD": 6.86,
+      "S": 31.06,
+      "V": 5.81,
+      "MP": 4.36,
+      "SD": 19.71,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Örebro": {
+      "seats": 9,
+      "M": 17.63,
+      "C": 5.72,
+      "L": 4.43,
+      "KD": 6.2,
+      "S": 30.35,
+      "V": 7.82,
+      "MP": 4.88,
+      "SD": 17.76,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "C": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Västmanland": {
+      "seats": 8,
+      "M": 19.73,
+      "C": 5.3,
+      "L": 5.03,
+      "KD": 5.6,
+      "S": 30.47,
+      "V": 7.98,
+      "MP": 3.74,
+      "SD": 20.38,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "C": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Dalarna": {
+      "seats": 9,
+      "M": 18.35,
+      "C": 6.49,
+      "L": 4.03,
+      "KD": 7.08,
+      "S": 29.52,
+      "V": 5.76,
+      "MP": 4.74,
+      "SD": 22.29,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Gävleborg": {
+      "seats": 9,
+      "M": 17.73,
+      "C": 6.06,
+      "L": 4.03,
+      "KD": 6.18,
+      "S": 31.82,
+      "V": 6.76,
+      "MP": 4.22,
+      "SD": 21.53,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Västernorrland": {
+      "seats": 7,
+      "M": 16.24,
+      "C": 6.91,
+      "L": 3.69,
+      "KD": 7.02,
+      "S": 34.38,
+      "V": 6.34,
+      "MP": 4.6,
+      "SD": 19.17,
+      "mandat": {
+        "M": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "V": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    },
+    "Jämtland": {
+      "seats": 4,
+      "M": 17.45,
+      "C": 10.07,
+      "L": 3.54,
+      "KD": 5.46,
+      "S": 31.5,
+      "V": 6.02,
+      "MP": 6.64,
+      "SD": 17.59,
+      "mandat": {
+        "M": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        }
+      }
+    },
+    "Västerbotten": {
+      "seats": 8,
+      "M": 15.39,
+      "C": 7.19,
+      "L": 3.5,
+      "KD": 5.91,
+      "S": 36.94,
+      "V": 9.34,
+      "MP": 7.49,
+      "SD": 12.75,
+      "mandat": {
+        "M": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 1,
+          "fasta": 0,
+          "utjamning": 1
+        },
+        "SD": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        }
+      }
+    },
+    "Norrbotten": {
+      "seats": 8,
+      "M": 16.37,
+      "C": 5.14,
+      "L": 3.35,
+      "KD": 6.45,
+      "S": 37.52,
+      "V": 6.86,
+      "MP": 4.55,
+      "SD": 18.11,
+      "mandat": {
+        "M": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        },
+        "S": {
+          "total": 3,
+          "fasta": 3,
+          "utjamning": 0
+        },
+        "L": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "C": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "V": {
+          "total": 1,
+          "fasta": 1,
+          "utjamning": 0
+        },
+        "MP": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "KD": {
+          "total": 0,
+          "fasta": 0,
+          "utjamning": 0
+        },
+        "SD": {
+          "total": 2,
+          "fasta": 2,
+          "utjamning": 0
+        }
+      }
+    }
+  }
+}

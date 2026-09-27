@@ -29,13 +29,49 @@ from nowcast import modified_sainte_lague
 PARTIES = ["M", "L", "C", "KD", "S", "V", "MP", "SD"]
 
 DATA_DIR = Path(__file__).parent / "data"
-STRUCTURE_PATH = DATA_DIR / "muni_structure_2022.json"
+STRUCTURE_2026 = DATA_DIR / "muni_structure_2026.json"
+STRUCTURE_2022 = DATA_DIR / "muni_structure_2022.json"
+# Bakåtkompatibel default (används av äldre kod som pekar direkt på STRUCTURE_PATH).
+STRUCTURE_PATH = STRUCTURE_2026 if STRUCTURE_2026.exists() else STRUCTURE_2022
 
 
-def load_structure(path: Path | str = STRUCTURE_PATH) -> dict:
-    """Läs den committade 2022-strukturen (KF + RF)."""
+def _read_json(path: Path | str) -> dict:
     with open(path, encoding="utf-8") as fh:
         return json.load(fh)
+
+
+def load_structure(path: Path | str | None = None) -> dict:
+    """Läs baslinjestrukturen (KF + RF), med per-område-fallback till 2022.
+
+    Två veckor efter valet 2026 saknar många kommuner/regioner ännu officiell
+    mandatfördelning från Länsstyrelserna (`total_seats=0`). När `path` är None
+    (default) läser vi 2026-filen och faller tillbaka till 2022 för varje område
+    där 2026 inte har någon mandatfördelning ännu — så att modellen alltid har
+    ett giltigt utgångsläge. Kör om `fetch_muni_cache.py 2026` när fler områden
+    publicerat slutliga siffror.
+
+    Om `path` explicit anges laddas *bara* den filen (används i tester).
+
+    Fältnamnen (`votes_2022`, `total_2022`, `seats_2022`) är internt "baseline"
+    oavsett vilket år som ligger i filen.
+    """
+    if path is not None:
+        return _read_json(path)
+
+    if not STRUCTURE_2026.exists():
+        return _read_json(STRUCTURE_2022)
+
+    primary = _read_json(STRUCTURE_2026)
+    if not STRUCTURE_2022.exists():
+        return primary
+    fallback = _read_json(STRUCTURE_2022)
+
+    for valtyp in ("KF", "RF"):
+        for kod, area in list(fallback.get(valtyp, {}).items()):
+            current = primary.get(valtyp, {}).get(kod)
+            if current is None or current.get("total_seats", 0) == 0:
+                primary.setdefault(valtyp, {})[kod] = area
+    return primary
 
 
 def list_areas(structure: dict, valtyp: str) -> list[tuple[str, str]]:
