@@ -9,10 +9,10 @@ En interaktiv opinionsaggregator och mandatprognos för riksdagsvalet 2026, bygg
 ## Vad appen gör
 
 - Hämtar och aggregerar alla tillgängliga svenska riksdagsopinionsmätningar från [MansMeg/SwedishPolls](https://github.com/MansMeg/SwedishPolls)
-- Beräknar viktat medelvärde med tidsviktning (30 dagars halveringstid) och institutsviktning baserad på träffsäkerhet 2022
+- Beräknar viktat medelvärde med tidsviktning (30 dagars halveringstid) och institutsviktning baserad på träffsäkerhet 2026
 - Prognosticerar mandatfördelning per valkrets med modifierad Sainte-Laguë (första divisor 1,2)
 - Kör 10 000 Monte Carlo-simuleringar med sannolikheter för olika utfall och koalitioner
-- Visar regional och kommunal prognos via uniform swing-modell med data från SCB PX-Web
+- Visar regional och kommunal prognos via uniform swing-modell på Valmyndighetens resultat 2026
 - **Nowcasting på valnatten** (delta-baserad realtidsmetod) — projiceras till full riksdagsmandat-fördelning och förväntade invalda ledamöter
 
 ## Flikar
@@ -24,17 +24,16 @@ En interaktiv opinionsaggregator och mandatprognos för riksdagsvalet 2026, bygg
 | 🗺️ Valkretsar | Mandattabeller och partidetaljer per valkrets |
 | 🎲 Simulering | Sannolikheter för utfall, Monte Carlo, koalitionsanalys |
 | 👤 Kandidater | Förväntade invalda baserat på Valmyndighetens kandidatlistor |
-| 📍 Regional & kommunal | Kommunal- och regionvalsprognos via SCB-data |
+| 📍 Regional & kommunal | Kommunal- och regionvalsprognos utifrån valresultatet 2026 |
 | 📋 Data | Rådata för undersökningar och institutsvikter |
 | ℹ️ Metod | Fullständig metodbeskrivning och backtesting |
-| 🌙 Valnatt | Aktiveras 2026-09-13 — realtidsprognos under valnatten med full mandat- och kandidatprojicering |
+| 🌙 Valnatt | Uppspelning av valnatten 2026 i verklig räkningsordning — nowcast mot råräkning, mandat och invalda |
 
 ## Datakällor
 
 - **Opinionsundersökningar:** [MansMeg/SwedishPolls](https://github.com/MansMeg/SwedishPolls)
-- **Valresultat per valkrets 2022:** [Valmyndigheten](https://www.val.se)
+- **Valresultat 2026 (riksdag, kommun, region):** [Valmyndigheten](https://www.val.se) (pre-cachat i `data/`)
 - **Kandidatdata 2026:** Valmyndigheten open data API
-- **Kommunal- och regiondata:** SCB PX-Web API (pre-cachad i `data/scb_2022.json`)
 - **GeoJSON-kartor:** [okfse/sweden-geojson](https://github.com/okfse/sweden-geojson)
 
 ## Köra lokalt

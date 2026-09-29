@@ -25,13 +25,16 @@ riksdagsprediction/
 ├── muni_mandates.py          # Opinionsbaserad kommunal/regional mandatmodell (full Sainte-Laguë)
 ├── data_loader.py            # Hämtar 2018+2022 valdistriktsdata från Valmyndigheten
 ├── validate_nowcast.py       # Offline-validering mot 2022 års val
-├── fetch_scb_cache.py        # Pre-hämtar 2022 SCB-data → data/scb_2022.json
-├── fetch_muni_cache.py       # Pre-hämtar 2022 KF/RF-struktur → data/muni_structure_2022.json
+├── fetch_election_2026.py    # Slutligt RD 2026 (riks, valkrets, kommun) → data/election_2026.json
+├── fetch_muni_cache.py       # KF/RF-struktur + röster → data/muni_structure_<år>.json
+├── fetch_valnatt_2026.py     # Valnattens distriktsräkning 2026 → data/valnatt_2026.csv.gz
 ├── tests/
 │   └── test_nowcast.py       # Pytest-enhetstester (10 st)
 ├── data/
-│   ├── scb_2022.json         # Committad — pre-cachad SCB 2022-data (~550 kB)
-│   ├── muni_structure_2022.json  # Committad — KF/RF-valkretsstruktur 2022 (~93 kB)
+│   ├── election_2026.json    # Committad — slutligt RD 2026: riks, valkrets, kommun (~80 kB)
+│   ├── muni_structure_2026.json  # Committad — KF/RF 2026: struktur, röster, mandat (~530 kB)
+│   ├── muni_structure_2022.json  # Committad — KF/RF 2022 (fallback per område)
+│   ├── valnatt_2026.csv.gz   # Committad — valnattens räkning per distrikt + 2022-baslinje (~200 kB)
 │   ├── raw/                  # Gitignored — XLSX-råfiler (laddas on-demand)
 │   └── cache/                # Gitignored — CSV-cache för nowcast
 ├── logo.svg                  # Hemicykel-logotyp (520×152 px)
@@ -72,10 +75,15 @@ isolera ny logik från den 4 000-radersfilen fram till efter september-valet.
 - **Kandidatdata 2026:** `https://data.val.se/filer/val2026/parti/kandidaturer.csv`
 
 **Pre-cachad (committad i repot):**
-- **2022 SCB-data (riksdag/region/kommun):** `data/scb_2022.json` — genereras
-  av `python fetch_scb_cache.py`. `load_scb_results()` i app.py läser filen
-  först, faller tillbaka på live SCB PX-Web-API om filen saknas eller queryn
-  inte är cachad. Skippar ~6-12 sek per Cloud Run-cold-start.
+- **Valresultat 2026 (Valmyndigheten):** `data/election_2026.json` (riks,
+  valkrets, `kommuner` = RD-andel per kommun summerad över kommunens distrikt)
+  och `data/muni_structure_2026.json` (KF/RF-röster + mandat; saknas slutlig
+  mandatfördelning används den preliminära, se `stage`). `load_area_results()`
+  i app.py bygger Regional-flikens baslinje ur dessa. SCB används inte längre
+  (SCB:s PX-tabeller saknade 2026 per 2026-09-29).
+- **Valnatten 2026:** `data/valnatt_2026.csv.gz` — preliminär räkning per
+  ordinarie distrikt med `rapporteringsTid` och Valmyndighetens 2022-jämförelse
+  (`antalRosterForegaendeVal`, omräknad till 2026 års indelning).
 
 ---
 
@@ -132,10 +140,10 @@ Naiv uniform swing ("offset-modell"):
 | 🗺️ Valkretsar | Mandattabeller + detaljerade stapeldiagram per valkrets |
 | 🎲 Simulering | Monte Carlo-sannolikheter, koalitionsanalys, majoritetsanalys |
 | 👤 Kandidater | Förväntade invalda baserat på Valmyndighetens listor |
-| 📍 Regional & kommunal | Region- och kommunprognos via SCB-data (selectbox + stapeldiagram) **+ opinionsbaserad mandatuppskattning** för KF/RF (full kommunal Sainte-Laguë via `muni_mandates`, lokalpartier hållna vid 2022, jämförelse mot 2022 års mandat, alltid tillgänglig) |
+| 📍 Regional & kommunal | Region- och kommunprognos: uniform swing på valresultatet 2026 (Valmyndigheten, selectbox + stapeldiagram) **+ opinionsbaserad mandatuppskattning** för KF/RF (full kommunal Sainte-Laguë via `muni_mandates`, lokalpartier hållna vid 2026, jämförelse mot 2026 års mandat) |
 | 📋 Data | Rådata, institutvikter |
 | ℹ️ Metod | Metodbeskrivning, backtesting |
-| 🌙 Valnatt | **Alltid synlig.** Live-räkningen är standardvyn (hämtar Valmyndighetens feed direkt): RD-nowcast + full riksdagsmandat-fördelning + förväntade invalda **+ live KF/RF-mandatfördelning** per vald kommun/region. Innan räkningen börjat visas högst upp en lättviktsgraf **opinionsläget nu vs valresultat 2022**, och därunder hela grafiken med **2022 års resultat som utgångsläge** (RD-mandat + KF/RF). På valnatten byts toppgrafen mot **råräkning vs nowcast vs 2022** och utgångsläget mot live-siffror så fort distrikt rapporteras in. **Demon** (uppspelning av 2022) ligger i en expander längst ned (utfälld tills live-data finns). |
+| 🌙 Valnatt | **Uppspelning av valnatten 2026** (`_render_valnatt_replay`): klockslagsreglage 20:40–04:00, distrikten läggs till i verklig rapporteringsordning. Råräkning vs nowcast vs slutresultat 2026, felkurva över natten, därefter riksdagsmandat + förväntade invalda enligt nowcasten, och KF/RF-mandatfördelning 2026 per vald kommun/region. Ingen live-hämtning längre — återinför inför 2030 (se git-historik före 2026-09-29: `_fetch_live_nowcast`). |
 | 🙋 Om mig | Författarinfo |
 
 ---
@@ -169,18 +177,19 @@ beror på storleksbaserad räkningsordningsproxy istället för riktiga tidsstä
 
 **Kommunal/regional mandatmodell (`muni_mandates.py`):** opinionsbaserad
 mandatuppskattning för kommun-/regionfullmäktige (Regional-fliken). Full modell:
-uniform swing (nationell riksdagssving sedan 2022) appliceras per valkrets på
-**riksdagspartierna**; **lokala partier antas få samma resultat som 2022** (ingen
+uniform swing (nationell riksdagssving sedan 2026) appliceras per valkrets på
+**riksdagspartierna**; **lokala partier antas få samma resultat som 2026** (ingen
 opinionsdata finns) och konkurrerar med i modellen. Sedan Sainte-Laguë (divisor
 1,2) för fasta mandat per valkrets + utjämningsmandat (divisor 1,0) + 2/3 %-spärr.
 Utan utjämningsmandat är de fasta mandaten slutgiltiga. Struktur (mandat/valkrets,
-utjämning, spärr, 2022-röster per parti, 2022-mandat, partimetadata) läses från
-committad `data/muni_structure_2022.json` (~515 kB, genererad av
-`fetch_muni_cache.py` från KF/RF-feedfilernas `valkretsLista`). UI visar
-mandatuppskattningen jämte 2022 års mandat (Δ). **Validering:** nollsving
-reproducerar 2022 års officiella mandatfördelning **exakt för alla 310 områden**
-(inkl. lokalpartier). Lokalpartier utan `partiforkortning` i feeden nyklas på
-partikod (`parse_area_structure`).
+utjämning, spärr, röster per parti, mandat, partimetadata) läses från committad
+`data/muni_structure_2026.json` (genererad av `fetch_muni_cache.py` från KF/RF-
+feedfilernas `valkretsLista`; faller per område tillbaka på 2022-filen). UI visar
+mandatuppskattningen jämte 2026 års mandat (Δ). **Validering:** nollsving
+reproducerar 2026 års mandatfördelning exakt för 309 av 310 områden — undantaget
+Region Östergötland, som bara har preliminär mandatfördelning. Enkla valkretsar
+saknar `antalFastaMandat` i 2026-filerna; `parse_area_structure` räknar då alla
+mandat som fasta. Lokalpartier utan `partiforkortning` nyklas på partikod.
 
 **Live-feed (`val_feed.py`):** Valmyndigheten publicerar preliminära resultat som
 zippade JSON-filer; `index.md5` listar alla filer med md5. För riksdag (RD) ligger
@@ -200,7 +209,7 @@ matchar `district_id`. Poll max ~1 gång/minut (Valmyndighetens rekommendation).
 Full teknisk beskrivning för 2026 kommer ~2026-09-13; formatet är identiskt med
 2022 (nya summeringar på riks-/läns-/kommunnivå tillkommer).
 
-**Valnatt-flikens sektioner** (efter den befintliga demo-tabellen):
+**Valnatt-flikens sektioner** (efter uppspelningen):
 1. **Riksdagen — mandatfördelning enligt nowcast** — kör `nowcast`-rösterna
    genom `allocate_all_mandates()` (samma motor som opinionsfliken) → full
    mandat-bar, tabell med fasta/utjämning/totalt, blockmajoritets-metrics.
@@ -245,27 +254,19 @@ Valkrets-mapping: 29 svenska valkretsar med eget namn-schema (se `VALKRETS_MAPPI
 
 - [ ] Valkrets-modellen är naiv (uniform swing) – lokal variation fångas ej
 - [ ] Institutvikterna är hårdkodade baserat på 2022 års prestation
-- [x] ~~SCB-kommundata laddas synkront och kan göra appen trög~~ — cachas nu
-      i `data/scb_2022.json` (genererad av `fetch_scb_cache.py`)
+- [x] ~~SCB-kommundata laddas synkront~~ — ersatt av committad Valmyndighets-data 2026
 - [x] ~~Inga automatiska tester~~ — pytest finns för `nowcast.py` (tests/, 10 cases)
 - [ ] `app.py` är ~4 000+ rader – uppdelning väntar tills efter valet 2026
 - [x] ~~Nowcast: live-feed mot `resultat.val.se/val2026/...`~~ — klar i
       `val_feed.py`. Pollar `index.md5` → hämtar den nationella RD-zip:en
       (`./p/rd/Val_<datum>_preliminar_00_RD.zip`) → md5-verifierar → parsar
-      röstfördelningen till distrikts-schemat. Kopplad till Valnatt-fliken via
-      `_fetch_live_nowcast()` (60 s cache, baslinje = 2022). Live aktiveras
-      2026-09-13 eller via `?live=1`.
-- [ ] Nowcast: demo-fliken använder fortfarande storlekssortering som
-      räkningsordningsproxy. Live-feeden innehåller `rapporteringsTid` per
-      distrikt (riktiga tidsstämplar) — demo-backtestet kan nu byta till
-      faktisk räkningsordning via `val_feed` istället för PDF-parsning.
-- [ ] Nowcast: ~948 distrikt droppas pga 2018→2022 boundary changes; bör
-      hanteras via `data/raw/jamforelser-2018-2022-valdistrikt.xlsx`. Samma
-      gäller live: distrikt utan 2022-motsvarighet droppas ur deltaberäkningen
-      (`_fetch_live_nowcast` rapporterar antalet).
-- [ ] Nowcast live: `_load_baseline_2022()` laddar 2022-XLSX on-demand (~30 s
-      cold-start på Cloud Run). Överväg att pre-cacha till committad JSON som
-      SCB-datan (`fetch_scb_cache.py`-mönstret) inför valnatten.
+      röstfördelningen till distrikts-schemat. Användes live valnatten 2026;
+      Valnatt-fliken är nu en uppspelning (live-UI:t borttaget, finns i git).
+- [x] ~~Nowcast-demo med storlekssortering som räkningsordning~~ — uppspelningen
+      använder verklig `rapporteringsTid` från valnatten 2026.
+- [ ] Nowcast: 1 253 av 6 312 distrikt 2026 är "Ej jämförbart" mot 2022
+      (≈ 20 % av rösterna) och ingår inte i deltaberäkningen. Kan förbättras
+      genom att summera `valdistriktskodForegaendeVal` mot 2022 års distrikt.
 
 ---
 
@@ -281,8 +282,10 @@ pip install -r requirements-dev.txt
 pytest tests/
 python validate_nowcast.py   # Reproducerar valprognos.se:s MAE-siffror
 
-# Uppdatera SCB-cachen (körs sällan, bara om SCB rättar 2022-siffror)
-python fetch_scb_cache.py    # → data/scb_2022.json
+# Uppdatera valdata (körs sällan — t.ex. när Länsstyrelserna fastställt mandat)
+python fetch_election_2026.py   # → data/election_2026.json
+python fetch_muni_cache.py      # → data/muni_structure_2026.json
+python fetch_valnatt_2026.py    # → data/valnatt_2026.csv.gz
 ```
 
 **OBS Windows arm64:** Streamlits transitiva beroenden (httptools, pyarrow)

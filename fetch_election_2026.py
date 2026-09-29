@@ -7,6 +7,7 @@ Innehåller:
     - Nationellt röstresultat per parti (%)
     - Nationell mandatfördelning (fasta + utjämning + totalt)
     - Per valkrets: fasta mandat, röstandel per parti, mandat per parti
+    - Per kommun: riksdagsröstandel per parti (summa över kommunens valdistrikt)
 
 Filen används av app.py som ny baslinje (NATIONAL_2026 / CONSTITUENCIES_2026)
 och som facit för institutvikter och backtesting-korrigering.
@@ -119,6 +120,29 @@ def _extract_valkretsar(vo: dict) -> dict:
     return out
 
 
+def _extract_kommuner(rostfordelning: dict) -> dict:
+    """Riksdagsresultat per kommun: summa över kommunens alla valdistrikt
+    (inkl. uppsamlingsdistrikt) → {kommunkod: {M: %, ..., SD: %}}, andel av
+    kommunens giltiga röster."""
+    votes: dict[str, dict[str, int]] = {}
+    valid: dict[str, int] = {}
+    for vd in rostfordelning["valdistrikt"]:
+        rp = (vd.get("rostfordelning") or {}).get("rosterPaverkaMandat")
+        if not rp:
+            continue
+        kod = str(vd["kommunkod"])
+        valid[kod] = valid.get(kod, 0) + int(rp["antalRoster"])
+        acc = votes.setdefault(kod, {p: 0 for p in PARTIES})
+        for pr in rp.get("partiRoster", []):
+            fk = pr.get("partiforkortning")
+            if fk in PARTIES:
+                acc[fk] += int(pr["antalRoster"])
+    return {
+        kod: {p: round(v / valid[kod] * 100, 2) for p, v in acc.items()}
+        for kod, acc in sorted(votes.items()) if valid.get(kod)
+    }
+
+
 def main() -> int:
     print("Hamtar index fran Valmyndigheten (2026)...")
     idx = vf.fetch_index(2026)
@@ -151,6 +175,9 @@ def main() -> int:
     tot_seats_vk = sum(v["seats"] for v in valkretsar.values())
     print(f"  Summa fasta mandat: {tot_seats_vk}/310")
 
+    kommuner = _extract_kommuner(vf._extract_json(data, "rostfordelning"))
+    print(f"Kommuner (riksdagsresultat): {len(kommuner)}/290")
+
     out_path = Path(__file__).parent / "data" / "election_2026.json"
     out_path.parent.mkdir(exist_ok=True)
 
@@ -167,6 +194,7 @@ def main() -> int:
         "national": national,
         "seats_national": seats_national,
         "constituencies": valkretsar,
+        "kommuner": kommuner,
     }
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2, sort_keys=False)

@@ -416,10 +416,16 @@ def parse_area_structure(data: dict, national: list[str] = PARTIES) -> dict:
     # Område utan valkretsindelning → behandla hela området som en valkrets.
     if not valkretsar:
         rf = (vo.get("rostfordelning") or {}).get("rosterPaverkaMandat") or {}
+        mf_vo = vo.get("mandatfordelning") or {}
+        # 2026 års filer saknar antalFastaMandat när området är en enda
+        # valkrets — då är alla mandat fasta.
+        fasta = _fasta(mf_vo) or sum(
+            _to_int(pl.get("antalMandat")) for pl in mf_vo.get("partiLista") or []
+        )
         valkretsar.append({
             "kod": str(vo.get("kod", "")),
             "namn": str(vo.get("namn", "")),
-            "fasta": _fasta(vo.get("mandatfordelning") or {}),
+            "fasta": fasta,
             "total_2022": _to_int(rf.get("antalRoster")),
             "votes_2022": _all_votes(rf),
         })

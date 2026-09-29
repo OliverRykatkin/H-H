@@ -20,7 +20,7 @@ import pandas as pd
 import numpy as np
 import requests
 import json
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 from io import StringIO
 import plotly.express as px
 import plotly.graph_objects as go
@@ -232,43 +232,18 @@ REGION_GEOJSON_URL = (
     "https://raw.githubusercontent.com/okfse/sweden-geojson/master/swedish_regions.geojson"
 )
 
-# ── SCB PX-Web API-endpoints för 2022 valresultat ──
-SCB_RIKSDAG_URL = (
-    "https://api.scb.se/OV0104/v1/doris/sv/ssd/ME/ME0104/ME0104C/ME0104T3"
-)
-SCB_REGIONVAL_URL = (
-    "https://api.scb.se/OV0104/v1/doris/sv/ssd/ME/ME0104/ME0104B/ME0104T2"
-)
-SCB_KOMMUNVAL_URL = (
-    "https://api.scb.se/OV0104/v1/doris/sv/ssd/ME/ME0104/ME0104A/ME0104T1"
-)
-
-# SCB använder "FP" för Liberalerna (heter "L" i appen)
-SCB_TO_APP_PARTY = {"FP": "L"}
-SCB_PARTIES_RAW = ["M", "C", "FP", "KD", "MP", "S", "V", "SD"]
-
-# SCB regionval-koder (XXL / XXLG) → GeoJSON-namn för de 20 regionerna
-# (Gotland saknas i SCB:s regionval-tabell – Region Gotland är en region-kommun)
-SCB_REGIONVAL_TO_GEOJSON = {
-    "01L":  "Stockholm",      "03L":  "Uppsala",
-    "04L":  "Södermanland",   "05L":  "Östergötland",
-    "06L":  "Jönköping",      "07L":  "Kronoberg",
-    "08L":  "Kalmar",         "10L":  "Blekinge",
-    "12L":  "Skåne",          "13L":  "Halland",
-    "14L":  "Västra Götaland","17L":  "Värmland",
-    "18L":  "Örebro",         "19L":  "Västmanland",
-    "20LG": "Dalarna",        "21L":  "Gävleborg",
-    "22L":  "Västernorrland", "23L":  "Jämtland",
-    "24L":  "Västerbotten",   "25L":  "Norrbotten",
-}
-# Exakta regionval-koder att begära från SCB (20 st, Gotland exkluderas)
-SCB_REGIONVAL_CODES = list(SCB_REGIONVAL_TO_GEOJSON.keys())
-
-# GeoJSON-regionnamn → 2-siffrig länskod (RF-filkod i Valmyndighetens feed).
-# Härleds från SCB-koderna ("20LG" → "20"). Gotland saknas (region-kommun, ingen RF).
+# GeoJSON-regionnamn ↔ 2-siffrig länskod (RF-filkod i Valmyndighetens feed).
+# Gotland saknas (region-kommun, inget regionval).
 REGION_NAME_TO_LAN = {
-    name: code[:2] for code, name in SCB_REGIONVAL_TO_GEOJSON.items()
+    "Stockholm": "01",      "Uppsala": "03",        "Södermanland": "04",
+    "Östergötland": "05",   "Jönköping": "06",      "Kronoberg": "07",
+    "Kalmar": "08",         "Blekinge": "10",       "Skåne": "12",
+    "Halland": "13",        "Västra Götaland": "14", "Värmland": "17",
+    "Örebro": "18",         "Västmanland": "19",    "Dalarna": "20",
+    "Gävleborg": "21",      "Västernorrland": "22", "Jämtland": "23",
+    "Västerbotten": "24",   "Norrbotten": "25",
 }
+LAN_TO_REGION_NAME = {v: k for k, v in REGION_NAME_TO_LAN.items()}
 
 # Riksdagsvalet 2022 – per valkrets
 CONSTITUENCIES_2022 = {
@@ -400,123 +375,35 @@ def load_geojson_url(url: str) -> dict:
         return {}
 
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def _scb_get_region_codes(api_url: str) -> list:
-    """Hämtar alla giltiga Region-koder för en SCB PX-Web-tabell."""
-    try:
-        resp = requests.get(api_url, timeout=30)
-        resp.raise_for_status()
-        meta = resp.json()
-    except Exception:
-        return []
-    region_var = next(
-        (v for v in meta.get("variables", []) if v["code"] == "Region"), None
-    )
-    return region_var["values"] if region_var else []
-
-
 @st.cache_data(show_spinner=False)
-def _load_scb_cache_file() -> dict:
-    """Läser data/scb_2022.json om den finns. Tom dict om filen saknas."""
-    import json as _json
-    import os as _os
-    path = _os.path.join(_os.path.dirname(__file__), "data", "scb_2022.json")
-    if not _os.path.exists(path):
-        return {}
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return _json.load(f)
-    except Exception:
-        return {}
+def load_area_results(val_type: str) -> tuple[pd.DataFrame, dict]:
+    """Senaste valets resultat per kommun/region för Regional-fliken.
 
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def load_scb_results(
-    api_url: str,
-    contents_code: str,
-    region_codes: list | None = None,
-    party_codes: list | None = None,
-) -> pd.DataFrame:
+    val_type: "RD" (riksdag per kommun), "KF" (kommunval) eller "RF" (regionval).
+    Returnerar (DataFrame[region_code, party, pct_base], övriga_per_area) där
+    region_code är 4-siffrig kommunkod (RD/KF) eller GeoJSON-regionnamn (RF) och
+    övriga_per_area = andel för partier utanför de åtta (lokala partier m.fl.).
+    Källa: Valmyndighetens slutliga resultat (data/election_2026.json och
+    data/muni_structure_2026.json).
     """
-    Hämtar 2022 valresultat per geografisk enhet. Läser i första hand från
-    data/scb_2022.json (genererad av fetch_scb_cache.py); faller tillbaka på
-    live SCB PX-Web API om filen saknas eller frågan inte finns cachad.
-
-    region_codes=None → alla 4-siffriga kommunkoder.
-    party_codes=None  → de 8 riksdagspartierna (SCB_PARTIES_RAW).
-    Returnerar DataFrame med kolumner: region_code, party, pct_2022
-    """
-    import re as _re
-
-    # ── Försök läsa från lokal cache ──
-    cache = _load_scb_cache_file()
-    for q in cache.get("queries", []):
-        if (q.get("api_url") == api_url
-                and q.get("contents_code") == contents_code
-                and q.get("region_codes") == region_codes
-                and q.get("party_codes") == party_codes):
-            return pd.DataFrame(q.get("rows", []), columns=["region_code", "party", "pct_2022"])
-
-    # ── Fallback: live API ──
-    if region_codes is None:
-        all_codes = _scb_get_region_codes(api_url)
-        region_codes = [c for c in all_codes if _re.match(r"^\d{4}$", c)]
-
-    if not region_codes:
-        return pd.DataFrame(columns=["region_code", "party", "pct_2022"])
-
-    parties_to_fetch = party_codes if party_codes is not None else SCB_PARTIES_RAW
-
-    query = {
-        "query": [
-            {
-                "code": "Region",
-                "selection": {"filter": "item", "values": region_codes},
-            },
-            {
-                "code": "Partimm",
-                "selection": {"filter": "item", "values": parties_to_fetch},
-            },
-            {
-                "code": "ContentsCode",
-                "selection": {"filter": "item", "values": [contents_code]},
-            },
-            {
-                "code": "Tid",
-                "selection": {"filter": "item", "values": ["2022"]},
-            },
-        ],
-        "response": {"format": "json"},
-    }
-    try:
-        resp = requests.post(api_url, json=query, timeout=120)
-        resp.raise_for_status()
-        raw = resp.json()
-    except Exception:
-        return pd.DataFrame(columns=["region_code", "party", "pct_2022"])
-
-    rows = []
-    for item in raw.get("data", []):
-        keys = item.get("key", [])
-        if len(keys) < 2:
-            continue
-        region_code = str(keys[0])
-        party_scb = keys[1]
-        vals = item.get("values", [])
-        val_str = vals[0] if vals else None
-        if not val_str or val_str in ("..", ""):
-            continue
-        party = SCB_TO_APP_PARTY.get(party_scb, party_scb)
-        try:
-            pct = float(val_str)
-        except (ValueError, TypeError):
-            continue
-        rows.append({"region_code": region_code, "party": party, "pct_2022": pct})
-
-    return pd.DataFrame(rows) if rows else pd.DataFrame(
-        columns=["region_code", "party", "pct_2022"]
-    )
-
+    rows, ovriga = [], {}
+    if val_type == "RD":
+        for kod, shares in _ELECTION_2026.get("kommuner", {}).items():
+            rows += [{"region_code": kod, "party": p, "pct_base": shares.get(p, 0.0)} for p in PARTIES]
+    else:
+        struct = _load_muni_structure_cached() or {}
+        for kod, area in struct.get(val_type, {}).items():
+            code = kod if val_type == "KF" else LAN_TO_REGION_NAME.get(kod)
+            if code is None:
+                continue
+            total = sum(vk.get("total_2022", 0) for vk in area["valkretsar"])
+            if total <= 0:
+                continue
+            votes = {p: sum(vk.get("votes_2022", {}).get(p, 0) for vk in area["valkretsar"]) for p in PARTIES}
+            pct = {p: v / total * 100.0 for p, v in votes.items()}
+            rows += [{"region_code": code, "party": p, "pct_base": pct[p]} for p in PARTIES]
+            ovriga[code] = max(0.0, 100.0 - sum(pct.values()))
+    return pd.DataFrame(rows, columns=["region_code", "party", "pct_base"]), ovriga
 
 
 def compute_national_swing(
@@ -548,28 +435,28 @@ def compute_national_swing(
 def apply_uniform_swing(
     df: pd.DataFrame,
     national_current: dict,
-    national_2022: dict,
+    national_base: dict,
     ovriga_per_area: dict | None = None,
 ) -> pd.DataFrame:
     """
     Uniform swing-modell:
-      predicted[p][area] = 2022_local[p][area] + total_swing[p]
+      predicted[p][area] = baslinje_lokalt[p][area] + total_swing[p]
       total_swing[p] = nollsummerad nationell sving (se compute_national_swing)
 
     Normaliseras per geografisk enhet.
     Om ovriga_per_area anges (kommunalval/regionval) summeras de 8 partierna
-    till (100 − ÖVRIGA%) per område, så att ÖVRIGA antas hålla sin 2022-nivå.
+    till (100 − ÖVRIGA%) per område, så att ÖVRIGA antas hålla sin baslinjenivå.
     Svingen är nollsummerad så att den inte förstärks proportionellt mot
     partistorlek vid omnormaliseringen.
     """
     if df.empty:
         return df
 
-    swings = compute_national_swing(national_current, national_2022)
+    swings = compute_national_swing(national_current, national_base)
 
     result = df.copy()
     result["swing"] = result["party"].map(swings).fillna(0.0)
-    result["pct_raw"] = (result["pct_2022"] + result["swing"]).clip(lower=0.0)
+    result["pct_raw"] = (result["pct_base"] + result["swing"]).clip(lower=0.0)
 
     region_totals = result.groupby("region_code")["pct_raw"].sum()
     result["_rtot"] = result["region_code"].map(region_totals)
@@ -2764,193 +2651,144 @@ def compute_backtesting(
 # ─────────────────────────────────────────────
 
 @st.cache_data(show_spinner=False)
-def _load_nowcast_data() -> tuple[pd.DataFrame, pd.DataFrame] | None:
-    """Hämta 2018 (baslinje) + 2022 (faktiskt) distriktsresultat.
-
-    Resultatet cachas av Streamlit. Returnerar None om data inte kan laddas
-    (t ex offline-läge utan nedladdad cache).
-    """
-    try:
-        from data_loader import load_aligned_pair
-        return load_aligned_pair()
-    except Exception as e:
-        st.error(f"Kunde inte ladda valdistriktsdata: {e}")
+def _load_valnatt_2026() -> pd.DataFrame | None:
+    """Valnattens preliminära räkning 2026 per distrikt (data/valnatt_2026.csv.gz,
+    genererad av fetch_valnatt_2026.py) inkl. rapporteringstid och 2022-baslinje."""
+    import os as _os
+    path = _os.path.join(_os.path.dirname(__file__), "data", "valnatt_2026.csv.gz")
+    if not _os.path.exists(path):
         return None
+    df = pd.read_csv(path)
+    df["reported_at"] = pd.to_datetime(df["reported_at"])
+    return df
 
 
-@st.cache_data(show_spinner=False)
-def _load_baseline_2022() -> pd.DataFrame | None:
-    """2022 års distriktsresultat som baslinje för 2026-års live-nowcast."""
-    try:
-        from data_loader import load_2022_districts
-        return load_2022_districts()
-    except Exception as e:
-        st.error(f"Kunde inte ladda 2022 baslinjedata: {e}")
-        return None
+VALNATT_START = datetime(2026, 9, 13, 20, 40)
+VALNATT_END = datetime(2026, 9, 14, 4, 0)
+VALNATT_STEP_MIN = 10
 
 
-@st.cache_data(ttl=60, show_spinner=False)
-def _fetch_live_nowcast() -> dict | None:
-    """Hämta senaste RD-resultatet från Valmyndigheten och beräkna nowcast.
+def _valnatt_times() -> list:
+    n = int((VALNATT_END - VALNATT_START).total_seconds() // 60 // VALNATT_STEP_MIN)
+    return [VALNATT_START + timedelta(minutes=VALNATT_STEP_MIN * i) for i in range(n + 1)]
 
-    Cachas i 60 s (Valmyndighetens rekommendation: max ~1 hämtning/minut).
-    Baslinje = 2022 års distriktsresultat; distrikt som saknas i baslinjen
-    (nya/ombildade sedan 2022) droppas ur deltaberäkningen. Returnerar None
-    om inga resultat publicerats ännu eller om data inte kan hämtas.
-    """
-    try:
-        from val_feed import fetch_live
-        res = fetch_live(2026, preliminary=True)
-    except Exception:
-        return None
-    counted = res.counted()
-    if counted.empty:
-        return None
-    baseline = _load_baseline_2022()
-    if baseline is None or baseline.empty:
-        return None
-    base_ids = set(baseline["district_id"])
-    known = counted[counted["district_id"].isin(base_ids)]
-    if known.empty:
-        return None
-    nc = compute_nowcast(known, baseline, NOWCAST_PARTIES)
-    counted_total = known["total_valid_votes"].sum()
-    raw = {p: known[f"votes_{p}"].sum() / counted_total for p in NOWCAST_PARTIES}
+
+def _valnatt_state(df: pd.DataFrame, t: datetime) -> dict:
+    """Råräkning + nowcast när klockan är t på valnatten."""
+    vote_cols = [f"votes_{p}" for p in NOWCAST_PARTIES]
+    cmp = df[df["comparable"]]
+    baseline = cmp[["district_id", "base_total_valid_votes"] + [f"base_{c}" for c in vote_cols]]
+    baseline.columns = ["district_id", "total_valid_votes"] + vote_cols
+    counted = df[df["reported_at"] <= t]
+    counted_cmp = counted[counted["comparable"]][["district_id", "total_valid_votes"] + vote_cols]
+    nowcast = compute_nowcast(counted_cmp, baseline, NOWCAST_PARTIES)
+    total = counted["total_valid_votes"].sum()
+    raw = (
+        {p: counted[f"votes_{p}"].sum() / total for p in NOWCAST_PARTIES}
+        if total > 0 else {p: nowcast[p] for p in NOWCAST_PARTIES}
+    )
+    final = {p: BASELINE[p] / 100.0 for p in NOWCAST_PARTIES}
+    mae = lambda est: float(np.mean([abs(est[p] - final[p]) for p in NOWCAST_PARTIES]) * 100)
     return {
-        "nowcast": nc,
-        "raw": raw,
-        "coverage": nc["coverage"],
-        "updated_at": res.updated_at,
-        "stage": res.stage,
-        "n_counted_districts": int(len(known)),
-        "n_total_districts": int(res.n_total),
-        "n_dropped": int(len(counted) - len(known)),
+        "nowcast": nowcast, "raw": raw, "final": final,
+        "n_counted": int(len(counted)), "n_total": int(len(df)),
+        "vote_share_counted": float(total / df["total_valid_votes"].sum()),
+        "mae_raw": mae(raw) if total > 0 else float("nan"),
+        "mae_nowcast": mae(nowcast),
     }
 
 
-def _render_live_nowcast(live: dict) -> dict:
-    """Rendera live-jämförelsegraf (råräkning/nowcast/2022) + metrik. Returnerar nowcast."""
-    nowcast = live["nowcast"]
-    st.success(
-        f"📡 **Live** · uppdaterad {live['updated_at']} · "
-        f"{live['n_counted_districts']:,} av {live['n_total_districts']:,} distrikt "
-        f"räknade".replace(",", " ")
-    )
+@st.cache_data(show_spinner=False)
+def _valnatt_error_curve(df: pd.DataFrame) -> pd.DataFrame:
+    rows = []
+    for t in _valnatt_times():
+        stt = _valnatt_state(df, t)
+        rows.append({"t": t, "Råräkning": stt["mae_raw"], "Nowcast": stt["mae_nowcast"]})
+    return pd.DataFrame(rows)
 
-    # ── Jämförelsegraf högst upp: råräkning vs nowcast vs valresultat 2022 ──
+
+def _render_valnatt_replay() -> dict | None:
+    """Spela upp valnatten 2026 i verklig räkningsordning. Returnerar nowcast-dict."""
+    df = _load_valnatt_2026()
+    if df is None or df.empty:
+        st.warning("Valnattsdata saknas — kör `python fetch_valnatt_2026.py`.")
+        return None
+
+    times = _valnatt_times()
+    t = st.select_slider(
+        "Klockan på valnatten (13–14 september 2026)",
+        options=times,
+        value=datetime(2026, 9, 13, 22, 0),
+        format_func=lambda x: x.strftime("%H:%M"),
+        key="valnatt_time",
+    )
+    stt = _valnatt_state(df, t)
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("Räknade distrikt", f"{stt['n_counted']:,} av {stt['n_total']:,}".replace(",", " "))
+    with c2:
+        st.metric("Andel av rösterna", f"{stt['vote_share_counted'] * 100:.0f} %")
+    with c3:
+        st.metric("Fel råräkning", "–" if np.isnan(stt["mae_raw"]) else f"{stt['mae_raw']:.2f} pe")
+    with c4:
+        _d = None if np.isnan(stt["mae_raw"]) else f"{stt['mae_nowcast'] - stt['mae_raw']:+.2f} pe"
+        st.metric("Fel nowcast", f"{stt['mae_nowcast']:.2f} pe", delta=_d, delta_color="inverse")
+
     party_codes = list(NOWCAST_PARTIES)
     party_labels = [PARTY_NAMES.get(p, p) for p in party_codes]
     fig = go.Figure()
-    fig.add_bar(
-        name="Råräkning",
-        x=party_labels,
-        y=[live["raw"][p] * 100 for p in party_codes],
-        marker_color="#cccccc",
-    )
-    fig.add_bar(
-        name="Nowcast",
-        x=party_labels,
-        y=[nowcast[p] * 100 for p in party_codes],
-        marker_color="#29BFA2",
-    )
+    if stt["n_counted"]:
+        fig.add_bar(name="Råräkning", x=party_labels,
+                    y=[stt["raw"][p] * 100 for p in party_codes], marker_color="#cccccc")
+    fig.add_bar(name="Nowcast", x=party_labels,
+                y=[stt["nowcast"][p] * 100 for p in party_codes], marker_color="#29BFA2")
     fig.add_trace(go.Scatter(
-        name="Valresultat 2022",
-        x=party_labels,
-        y=[float(NATIONAL_2022.get(p, 0)) for p in party_codes],
-        mode="markers",
-        marker=dict(symbol="diamond", size=12, color="black"),
+        name=f"Slutresultat {BASELINE_YEAR}", x=party_labels,
+        y=[stt["final"][p] * 100 for p in party_codes],
+        mode="markers", marker=dict(symbol="diamond", size=12, color="black"),
     ))
     fig.update_layout(
-        barmode="group",
-        yaxis_title="Röstandel (%)",
-        height=400,
+        barmode="group", yaxis_title="Röstandel (%)", height=400,
         margin=dict(l=10, r=10, t=30, b=10),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center"),
     )
-    st.plotly_chart(fig, use_container_width=True, key="live_bar_valnatt")
+    st.plotly_chart(fig, use_container_width=True, key="valnatt_replay_bar")
 
-    # ── Metrik under grafen ──
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Täckning (röster)", f"{live['coverage'] * 100:.1f} %")
-    with c2:
-        st.metric(
-            "Räknade distrikt",
-            f"{live['n_counted_districts']:,} / {live['n_total_districts']:,}".replace(",", " "),
-        )
-    with c3:
-        st.metric("Räkningsläge", live["stage"] or "preliminär")
-    if live["n_dropped"]:
-        st.caption(
-            f"{live['n_dropped']} räknade distrikt saknar motsvarighet i 2022 års "
-            "baslinje (nya/ombildade) och ingår inte i deltaberäkningen."
-        )
-    return nowcast
+    rows = [{
+        "Parti": PARTY_NAMES.get(p, p),
+        "Råräkning (%)": round(stt["raw"][p] * 100, 2) if stt["n_counted"] else None,
+        "Nowcast (%)": round(stt["nowcast"][p] * 100, 2),
+        f"Slutresultat {BASELINE_YEAR} (%)": round(stt["final"][p] * 100, 2),
+        "Nowcast-fel (pe)": round((stt["nowcast"][p] - stt["final"][p]) * 100, 2),
+    } for p in party_codes]
+    st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
 
-
-@st.cache_data(ttl=60, show_spinner=False)
-def _fetch_area_mandat_cached(valtyp: str, kod: str):
-    """Hämta officiell KF/RF-mandatfördelning från Valmyndighetens feed (60 s cache)."""
-    try:
-        from val_feed import fetch_area_mandat
-        return fetch_area_mandat(2026, valtyp, kod, preliminary=True)
-    except Exception:
-        return None
-
-
-def _render_area_mandat(am) -> None:
-    """Rendera KF/RF-mandatfördelning: metrik, mandatstaplar, tabell. Inga kandidater."""
-    st.success(
-        f"📡 Live · uppdaterad {am.updated_at} · "
-        f"{am.n_counted:,} av {am.n_total:,} distrikt räknade".replace(",", " ")
+    curve = _valnatt_error_curve(df)
+    fig_c = go.Figure()
+    fig_c.add_trace(go.Scatter(x=curve["t"], y=curve["Råräkning"], name="Råräkning",
+                               mode="lines", line=dict(color="#999999", width=2)))
+    fig_c.add_trace(go.Scatter(x=curve["t"], y=curve["Nowcast"], name="Nowcast",
+                               mode="lines", line=dict(color="#29BFA2", width=2.4)))
+    fig_c.add_vline(x=t.timestamp() * 1000, line_dash="dot", line_color="#555555")
+    fig_c.update_layout(
+        **ECONOMIST_LAYOUT,
+        title=dict(text="Genomsnittligt fel per parti under natten", font=dict(size=13, color="#111213")),
+        yaxis_title="Fel mot slutresultatet (pe)", height=320,
+        margin=dict(t=50, b=20, l=55, r=20),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
     )
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Mandat totalt", am.total_seats)
-    with c2:
-        st.metric("Täckning (distrikt)", f"{am.coverage_by_district * 100:.0f} %")
-    with c3:
-        st.metric("Spärr", f"{am.threshold_pct:.0f} %")
-
-    seated = am.parties[am.parties["antalMandat"] > 0].sort_values(
-        "antalMandat", ascending=False
+    fig_c.update_xaxes(tickformat="%H:%M")
+    st.plotly_chart(fig_c, use_container_width=True, key="valnatt_error_curve")
+    st.caption(
+        "Distrikten läggs till i den ordning de faktiskt rapporterades in till "
+        "Valmyndigheten. Felet mäts mot det slutliga resultatet, som även innehåller "
+        "röster som räknades först dagarna efter valet — därför planar båda kurvorna "
+        "ut en bit över noll. Sent på natten blir råräkningen något bättre än nowcasten, "
+        "eftersom var femte distrikt inte kan jämföras med 2022 och då inte ingår i "
+        "deltaberäkningen."
     )
-    if seated.empty:
-        st.info("Inga mandat fördelade ännu — för få distrikt räknade.")
-        return
-
-    fig = go.Figure()
-    fig.add_bar(
-        x=seated["partiforkortning"],
-        y=seated["antalMandat"],
-        marker_color=[
-            c if isinstance(c, str) and c.startswith("#") else "#888888"
-            for c in seated["fargkod"]
-        ],
-    )
-    fig.update_layout(
-        yaxis_title="Mandat",
-        height=340,
-        margin=dict(l=10, r=10, t=30, b=10),
-        showlegend=False,
-    )
-    st.plotly_chart(
-        fig, use_container_width=True,
-        key=f"area_mandat_bar_{am.valtyp}_{am.kod}",
-    )
-
-    tbl = am.parties[(am.parties["antalMandat"] > 0) | (am.parties["andelRoster"] >= 1.0)]
-    tbl = tbl.sort_values(["antalMandat", "andelRoster"], ascending=False)
-    show = pd.DataFrame({
-        "Parti": tbl["partiforkortning"],
-        "Röstandel (%)": tbl["andelRoster"].round(1),
-        "Mandat": tbl["antalMandat"],
-        "Fasta": tbl["antalFastaMandat"],
-        "Utjämning": tbl["antalUtjamningsmandat"],
-    })
-    st.dataframe(show, hide_index=True, use_container_width=True)
-    if am.ovriga_andel > 0:
-        st.caption(f"Övriga partier: {am.ovriga_andel:.1f} % (under spärren, 0 mandat)")
+    return stt["nowcast"]
 
 
 @st.cache_data(show_spinner=False)
@@ -2963,8 +2801,8 @@ def _load_muni_structure_cached():
         return None
 
 
-def _render_area_seats_2022(area_struct: dict, area_label: str) -> None:
-    """Utgångsläge: senaste valresultatets officiella mandatfördelning för ett KF/RF-område."""
+def _render_area_seats_baseline(area_struct: dict, area_label: str, stage: str = "") -> None:
+    """Senaste valets mandatfördelning för ett KF/RF-område."""
     seats = area_struct.get("seats_2022", {})
     meta = area_struct.get("party_meta", {})
     total = sum(seats.values())
@@ -2999,33 +2837,30 @@ def _render_area_seats_2022(area_struct: dict, area_label: str) -> None:
     )
     st.plotly_chart(
         fig, use_container_width=True,
-        key=f"seats2022_{area_struct.get('valtyp', '')}_{area_struct.get('kod', '')}",
+        key=f"seats_base_{area_struct.get('valtyp', '')}_{area_struct.get('kod', '')}",
     )
     st.dataframe(
-        pd.DataFrame([{"Parti": _fullname(p), "Mandat 2022": seats[p]} for p in seated]),
+        pd.DataFrame([{"Parti": _fullname(p), f"Mandat {BASELINE_YEAR}": seats[p]} for p in seated]),
         hide_index=True, use_container_width=True,
     )
-    st.caption(
-        f"⏳ Utgångsläge — officiell mandatfördelning {area_label} {BASELINE_YEAR} "
-        f"({total} mandat). Uppdateras live när Valmyndigheten börjar räkna."
-    )
+    _kind = "preliminär" if "preliminar" in stage else "slutlig"
+    st.caption(f"{_kind.capitalize()} mandatfördelning {area_label} {BASELINE_YEAR} ({total} mandat).")
 
 
 def _render_valnatt_local_mandates() -> None:
-    """KF/RF-mandatfördelning per vald kommun/region. Live på valnatten, annars 2022."""
+    """Mandatfördelning i KF/RF för vald kommun/region efter valet."""
     from muni_mandates import list_areas
 
     st.divider()
-    st.subheader("Kommun & region — mandatfördelning")
+    st.subheader(f"Kommun & region — mandatfördelning {BASELINE_YEAR}")
     st.caption(
-        "Officiell preliminär mandatfördelning direkt från Valmyndighetens "
-        f"resultatfeed på valnatten. Innan räkningen börjat visas {BASELINE_YEAR} års "
-        "resultat som utgångsläge. Inkluderar lokala partier; visar inte enskilda invalda."
+        f"Valmyndighetens mandatfördelning efter valet {BASELINE_YEAR}, inklusive lokala partier."
     )
     struct = _load_muni_structure_cached()
     if struct is None:
         st.info("Referensdata för kommuner/regioner saknas.")
         return
+    stage = struct.get("stage", {})
 
     kf_areas = list_areas(struct, "KF")
     rf_areas = list_areas(struct, "RF")
@@ -3038,20 +2873,9 @@ def _render_valnatt_local_mandates() -> None:
     rf_kod = {n: k for k, n in rf_areas}[rf_name]
 
     st.markdown(f"**{kf_name} — kommunfullmäktige**")
-    with st.spinner("Hämtar resultat från Valmyndigheten..."):
-        am_kf = _fetch_area_mandat_cached("KF", kf_kod)
-    if am_kf is None or am_kf.parties.empty:
-        _render_area_seats_2022(struct["KF"][kf_kod], "kommunfullmäktige")
-    else:
-        _render_area_mandat(am_kf)
-
+    _render_area_seats_baseline(struct["KF"][kf_kod], "kommunfullmäktige", stage.get(f"KF_{kf_kod}", ""))
     st.markdown(f"**{rf_name} — regionfullmäktige**")
-    with st.spinner("Hämtar resultat från Valmyndigheten..."):
-        am_rf = _fetch_area_mandat_cached("RF", rf_kod)
-    if am_rf is None or am_rf.parties.empty:
-        _render_area_seats_2022(struct["RF"][rf_kod], "regionfullmäktige")
-    else:
-        _render_area_mandat(am_rf)
+    _render_area_seats_baseline(struct["RF"][rf_kod], "regionfullmäktige", stage.get(f"RF_{rf_kod}", ""))
 
 
 def _render_opinion_area_mandat(area: dict, swing: dict, area_label: str) -> None:
@@ -3086,8 +2910,8 @@ def _render_opinion_area_mandat(area: dict, swing: dict, area_label: str) -> Non
     st.caption(
         f"{res['total_seats']} mandat · spärr {res['threshold_pct']:.0f} % · "
         f"{res['n_utjamning']} utjämningsmandat. Riksdagspartier får den nationella "
-        "opinionssvingen sedan 2022; **lokala partier antas få samma resultat som "
-        "2022**. Full modell: Sainte-Laguë per valkrets + utjämning."
+        f"opinionssvingen sedan {BASELINE_YEAR}; **lokala partier antas få samma resultat "
+        f"som {BASELINE_YEAR}**. Full modell: Sainte-Laguë per valkrets + utjämning."
     )
 
     seated = sorted([p for p in parties if total.get(p, 0) > 0],
@@ -3115,219 +2939,36 @@ def _render_opinion_area_mandat(area: dict, swing: dict, area_label: str) -> Non
         rows.append({
             "Parti": _fullname(p),
             "Röstandel (%)": round(res["projected_share"].get(p, 0), 1),
-            "Mandat 2026 (est.)": m,
-            "Mandat 2022": o,
+            "Mandat nu (est.)": m,
+            f"Mandat {BASELINE_YEAR}": o,
             "Δ": f"{m - o:+d}",
         })
     st.dataframe(
-        pd.DataFrame(rows).sort_values("Mandat 2026 (est.)", ascending=False),
+        pd.DataFrame(rows).sort_values("Mandat nu (est.)", ascending=False),
         hide_index=True, use_container_width=True,
     )
     st.caption(
-        "Δ = förändring mot 2022. Lokala partier visas med sitt fullständiga namn."
+        f"Δ = förändring mot {BASELINE_YEAR}. Lokala partier visas med sitt fullständiga namn."
     )
 
 
-def _render_demo_nowcast() -> dict | None:
-    """Demo: spela upp riksdagsvalet 2022. Returnerar nowcast-dict eller None."""
-    st.markdown("### Demo — spela upp riksdagsvalet 2022")
-    with st.spinner("Laddar valdistriktsdata (första gången: ~30 sek)..."):
-        pair = _load_nowcast_data()
-    if pair is None:
-        return None
-    baseline, actual = pair
-
-    coverage = st.slider(
-        "Täckningsgrad (andel räknade distrikt)",
-        min_value=1, max_value=100, value=5, step=1,
-        format="%d %%",
-        help="Lägre täckning = tidigare på valnatten. Vid 5 % har normalt små "
-             "landsbygdsdistrikt räknats. Vid 50 % har de flesta städer börjat "
-             "räknas.",
-    ) / 100.0
-
-    counting_order = (
-        actual.sort_values("total_valid_votes")["district_id"].tolist()
-    )
-    n_total = len(counting_order)
-    n_counted = max(1, int(round(coverage * n_total)))
-    counted_ids = set(counting_order[:n_counted])
-    counted = actual[actual["district_id"].isin(counted_ids)]
-
-    nowcast = compute_nowcast(counted, baseline, NOWCAST_PARTIES)
-    true_total = actual["total_valid_votes"].sum()
-    true_shares = {
-        p: actual[f"votes_{p}"].sum() / true_total for p in NOWCAST_PARTIES
-    }
-    counted_total = counted["total_valid_votes"].sum()
-    raw_shares = {
-        p: counted[f"votes_{p}"].sum() / counted_total for p in NOWCAST_PARTIES
-    }
-
-    rows = []
-    for p in NOWCAST_PARTIES:
-        rows.append({
-            "Parti": PARTY_NAMES.get(p, p),
-            "Råräkning (%)": round(raw_shares[p] * 100, 2),
-            "Nowcast (%)": round(nowcast[p] * 100, 2),
-            "Slutresultat 2022 (%)": round(true_shares[p] * 100, 2),
-            "Råfel (pe)": round(abs(raw_shares[p] - true_shares[p]) * 100, 2),
-            "Nowcast-fel (pe)": round(abs(nowcast[p] - true_shares[p]) * 100, 2),
-        })
-    df_compare = pd.DataFrame(rows)
-
-    raw_mae = df_compare["Råfel (pe)"].mean()
-    nowcast_mae = df_compare["Nowcast-fel (pe)"].mean()
-
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Räknade distrikt", f"{n_counted:,} av {n_total:,}".replace(",", " "))
-    with c2:
-        st.metric("MAE råräkning", f"{raw_mae:.2f} pe")
-    with c3:
-        st.metric(
-            "MAE nowcast", f"{nowcast_mae:.2f} pe",
-            delta=f"{(nowcast_mae - raw_mae):+.2f} pe", delta_color="inverse",
-        )
-
-    fig = go.Figure()
-    party_codes = list(NOWCAST_PARTIES)
-    party_labels = [PARTY_NAMES.get(p, p) for p in party_codes]
-    fig.add_bar(
-        name="Råräkning",
-        x=party_labels,
-        y=[raw_shares[p] * 100 for p in party_codes],
-        marker_color="#cccccc",
-    )
-    fig.add_bar(
-        name="Nowcast",
-        x=party_labels,
-        y=[nowcast[p] * 100 for p in party_codes],
-        marker_color="#29BFA2",
-    )
-    fig.add_trace(go.Scatter(
-        name="Slutresultat 2022",
-        x=party_labels,
-        y=[true_shares[p] * 100 for p in party_codes],
-        mode="markers",
-        marker=dict(symbol="diamond", size=12, color="black"),
-    ))
-    fig.update_layout(
-        barmode="group",
-        yaxis_title="Röstandel (%)",
-        height=380,
-        margin=dict(l=10, r=10, t=30, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center"),
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.dataframe(df_compare, hide_index=True, use_container_width=True)
-    return nowcast
-
-
-def _render_valnatt_startlage_rd(raw_est: dict) -> None:
-    """Utgångsläge för riksdagen innan räkningen börjat.
-
-    Högst upp: lättviktsgraf med nuvarande opinionsläge vs valresultat 2022.
-    Därunder: 2022 års mandatfördelning (bar, blockanalys, per valkrets, förväntade
-    invalda) som utgångsläge. Allt byts mot råräkning/nowcast/live-mandat så fort
-    Valmyndigheten börjar rapportera in distrikt på valnatten.
-    """
-    # ── Opinion nu vs valresultat 2022 (högst upp, ingen nedladdning) ──
-    st.markdown("#### Opinionsläget nu vs valresultat 2022")
-    party_codes = list(NOWCAST_PARTIES)
-    party_labels = [PARTY_NAMES.get(p, p) for p in party_codes]
-    fig = go.Figure()
-    fig.add_bar(
-        name="Opinion nu (mätningar)",
-        x=party_labels,
-        y=[float(raw_est.get(p, 0)) for p in party_codes],
-        marker_color="#29BFA2",
-    )
-    fig.add_trace(go.Scatter(
-        name="Valresultat 2022",
-        x=party_labels,
-        y=[float(NATIONAL_2022.get(p, 0)) for p in party_codes],
-        mode="markers",
-        marker=dict(symbol="diamond", size=12, color="black"),
-    ))
-    fig.update_layout(
-        barmode="group",
-        yaxis_title="Röstandel (%)",
-        height=400,
-        margin=dict(l=10, r=10, t=30, b=10),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0.5, xanchor="center"),
-    )
-    st.plotly_chart(fig, use_container_width=True, key="opinion_vs_2022_valnatt")
-    st.caption(
-        "Grön = nuvarande opinionsläge (Kalman-aggregerade mätningar). Svarta romber "
-        "= valresultat 2022. På valnatten ersätts denna av **råräkning vs nowcast vs "
-        "2022** när distrikt börjar räknas."
-    )
-
-    st.divider()
-    _days_left = (date(2026, 9, 13) - date.today()).days
-    if _days_left > 0:
-        st.info(
-            f"📡 **Live-räkningen startar på valdagen** ({_days_left} dagar kvar). "
-            "Grafiken nedan visar **utgångsläget (valresultat 2022)** och uppdateras "
-            "automatiskt till nowcast-prognos så fort distrikt rapporteras in."
-        )
-    else:
-        st.info(
-            "📡 **Väntar på de första resultaten.** Grafiken visar **utgångsläget "
-            "(valresultat 2022)** och uppdateras när distrikt börjar räknas — ladda "
-            "om för att hämta senaste."
-        )
-    nowcast = {p: float(NATIONAL_2022.get(p, 0)) / 100.0 for p in NOWCAST_PARTIES}
-    _render_rd_downstream(nowcast)
-
-
-def _render_valnatt_tab(raw_est: dict) -> None:
-    """Valnatt-fliken. Live-räkningen är standardvyn; demon (2022) ligger längst ned.
-
-    Fliken hämtar alltid Valmyndighetens live-feed direkt. Så fort distrikt börjar
-    rapporteras in på valnatten visas nowcast-prognosen, riksdagsmandaten och
-    KF/RF-mandaten automatiskt. Innan dess visas en väntan-hälsning och demon
-    (uppspelning av valet 2022) är utfälld längst ned.
-    """
-    try:
-        from streamlit_autorefresh import st_autorefresh
-        st_autorefresh(interval=60_000, key="valnatt_autorefresh")
-    except Exception:
-        pass
-
-    st.subheader("🌙 Nowcasting — realtidsprognos på valnatten")
+def _render_valnatt_tab() -> None:
+    """Valnatt-fliken: uppspelning av valnatten 2026 med nowcast."""
+    st.subheader(f"🌙 Valnatten {BASELINE_YEAR} — uppspelning")
     st.markdown(
         "Under valnatten är råräkningen systematiskt missvisande eftersom små "
         "distrikt rapporterar först. **Nowcast-metoden** korrigerar för detta "
         "genom att jämföra *förändringen* (delta) i partistöd mellan räknade "
-        "distrikt och baslinjevalet, snarare än att titta på absoluta nivåer. "
-        "Vid 5 % täckning halveras prognosfelet jämfört med råräkningen."
+        "distrikt och förra valet (2022), snarare än att titta på absoluta nivåer. "
+        "Dra i reglaget för att se hur prognosen utvecklades under natten."
     )
     st.caption(
         "Metod: [Nowcasting på valnatten – valprognos.se](https://www.nationalekonomi.se/artikel/nowcasting-pa-valnatten-metod-och-utvardering-fran-valprognos-se/)"
     )
-
-    # ── Live-räkning (standardvy) ──
-    with st.spinner("Hämtar resultat från Valmyndigheten..."):
-        live = _fetch_live_nowcast()
-    if live is not None:
-        nowcast = _render_live_nowcast(live)
+    nowcast = _render_valnatt_replay()
+    if nowcast is not None:
         _render_rd_downstream(nowcast)
-    else:
-        _render_valnatt_startlage_rd(raw_est)
-
-    # ── Lokal räkning: KF/RF-mandat per kommun/region ──
     _render_valnatt_local_mandates()
-
-    # ── Demo längst ned (utfälld före valet, hopfälld när live-data finns) ──
-    st.divider()
-    with st.expander(
-        "🔬 Demo — spela upp riksdagsvalet 2022 (metodvalidering)",
-        expanded=(live is None),
-    ):
-        _render_demo_nowcast()
 
 
 def _render_rd_downstream(nowcast: dict) -> None:
@@ -3494,12 +3135,12 @@ def _render_rd_downstream(nowcast: dict) -> None:
         2. För oräknade distrikt: prognosticerad andel = baseline_share + delta_p
         3. Slutlig prognos = viktat genomsnitt av faktiska + prognosticerade röster
 
-        **Begränsningar i denna implementation:**
-        - 5 316 av 6 264 distrikt (boundary changes mellan 2018→2022 droppas)
-        - Räkningsordning = sorterad på storlek (worst-case proxy). Verkliga
-          tidsstämplar från Valmyndighetens PDF-protokoll skulle ge bättre
-          räkningsordning.
-        - Mandatfördelning sker nationellt, inte per valkrets.
+        **Data:**
+        - Räkningsordning = distriktens faktiska rapporteringstid på valnatten 2026.
+        - Baslinje = Valmyndighetens jämförelsesiffror för 2022, omräknade till 2026
+          års distriktsindelning. 5 059 av 6 312 distrikt (≈ 80 % av rösterna) är
+          jämförbara; övriga ingår i råräkningen men inte i deltaberäkningen.
+        - Facit = slutligt valresultat 2026 (inkl. röster räknade efter valnatten).
         """)
 
 
@@ -3744,7 +3385,7 @@ def main():
         "🎲 Simulering", "👤 Kandidater",
         "📍 Regional", "📋 Data", "ℹ️ Metod", "🙋 Om mig",
     ]
-    # Valnatt-fliken är alltid synlig — live-räkningen är standardvyn, demon längst ned.
+    # Valnatt-fliken: uppspelning av valnatten 2026.
     _tab_labels.insert(8, "🌙 Valnatt")  # före "Om mig"
 
     _tabs = st.tabs(_tab_labels)
@@ -5173,25 +4814,26 @@ simuleras inte. Kandidater från partier som inte registrerat sina listor
     with tab6:
         st.header("Regional & kommunal valprediktion")
         st.markdown(
-            "Applicerar en **uniform swing-modell** på valresultaten 2022 per region och "
-            "kommun. Modellen tar det aktuella nationella opinionsläget och fördelar "
-            "förändringen sedan 2022 lika i alla kommuner och regioner. "
-            "Data från **SCB PX-Web** och **okfse/sweden-geojson**."
+            f"Applicerar en **uniform swing-modell** på valresultaten {BASELINE_YEAR} per "
+            "region och kommun. Modellen tar det aktuella nationella opinionsläget och "
+            f"fördelar förändringen sedan valet {BASELINE_YEAR} lika i alla kommuner och "
+            "regioner. Data från **Valmyndigheten** och **okfse/sweden-geojson**."
         )
 
-        st.markdown("""
-**Uniform swing** innebär att den nationella förändringen sedan 2022 appliceras lika
-i alla kommuner. Om SD nationellt gått från 20,5 % → 22,0 % (+1,5 pp) får varje
-kommun +1,5 pp på sin lokala 2022-siffra — oavsett om kommunen är SD-stark eller svag.
+        st.markdown(f"""
+**Uniform swing** innebär att den nationella förändringen sedan valet {BASELINE_YEAR}
+appliceras lika i alla kommuner. Om SD nationellt gått från 17,5 % → 19,0 % (+1,5 pp)
+får varje kommun +1,5 pp på sin lokala {BASELINE_YEAR}-siffra — oavsett om kommunen
+är SD-stark eller svag.
 
 Det är en förenkling, men transparent och vanlig i valanalys.
 
-`prediktion = 2022-lokalt + nationell opinionssving (sedan 2022)`
+`prediktion = {BASELINE_YEAR}-lokalt + nationell opinionssving (sedan {BASELINE_YEAR})`
 
 Institutsviktning tillämpas på mandatprognosen och simuleringen.
 Alla estimat bygger på Kalman-smoothade pollsiffror utan historisk korrigering.
-**Lokalpartier** ingår inte i modellen — de kan ha ett betydande stöd i enskilda kommuner.
-Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
+**Lokalpartier** får ingen sving — de antas hålla sitt resultat från {BASELINE_YEAR}.
+Källa: Valmyndigheten (slutligt resultat {BASELINE_YEAR}) · okfse/sweden-geojson · MansMeg/SwedishPolls.
 """)
 
         # ── Kontroller ──
@@ -5202,68 +4844,28 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
             key="map_val_type",
         )
 
-        # ── Hämta SCB-data ──
-        is_kommunal = False
-        ovriga_per_area = {}   # fylls i för regionval och kommunalval
+        # ── Baslinje: senaste valets resultat per område ──
         if val_type == "Riksdag per kommun":
-            with st.spinner("Hämtar riksdagsvalresultat (290 kommuner) från SCB…"):
-                scb_df = load_scb_results(SCB_RIKSDAG_URL, "ME0104B7")
-            scb_df = scb_df[scb_df["region_code"].str.match(r"^\d{4}$")].copy()
+            base_df, _ = load_area_results("RD")
+            ovriga_per_area = {}
             geo = load_geojson_url(MUNI_GEOJSON_URL)
             featureidkey = "properties.id"
-            id_col = "region_code"
-            map_title = "Riksdagsprediktion per kommun — uniform swing"
-
         elif val_type == "Regionval per region":
-            with st.spinner("Hämtar regionvalsresultat (20 regioner) från SCB…"):
-                scb_df = load_scb_results(
-                    SCB_REGIONVAL_URL, "ME0104B5",
-                    region_codes=SCB_REGIONVAL_CODES,
-                )
-                scb_ovriga_reg = load_scb_results(
-                    SCB_REGIONVAL_URL, "ME0104B5",
-                    region_codes=SCB_REGIONVAL_CODES,
-                    party_codes=["ÖVRIGA"],
-                )
-            scb_df = scb_df[scb_df["region_code"].isin(SCB_REGIONVAL_TO_GEOJSON)].copy()
-            scb_df["region_code"] = scb_df["region_code"].map(SCB_REGIONVAL_TO_GEOJSON)
-            # Bygg ÖVRIGA-dict med regionnamn som nyckel (efter mappning)
-            scb_ovriga_reg = scb_ovriga_reg[
-                scb_ovriga_reg["region_code"].isin(SCB_REGIONVAL_TO_GEOJSON)
-            ].copy()
-            scb_ovriga_reg["region_code"] = scb_ovriga_reg["region_code"].map(SCB_REGIONVAL_TO_GEOJSON)
-            ovriga_per_area = (
-                scb_ovriga_reg.set_index("region_code")["pct_2022"].to_dict()
-            )
+            base_df, ovriga_per_area = load_area_results("RF")
             geo = load_geojson_url(REGION_GEOJSON_URL)
             featureidkey = "properties.name"
-            id_col = "region_code"
-            map_title = "Regionvalsprediktion per region — uniform swing"
-
         else:  # Kommunalval
-            is_kommunal = True
-            with st.spinner("Hämtar kommunalvalsresultat (290 kommuner) från SCB…"):
-                scb_df = load_scb_results(SCB_KOMMUNVAL_URL, "ME0104B2")
-                scb_ovriga_df = load_scb_results(
-                    SCB_KOMMUNVAL_URL, "ME0104B2",
-                    party_codes=["ÖVRIGA"],
-                )
-            scb_df = scb_df[scb_df["region_code"].str.match(r"^\d{4}$")].copy()
-            # Bygg dict: region_code → ÖVRIGA-procent 2022
-            ovriga_per_area = (
-                scb_ovriga_df[scb_ovriga_df["region_code"].str.match(r"^\d{4}$")]
-                .set_index("region_code")["pct_2022"]
-                .to_dict()
-            )
+            base_df, ovriga_per_area = load_area_results("KF")
             geo = load_geojson_url(MUNI_GEOJSON_URL)
             featureidkey = "properties.id"
-            id_col = "region_code"
-            map_title = "Kommunalvalsprediktion per kommun — uniform swing"
+        id_col = "region_code"
+        _base_col = f"{BASELINE_YEAR} (%)"
+        _pred_col = "Opinion nu (%)"
 
-        if scb_df.empty:
+        if base_df.empty:
             st.warning(
-                "Kunde inte hämta data från SCB. Kontrollera internetanslutningen. "
-                "SCB:s API kan ibland vara temporärt otillgängligt."
+                f"Valresultat {BASELINE_YEAR} per område saknas — kör "
+                "`python fetch_election_2026.py` och `python fetch_muni_cache.py`."
             )
         elif not geo:
             st.warning("Kunde inte hämta GeoJSON-karta från GitHub. Försök igen.")
@@ -5280,14 +4882,8 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                     for f in geo.get("features", [])
                 }
 
-            # ── Applicera uniform swing (riksdagssvingen sedan 2022 appliceras lokalt) ──
-            # SCB:s kommunval-data ligger på 2022; därför förblir NATIONAL_2022
-            # referens här (annars blir baslinjeåret inkonsekvent mot scb_df).
-            # När SCB publicerar 2026 års kommun-/regionvalsresultat kan detta
-            # bytas till BASELINE (=NATIONAL_2026) och scb_df regenereras via
-            # fetch_scb_cache.py.
             predicted_df = apply_uniform_swing(
-                scb_df, raw_est, NATIONAL_2022,
+                base_df, raw_est, BASELINE,
                 ovriga_per_area=ovriga_per_area,
             )
 
@@ -5313,10 +4909,10 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
 
             # Hämta data för vald area
             area_pred = predicted_df[predicted_df[id_col] == sel_area_code]
-            area_2022 = scb_df[scb_df["region_code"] == sel_area_code]
+            area_base = base_df[base_df["region_code"] == sel_area_code]
 
             pred_dict = dict(zip(area_pred["party"], area_pred["pct_predicted"]))
-            hist_dict = dict(zip(area_2022["party"], area_2022["pct_2022"]))
+            hist_dict = dict(zip(area_base["party"], area_base["pct_base"]))
 
             detail_rows = []
             for p in PARTIES:
@@ -5325,18 +4921,18 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                 detail_rows.append({
                     "parti_kod": p,
                     "Parti": PARTY_NAMES.get(p, p),
-                    "2022 (%)": round(hist_val, 1),
-                    "Prediktion 2026 (%)": round(pred_val, 1),
+                    _base_col: round(hist_val, 1),
+                    _pred_col: round(pred_val, 1),
                     "Förändring (pp)": round(pred_val - hist_val, 1),
                 })
-            # Lägg till ÖVRIGA för regionval och kommunalval — antas hålla sin 2022-nivå
+            # Lägg till ÖVRIGA för regionval och kommunalval — antas hålla sin baslinjenivå
             ov_pct = ovriga_per_area.get(sel_area_code, 0.0)
             if ov_pct > 0:
                 detail_rows.append({
                     "parti_kod": "ÖVRIGA",
                     "Parti": "Lokala partier (ÖVRIGA)",
-                    "2022 (%)": round(ov_pct, 1),
-                    "Prediktion 2026 (%)": round(ov_pct, 1),
+                    _base_col: round(ov_pct, 1),
+                    _pred_col: round(ov_pct, 1),
                     "Förändring (pp)": 0.0,
                 })
             detail_df = pd.DataFrame(detail_rows)
@@ -5346,27 +4942,27 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
             chart_colors = [PARTY_COLORS.get(p, "#888") for p in chart_df["parti_kod"]]
             fig_detail = go.Figure()
             fig_detail.add_trace(go.Bar(
-                name="Valresultat 2022",
+                name=f"Valresultat {BASELINE_YEAR}",
                 x=chart_df["Parti"],
-                y=chart_df["2022 (%)"],
+                y=chart_df[_base_col],
                 marker_color=chart_colors,
                 opacity=0.45,
                 marker_pattern_shape="/",
             ))
             fig_detail.add_trace(go.Bar(
-                name="Prediktion 2026",
+                name="Opinion nu",
                 x=chart_df["Parti"],
-                y=chart_df["Prediktion 2026 (%)"],
+                y=chart_df[_pred_col],
                 marker_color=chart_colors,
                 opacity=0.95,
-                text=chart_df["Prediktion 2026 (%)"].round(1).astype(str) + "%",
+                text=chart_df[_pred_col].round(1).astype(str) + "%",
                 textposition="outside",
             ))
             fig_detail.update_layout(
                 **ECONOMIST_BASE,
                 barmode="group",
                 title=dict(
-                    text=f"{sel_area_name} — 2022 jämfört med prediktion 2026",
+                    text=f"{sel_area_name} — valet {BASELINE_YEAR} jämfört med opinionen nu",
                     font=dict(size=13, color="#111213"),
                 ),
                 xaxis=dict(
@@ -5376,8 +4972,8 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                 yaxis=dict(
                     showgrid=True, gridcolor="#ebebeb",
                     zeroline=False, ticksuffix="%",
-                    range=[0, max(chart_df["Prediktion 2026 (%)"].max(),
-                                  chart_df["2022 (%)"].max()) * 1.2],
+                    range=[0, max(chart_df[_pred_col].max(),
+                                  chart_df[_base_col].max()) * 1.2],
                 ),
                 height=360,
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
@@ -5398,29 +4994,29 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
             display_detail = (
                 detail_df.drop(columns=["parti_kod"])
                 .style
-                .format({"2022 (%)": "{:.1f}", "Prediktion 2026 (%)": "{:.1f}", "Förändring (pp)": "{:+.1f}"})
+                .format({_base_col: "{:.1f}", _pred_col: "{:.1f}", "Förändring (pp)": "{:+.1f}"})
                 .map(_color_chg, subset=["Förändring (pp)"])
             )
             st.dataframe(display_detail, hide_index=True, use_container_width=True)
 
             # ── Nationell sving-tabell ──
             st.divider()
-            st.subheader("Nationell svängning sedan 2022")
+            st.subheader(f"Nationell svängning sedan valet {BASELINE_YEAR}")
             st.caption(
-                "Den nationella opinionsförändringen sedan 2022 som appliceras "
+                f"Den nationella opinionsförändringen sedan valet {BASELINE_YEAR} som appliceras "
                 "uniformt i alla kommuner och regioner. Svingen är **nollsummerad** "
-                "(polls och 2022 på samma bas, andel bland de 8 riksdagspartierna) "
+                f"(polls och {BASELINE_YEAR} på samma bas, andel bland de 8 riksdagspartierna) "
                 "så att den blir enhetlig över alla områden och inte förstärks för "
-                "stora partier. Därför kan den skilja sig något från polls minus 2022."
+                f"stora partier. Därför kan den skilja sig något från polls minus {BASELINE_YEAR}."
             )
-            _zero_swing = compute_national_swing(raw_est, NATIONAL_2022)
+            _zero_swing = compute_national_swing(raw_est, BASELINE)
             swing_rows = []
             for p in PARTIES:
                 cur = float(raw_est.get(p, 0))
-                ref = float(NATIONAL_2022.get(p, 0))
+                ref = float(BASELINE.get(p, 0))
                 swing_rows.append({
                     "Parti": PARTY_NAMES.get(p, p),
-                    "Riksdag 2022 (%)": round(ref, 1),
+                    f"Riksdag {BASELINE_YEAR} (%)": round(ref, 1),
                     "Nu i polls (%)": round(cur, 1),
                     "Opinionssving (pp)": f"{_zero_swing[p]:+.1f}",
                 })
@@ -5437,7 +5033,7 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
 
             st.dataframe(
                 swing_df.style
-                .format({"Riksdag 2022 (%)": "{:.1f}", "Nu i polls (%)": "{:.1f}"})
+                .format({f"Riksdag {BASELINE_YEAR} (%)": "{:.1f}", "Nu i polls (%)": "{:.1f}"})
                 .map(_color_total, subset=["Opinionssving (pp)"]),
                 hide_index=True, use_container_width=True,
             )
@@ -5471,13 +5067,13 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                 st.download_button(
                     "⬇️ Ladda ner prediktion (CSV)",
                     data=wide_table.to_csv(index=False).encode("utf-8"),
-                    file_name="regional_prediktion_2026.csv",
+                    file_name="regional_prediktion.csv",
                     mime="text/csv",
                 )
 
             # ── Opinionsbaserad mandatuppskattning (KF/RF) ──
             # Full kommunal/regional modell driven av uniform swing. Alltid
-            # tillgänglig (till skillnad från live-feeden på Valnatt-fliken).
+            # tillgänglig.
             if val_type in ("Kommunalval per kommun", "Regionval per region"):
                 st.divider()
                 _struct = _load_muni_structure_cached()
@@ -5496,13 +5092,13 @@ Källa: SCB PX-Web · okfse/sweden-geojson · MansMeg/SwedishPolls.
                         "referensdata (kör `python fetch_muni_cache.py`)."
                     )
                 else:
-                    _swing = compute_national_swing(raw_est, NATIONAL_2022)
+                    _swing = compute_national_swing(raw_est, BASELINE)
                     _render_opinion_area_mandat(_area, _swing, _area_label)
 
 
-    # ── Tab Valnatt (alltid synlig; live-räkning som standard, demo längst ned) ──
+    # ── Tab Valnatt (uppspelning av valnatten 2026) ──
     with tab_valnatt:
-        _render_valnatt_tab(raw_est)
+        _render_valnatt_tab()
 
     # ── Tab 9: Om mig ──
     with tab9:

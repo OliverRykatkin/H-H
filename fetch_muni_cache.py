@@ -55,25 +55,64 @@ def _codes_for(index: dict[str, str], valtyp: str, preliminary: bool = False) ->
     for relpath in index:
         if relpath.startswith(prefix) and relpath.endswith(suffix):
             # ./s/kf/Val_20220911_slutlig_0180_KF.zip → "0180"
-            codes.append(relpath[:-len(suffix)].split("_")[-1])
+            kod = relpath[:-len(suffix)].split("_")[-1]
+            if kod.isdigit():  # "OS" = summeringsfil, inget valområde
+                codes.append(kod)
     return sorted(set(codes))
+
+
+def _fetch_struct(index: dict[str, str], year, valtyp: str, kod: str,
+                  preliminary: bool) -> dict | None:
+    try:
+        relpath, md5 = find_area_file(index, valtyp, kod, preliminary=preliminary)
+    except LookupError:
+        return None
+    zip_bytes = download_file(year, relpath, expected_md5=md5)
+    return parse_area_structure(extract_mandatfordelning(zip_bytes))
+
+
+def _merge(final: dict | None, prelim: dict | None) -> tuple[dict | None, str]:
+    """Slutliga röster + slutlig mandatfördelning om den finns, annars den
+    preliminära mandatfördelningen (Länsstyrelsen fastställer mandaten först
+    veckor efter valet) med de slutliga rösterna inlagda per valkrets."""
+    if final and final["total_seats"] > 0:
+        return final, "slutlig"
+    if prelim is None or prelim["total_seats"] == 0:
+        return final, "slutlig-utan-mandat" if final else "saknas"
+    if final is None:
+        return prelim, "preliminar"
+    final_vk = {vk["kod"]: vk for vk in final["valkretsar"]}
+    merged = dict(prelim)
+    merged["valkretsar"] = [
+        {**vk, **{k: final_vk[vk["kod"]][k] for k in ("total_2022", "votes_2022")}}
+        if vk["kod"] in final_vk else vk
+        for vk in prelim["valkretsar"]
+    ]
+    merged["party_meta"] = {**prelim["party_meta"], **final["party_meta"]}
+    return merged, "slutliga-roster-preliminara-mandat"
 
 
 def build(year: int | str = 2022, preliminary: bool = False) -> dict:
     index = fetch_index(year)
-    out: dict = {"generated_from": f"val{year}", "KF": {}, "RF": {}}
+    out: dict = {"generated_from": f"val{year}", "KF": {}, "RF": {}, "stage": {}}
 
     for valtyp in ("KF", "RF"):
-        codes = _codes_for(index, valtyp, preliminary=preliminary)
+        codes = sorted(set(_codes_for(index, valtyp)) | set(_codes_for(index, valtyp, True)))
         print(f"{valtyp}: {len(codes)} valområden")
         for i, kod in enumerate(codes, 1):
             try:
-                relpath, md5 = find_area_file(index, valtyp, kod, preliminary=preliminary)
-                zip_bytes = download_file(year, relpath, expected_md5=md5)
-                struct = parse_area_structure(extract_mandatfordelning(zip_bytes))
+                final = None if preliminary else _fetch_struct(index, year, valtyp, kod, False)
+                prelim = None
+                if final is None or final["total_seats"] == 0:
+                    prelim = _fetch_struct(index, year, valtyp, kod, True)
+                struct, stage = _merge(final, prelim)
+                if struct is None:
+                    print(f"  [{i}/{len(codes)}] {valtyp} {kod}: ingen fil")
+                    continue
                 out[valtyp][kod] = struct
+                out["stage"][f"{valtyp}_{kod}"] = stage
                 print(f"  [{i}/{len(codes)}] {valtyp} {kod} {struct['namn']}: "
-                      f"{struct['total_seats']} mandat, {len(struct['valkretsar'])} vk")
+                      f"{struct['total_seats']} mandat, {len(struct['valkretsar'])} vk ({stage})")
             except Exception as e:
                 print(f"  [{i}/{len(codes)}] {valtyp} {kod}: FEL {type(e).__name__}: {e}")
             time.sleep(0.05)  # snäll mot servern
