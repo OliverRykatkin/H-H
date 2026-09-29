@@ -87,6 +87,11 @@ Tre funktioner delar samma logik:
 - `aggregate_polls_kalman_timeseries()` – tidsserier för trendgraf
 - `kalman_smooth()` – bakåtutjämnad serie
 
+**Ankring i valresultatet** (`_anchor_to_baseline`): efter `BASELINE_ELECTION_DATE`
+släpps alla mätningar t.o.m. valdagen och valresultatet läggs in som första
+observation (σ = 0,1 pp). Backtest med `reference_date` före valet påverkas inte.
+Trend-/blockgrafen startar därför vid valdagen 2026.
+
 Viktig parameter: `sigma_process_per_day = 0.10` (process-brus; styr hur snabbt modellen reagerar på nya mätningar). Är satt i **alla tre funktionssignaturer** – ändra i alla om du justerar.
 
 ### 2. Valkrets-modell
@@ -105,7 +110,9 @@ Naiv uniform swing ("offset-modell"):
 - Modifierad Sainte-Laguë (första divisor 1,2 i valkretsar, 1,0 i landet)
 - 310 fasta mandat (valkretsar) + 39 utjämningsmandat
 - 4%-spärr nationellt
-- Monte Carlo: 10 000 simuleringar med normalfördelad osäkerhet per parti
+- Monte Carlo: 10 000 simuleringar med normalfördelad osäkerhet per parti.
+  Inkluderar horisontterm `HORIZON_K·sqrt(andel)·sqrt(dagar kvar/TERM_DAYS)` mot
+  `NEXT_ELECTION` (2030-09-08). Punktprognosen = "om det vore val idag".
 
 ### 4. Utjämningsmandat
 1. Räkna ut hur många mandat varje parti *borde* ha nationellt (Sainte-Laguë på riksnivå)

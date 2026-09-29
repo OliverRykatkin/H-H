@@ -210,6 +210,16 @@ BASELINE = NATIONAL_2026
 BASELINE_YEAR = 2026
 BASELINE_ELECTION_DATE = ELECTION_2026
 
+# Nästa ordinarie riksdagsval (andra söndagen i september).
+NEXT_ELECTION = datetime(2030, 9, 8)
+NEXT_ELECTION_YEAR = 2030
+TERM_DAYS = (NEXT_ELECTION - ELECTION_2026).days
+
+# Horisontsosäkerhet i simuleringen: σ = K·sqrt(andel)·sqrt(dagar kvar / mandatperiod).
+# K = 0,566 → ≈ 2 pp för ett 12,5 %-parti en hel period ut (S ≈ 3 pp, L ≈ 1,3 pp),
+# i linje med partiernas rörelse 2018→2022 och 2022→2026 (RMS ≈ 1,6 pp).
+HORIZON_K = 0.566
+
 # ── Kart-URLs ──
 MUNI_GEOJSON_URL = (
     "https://raw.githubusercontent.com/okfse/sweden-geojson/master/swedish_municipalities.geojson"
@@ -1154,6 +1164,36 @@ def aggregate_polls(
     return result
 
 
+ANCHOR_COMPANY = "Valresultat"
+ANCHOR_SIGMA = 0.1  # pp — valresultatet är i praktiken exakt
+
+
+def _anchor_to_baseline(recent: pd.DataFrame, now: datetime) -> pd.DataFrame:
+    """Efter baslinjevalet: släng mätningar t.o.m. valdagen och lägg valresultatet
+    som första observation, så att filtret startar i utfallet och bara
+    mätningar efter valet flyttar det. Valdagens vallokalsundersökningar
+    (PublDate == valdagen) räknas som före valet."""
+    election = pd.Timestamp(BASELINE_ELECTION_DATE)
+    if pd.Timestamp(now) <= election:
+        return recent
+    after = recent[recent["PublDate"] > election]
+    anchor = {p: BASELINE.get(p, np.nan) for p in PARTIES}
+    anchor["O"] = max(0.0, 100.0 - sum(BASELINE.get(p, 0.0) for p in PARTIES))
+    anchor.update({"PublDate": election, "Company": ANCHOR_COMPANY, "n": np.nan})
+    return pd.concat([pd.DataFrame([anchor]), after], ignore_index=True)
+
+
+def _obs_sigma(y: float, n: float, company: str, hw_map: dict) -> float:
+    if company == ANCHOR_COMPANY:
+        return ANCHOR_SIGMA
+    p_frac = np.clip(y / 100.0, 0.01, 0.99)
+    # Stickprovsvarians i pp²
+    var_samp = p_frac * (1.0 - p_frac) * 10_000.0 / max(float(n), 100.0)
+    # Institutsbrus: sämre institut → mer osäkerhet (skalas med 1/vikt²)
+    hw = max(hw_map.get(company, 1.0), 0.2)
+    return float(np.sqrt(max(var_samp / hw**2, 0.09)))  # min 0.3 pp
+
+
 @st.cache_data(show_spinner=False)
 def aggregate_polls_kalman(
     df: pd.DataFrame,
@@ -1171,11 +1211,12 @@ def aggregate_polls_kalman(
     now = reference_date or datetime.now()
     cutoff = now - timedelta(days=window_days)
     recent = df[(df["PublDate"] >= cutoff) & (df["PublDate"] <= now)].copy()
+    recent = _anchor_to_baseline(recent, now)
 
     if recent.empty:
         return BASELINE.copy()
 
-    recent = recent.sort_values("PublDate").reset_index(drop=True)
+    recent = recent.sort_values("PublDate", kind="stable").reset_index(drop=True)
 
     # Institutsvikter: lägre vikt → mer mätningsmässigt brus
     hw_map = {}
@@ -1201,15 +1242,9 @@ def aggregate_polls_kalman(
         n_obs = n_col[valid].values
         co_obs = recent.loc[valid, "Company"].fillna("").values
 
-        # ── Observationsbrus per mätning ──
-        sigma_obs = np.zeros(len(y_obs))
-        for i, (y, n, c) in enumerate(zip(y_obs, n_obs, co_obs)):
-            p_frac = np.clip(y / 100.0, 0.01, 0.99)
-            # Stickprovsvarians i pp²
-            var_samp = p_frac * (1.0 - p_frac) * 10_000.0 / max(float(n), 100.0)
-            # Institutsbrus: sämre institut → mer osäkerhet (skalas med 1/vikt²)
-            hw = max(hw_map.get(c, 1.0), 0.2)
-            sigma_obs[i] = float(np.sqrt(max(var_samp / hw**2, 0.09)))  # min 0.3 pp
+        sigma_obs = np.array([
+            _obs_sigma(y, n, c, hw_map) for y, n, c in zip(y_obs, n_obs, co_obs)
+        ])
 
         # ── Kalman-filter (framåtpass) ──
         n_pts = len(t_obs)
@@ -1277,11 +1312,12 @@ def aggregate_polls_kalman_timeseries(
     now = reference_date or datetime.now()
     cutoff = now - timedelta(days=window_days)
     recent = df[(df["PublDate"] >= cutoff) & (df["PublDate"] <= now)].copy()
+    recent = _anchor_to_baseline(recent, now)
 
     if recent.empty:
         return {}
 
-    recent = recent.sort_values("PublDate").reset_index(drop=True)
+    recent = recent.sort_values("PublDate", kind="stable").reset_index(drop=True)
 
     hw_map = {}
     if house_weights is not None and not house_weights.empty:
@@ -1305,12 +1341,9 @@ def aggregate_polls_kalman_timeseries(
         n_obs = n_col[valid].values
         co_obs = recent.loc[valid, "Company"].fillna("").values
 
-        sigma_obs_arr = np.zeros(len(y_obs))
-        for i, (y, n, c) in enumerate(zip(y_obs, n_obs, co_obs)):
-            p_frac = np.clip(y / 100.0, 0.01, 0.99)
-            var_samp = p_frac * (1.0 - p_frac) * 10_000.0 / max(float(n), 100.0)
-            hw = max(hw_map.get(c, 1.0), 0.2)
-            sigma_obs_arr[i] = float(np.sqrt(max(var_samp / hw**2, 0.09)))
+        sigma_obs_arr = np.array([
+            _obs_sigma(y, n, c, hw_map) for y, n, c in zip(y_obs, n_obs, co_obs)
+        ])
 
         n_pts = len(t_obs)
         xf = np.zeros(n_pts)
@@ -1391,15 +1424,20 @@ def run_simulation(
     polls_df: pd.DataFrame,
     window_days: int,
     n_sims: int = 10_000,
+    horizon_days: int = 0,
 ) -> dict:
     """
     Monte Carlo-simulering av mandatutfall.
 
     Osäkerhetsmodell per parti:
-      σ_total = sqrt(σ_polls² + σ_fundamental²)
+      σ_total = sqrt(σ_polls² + σ_fundamental² + σ_horisont²)
 
     σ_polls  = standardavvikelse bland senaste mätningarna (fångar houseeffects + slump)
     σ_fundamental = 1,0 % tillägg för strukturell osäkerhet
+    σ_horisont = opinionsrörelse fram till valdagen:
+                 HORIZON_K · sqrt(andel) · sqrt(horizon_days / TERM_DAYS)
+                 (≈ 2 pp för ett 12,5 %-parti en hel mandatperiod ut; 0 på valdagen)
+    horizon_days = dagar kvar till nästa val (0 = "om det vore val idag").
 
     Varje simulation:
       1. Dra stöd från N(μ, σ_total) per parti, trunkera vid 0
@@ -1417,7 +1455,15 @@ def run_simulation(
         party_std[p] = max(float(np.std(vals)), 0.5) if len(vals) >= 3 else 1.5
 
     FUNDAMENTAL = 1.0
-    total_std = {p: np.sqrt(party_std[p] ** 2 + FUNDAMENTAL ** 2) for p in PARTIES}
+    horizon_frac = max(horizon_days, 0) / TERM_DAYS
+    horizon_std = {
+        p: HORIZON_K * np.sqrt(max(raw_est[p], 1.0)) * np.sqrt(horizon_frac)
+        for p in PARTIES
+    }
+    total_std = {
+        p: np.sqrt(party_std[p] ** 2 + FUNDAMENTAL ** 2 + horizon_std[p] ** 2)
+        for p in PARTIES
+    }
 
     # Simulera
     rng = np.random.default_rng(seed=42)
@@ -1456,6 +1502,7 @@ def run_simulation(
         "draws": draws,
         "party_mandates": party_mandates,
         "party_std": party_std,
+        "horizon_std": horizon_std,
         "total_std": total_std,
         "bloc_h": bloc_h,
         "bloc_v": bloc_v,
@@ -1957,15 +2004,14 @@ def make_trend_chart(df: pd.DataFrame, window_days: int, timeseries: dict = None
     används samma Kalman-körning som estimaten (med husvikter), annars
     faller funktionen tillbaka på en förenklad kalman_smooth utan vikter.
     """
-    # Visa mätningar från en månad före valet 2022 och framåt
-    cutoff = ELECTION_2022 - timedelta(days=30)
-    recent = df[df["PublDate"] >= cutoff].copy()
+    # Visa mätningar efter baslinjevalet (valdagens vallokalsundersökningar exkluderas)
+    recent = df[df["PublDate"] > BASELINE_ELECTION_DATE].copy()
 
     fig = go.Figure()
 
     for p in PARTIES_WITH_OTHER:
         col = recent[["PublDate", p, "Company", "n"]].dropna(subset=[p]).copy()
-        if col.empty:
+        if col.empty and not (timeseries and p in timeseries):
             continue
         col = col.sort_values("PublDate")
 
@@ -2054,11 +2100,11 @@ def make_trend_chart(df: pd.DataFrame, window_days: int, timeseries: dict = None
                   annotation_position="bottom right")
 
     fig.add_vline(
-        x=datetime(2022, 9, 11).timestamp() * 1000,
+        x=BASELINE_ELECTION_DATE.timestamp() * 1000,
         line_dash="dash",
         line_color="#555555",
         line_width=1.2,
-        annotation_text="Val 2022",
+        annotation_text=f"Val {BASELINE_YEAR}",
         annotation_font=dict(size=10, color="#555555"),
         annotation_position="top right",
     )
@@ -2095,8 +2141,7 @@ def make_block_trend_chart(timeseries: dict, polls_df: pd.DataFrame = None) -> g
 
     recent_polls = None
     if polls_df is not None and not polls_df.empty:
-        cutoff = ELECTION_2022 - timedelta(days=30)
-        recent_polls = polls_df[polls_df["PublDate"] >= cutoff].copy()
+        recent_polls = polls_df[polls_df["PublDate"] > BASELINE_ELECTION_DATE].copy()
 
     for block_name, party_list in BLOC_PARTIES.items():
         eval_dates = None
@@ -2183,11 +2228,11 @@ def make_block_trend_chart(timeseries: dict, polls_df: pd.DataFrame = None) -> g
                   annotation_position="bottom right")
 
     fig.add_vline(
-        x=datetime(2022, 9, 11).timestamp() * 1000,
+        x=BASELINE_ELECTION_DATE.timestamp() * 1000,
         line_dash="dash",
         line_color="#555555",
         line_width=1.2,
-        annotation_text="Val 2022",
+        annotation_text=f"Val {BASELINE_YEAR}",
         annotation_font=dict(size=10, color="#555555"),
         annotation_position="top right",
     )
@@ -3543,7 +3588,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    _days_left = max(0, (ELECTION_2026 - datetime.now()).days)
+    _days_left = max(0, (NEXT_ELECTION - datetime.now()).days)
 
     # Fasta inställningar (ej justerbara av användaren)
     window_days = 365
@@ -3565,16 +3610,17 @@ def main():
     house_weights_df = compute_house_weights(polls_df)
 
     latest_date = polls_df["PublDate"].max().strftime("%Y-%m-%d")
+    # Kalman-fönstret täcker alltid hela tiden sedan baslinjevalet, så att
+    # filtret startar i valresultatet utan lucka mot första mätningen.
+    _trend_days = (datetime.now() - BASELINE_ELECTION_DATE).days + 1
     raw_est = aggregate_polls_kalman(
         polls_df,
         house_weights=house_weights_df,
-        window_days=window_days,
+        window_days=max(window_days, _trend_days),
     )
 
-    # Tidsserie med samma Kalman-modell (husvikter) — används i trendgrafen.
-    # Fönstret sträcker sig från en månad före valet 2022 t.o.m. idag;
-    # slutpunkten skalas sedan till raw_est (365-dagars estimat) nedan.
-    _trend_days = (datetime.now() - (ELECTION_2022 - timedelta(days=30))).days
+    # Tidsserie med samma Kalman-modell (husvikter) — används i trendgrafen;
+    # slutpunkten skalas sedan till raw_est nedan.
     _raw_timeseries = aggregate_polls_kalman_timeseries(
         polls_df,
         house_weights=house_weights_df,
@@ -3622,6 +3668,11 @@ def main():
         st.title("Mandatorn")
     st.caption("*Nils Silverström — ett svenskt försök till FiveThirtyEight*")
     st.caption(f"Senaste undersökning: **{latest_date}** · {len(polls_df)} mätningar totalt")
+    st.caption(
+        f"Mandatprognosen visar läget **om det vore val idag**. "
+        f"Nästa riksdagsval: **{NEXT_ELECTION:%Y-%m-%d}** ({_days_left} dagar kvar) — "
+        f"simuleringarnas osäkerhet inkluderar opinionsrörelser fram till dess."
+    )
 
     st.info(
         "⚠️ **Disclaimer:** Detta är en oberoende statistisk modell baserad på publicerade "
@@ -3659,7 +3710,7 @@ def main():
 
     # Kör simulering en gång – används i både Tab 2 och Tab 4
     with st.spinner("Kör 10 000 simuleringar..."):
-        sim = run_simulation(raw_est, polls_df, window_days)
+        sim = run_simulation(raw_est, polls_df, window_days, horizon_days=_days_left)
 
     # Beräkna 2022-mandat per parti (summerat nationellt) för referens i CI-diagrammet
     seats_2022_const = compute_2022_mandates()
@@ -4215,6 +4266,13 @@ med $\sigma^2_{\mathrm{proc}} \cdot \Delta t$ per dag (random walk-antagande).
 Trenddiagrammet visar 95 %-iga bayesianska konfidensband
 ($\pm 1{,}96 \times$ posterior standardavvikelse).
 
+**Start i valresultatet.** Efter ett val nollställs filtret: senaste valresultatet
+(riksdagsvalet """ + str(BASELINE_YEAR) + r""") läggs in som första observation med
+$\sigma_{\mathrm{obs}} = 0{,}1$ pp, och endast mätningar publicerade *efter* valdagen
+används (valdagens vallokalsundersökningar räknas bort). Direkt efter valet ligger
+estimatet därför på utfallet och flyttas sedan bara av nya mätningar — gamla
+mätningar från valrörelsen påverkar inte längre.
+
 **Riksdagsspärren.** Partier med skattat stöd under 4,0 % exkluderas från
 mandatberäkningen. **Övriga partier** beräknas som residualen
 $100\% - \sum_p x_p$ per undersökning och smoothas med samma modell, men ingår
@@ -4316,9 +4374,16 @@ utgör referensdata för geografisk offset och institutsviktning.
 
         st.subheader("7. Begränsningar & modellantaganden")
         st.markdown(r"""
-**Uniform swing.** Modellen antar konstanta regionala mönster sedan 2022. Geografiska
+**Uniform swing.** Modellen antar konstanta regionala mönster sedan senaste valet. Geografiska
 rörelser — t.ex. differentierat tapp i storstäder kontra glesbygd — fångas inte upp,
 vilket kan ge systematiska fel i enskilda valkretsar.
+
+**Val idag vs valdagen.** Punktprognosen visar mandatfördelningen *om det vore val
+idag*. Monte Carlo-simuleringen lägger dessutom till en horisontterm
+$\sigma_{\mathrm{hor},p} = 0{,}566\,\sqrt{x_p}\,\sqrt{d / D}$, där $d$ är dagar kvar
+till nästa val och $D$ mandatperiodens längd — ≈ 2 pp för ett 12 %-parti fyra år ut,
+kalibrerat mot partiernas rörelse mellan valen 2018, 2022 och 2026. Termen går mot
+noll när valdagen närmar sig.
 
 **Övriga partier.** Övriga ingår inte i mandatberäkningen. Modellen kan inte fördela
 Övrigas stöd på enskilda partier utan partispecifik polldata, vilket innebär att
@@ -4432,7 +4497,10 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
             "Simulerar **10 000 möjliga utfall** baserat på osäkerheten i opinionsmätningarna. "
             "Varje simulation drar slumpmässiga röstandelar från en normalfördelning "
             "centrerad kring aggregeringen och med spridning baserad på variansen "
-            "mellan de senaste mätningarna."
+            "mellan de senaste mätningarna **plus hur mycket opinionen hinner röra sig "
+            f"fram till valet {NEXT_ELECTION_YEAR}** ({_days_left} dagar kvar). "
+            "Sannolikheterna avser alltså valdagen, inte ett val idag — osäkerheten "
+            "krymper i takt med att valet närmar sig."
         )
 
         # ── Hur sannolikt är det att… ──
@@ -4599,6 +4667,7 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
                 "Parti": PARTY_NAMES.get(p, p),
                 "Estimat (%)": f"{raw_est.get(p, 0):.1f}",
                 "σ polls": f"{sim['party_std'][p]:.1f}",
+                "σ horisont": f"{sim['horizon_std'][p]:.1f}",
                 "σ total": f"{sim['total_std'][p]:.1f}",
                 "Mandat (snitt)": f"{np.mean(arr):.1f}",
                 "5:e percentil": int(np.percentile(arr, 5)),
@@ -4642,7 +4711,8 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
         st.caption(
             f"Baserat på {sim['n_sims']:,} simuleringar. "
             "σ polls = standardavvikelse bland senaste mätningarna. "
-            "σ total inkluderar 1,0 % strukturell osäkerhet."
+            f"σ horisont = förväntad opinionsrörelse fram till valet {NEXT_ELECTION_YEAR}. "
+            "σ total inkluderar även 1,0 % strukturell osäkerhet."
         )
 
         # ── Koalitionsanalys ──
@@ -5079,7 +5149,6 @@ simuleras inte. Kandidater från partier som inte registrerat sina listor
     # ── Tab 6: Regional & kommunal ──
     with tab6:
         st.header("Regional & kommunal valprediktion")
-        days_left = max(0, (ELECTION_2026 - datetime.now()).days)
         st.markdown(
             "Applicerar en **uniform swing-modell** på valresultaten 2022 per region och "
             "kommun. Modellen tar det aktuella nationella opinionsläget och fördelar "
