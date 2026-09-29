@@ -215,6 +215,10 @@ NEXT_ELECTION = datetime(2030, 9, 8)
 NEXT_ELECTION_YEAR = 2030
 TERM_DAYS = (NEXT_ELECTION - ELECTION_2026).days
 
+# Trendgrafernas startpunkt och de val som markeras med streck.
+TREND_START = ELECTION_2022 - timedelta(days=30)
+TREND_ELECTIONS = [(ELECTION_2022, "Val 2022"), (ELECTION_2026, "Val 2026")]
+
 # Horisontsosäkerhet i simuleringen: σ = K·sqrt(andel)·sqrt(dagar kvar / mandatperiod).
 # K = 0,566 → ≈ 2 pp för ett 12,5 %-parti en hel period ut (S ≈ 3 pp, L ≈ 1,3 pp),
 # i linje med partiernas rörelse 2018→2022 och 2022→2026 (RMS ≈ 1,6 pp).
@@ -1982,6 +1986,7 @@ def build_trend_data(timeseries: dict) -> pd.DataFrame:
         eval_dates = pd.to_datetime(ts["eval_dates"]).round("D")
         smooth_y = np.array(ts["smooth_y"])
         s = pd.Series(smooth_y, index=eval_dates).rename(PARTY_NAMES.get(p, p))
+        s = s[~s.index.duplicated(keep="last")]
         series[p] = s
 
     if not series:
@@ -2004,8 +2009,7 @@ def make_trend_chart(df: pd.DataFrame, window_days: int, timeseries: dict = None
     används samma Kalman-körning som estimaten (med husvikter), annars
     faller funktionen tillbaka på en förenklad kalman_smooth utan vikter.
     """
-    # Visa mätningar efter baslinjevalet (valdagens vallokalsundersökningar exkluderas)
-    recent = df[df["PublDate"] > BASELINE_ELECTION_DATE].copy()
+    recent = df[df["PublDate"] >= TREND_START].copy()
 
     fig = go.Figure()
 
@@ -2099,15 +2103,16 @@ def make_trend_chart(df: pd.DataFrame, window_days: int, timeseries: dict = None
                   annotation_font=dict(size=10, color="#666666"),
                   annotation_position="bottom right")
 
-    fig.add_vline(
-        x=BASELINE_ELECTION_DATE.timestamp() * 1000,
-        line_dash="dash",
-        line_color="#555555",
-        line_width=1.2,
-        annotation_text=f"Val {BASELINE_YEAR}",
-        annotation_font=dict(size=10, color="#555555"),
-        annotation_position="top right",
-    )
+    for _edate, _elabel in TREND_ELECTIONS:
+        fig.add_vline(
+            x=_edate.timestamp() * 1000,
+            line_dash="dash",
+            line_color="#555555",
+            line_width=1.2,
+            annotation_text=_elabel,
+            annotation_font=dict(size=10, color="#555555"),
+            annotation_position="top right",
+        )
 
     fig.update_layout(
         **ECONOMIST_LAYOUT,
@@ -2141,7 +2146,7 @@ def make_block_trend_chart(timeseries: dict, polls_df: pd.DataFrame = None) -> g
 
     recent_polls = None
     if polls_df is not None and not polls_df.empty:
-        recent_polls = polls_df[polls_df["PublDate"] > BASELINE_ELECTION_DATE].copy()
+        recent_polls = polls_df[polls_df["PublDate"] >= TREND_START].copy()
 
     for block_name, party_list in BLOC_PARTIES.items():
         eval_dates = None
@@ -2227,15 +2232,16 @@ def make_block_trend_chart(timeseries: dict, polls_df: pd.DataFrame = None) -> g
                   annotation_font=dict(size=10, color="#666666"),
                   annotation_position="bottom right")
 
-    fig.add_vline(
-        x=BASELINE_ELECTION_DATE.timestamp() * 1000,
-        line_dash="dash",
-        line_color="#555555",
-        line_width=1.2,
-        annotation_text=f"Val {BASELINE_YEAR}",
-        annotation_font=dict(size=10, color="#555555"),
-        annotation_position="top right",
-    )
+    for _edate, _elabel in TREND_ELECTIONS:
+        fig.add_vline(
+            x=_edate.timestamp() * 1000,
+            line_dash="dash",
+            line_color="#555555",
+            line_width=1.2,
+            annotation_text=_elabel,
+            annotation_font=dict(size=10, color="#555555"),
+            annotation_position="top right",
+        )
 
     fig.update_layout(
         **ECONOMIST_LAYOUT,
@@ -3649,6 +3655,23 @@ def main():
             "eval_dates": ts["eval_dates"],
             "smooth_y":   [v * scale for v in ts["smooth_y"]],
             "smooth_std": [v * scale for v in ts["smooth_std"]],
+        }
+
+    # Förlängd historik: perioden TREND_START → valdagen 2026 körs som ett eget,
+    # oankrat segment och läggs före. Linjen hoppar till valresultatet på valdagen.
+    _pre_timeseries = aggregate_polls_kalman_timeseries(
+        polls_df,
+        house_weights=house_weights_df,
+        reference_date=BASELINE_ELECTION_DATE,
+        window_days=(BASELINE_ELECTION_DATE - TREND_START).days,
+    )
+    for p, pre in _pre_timeseries.items():
+        post = trend_timeseries.get(p)
+        if post is None:
+            trend_timeseries[p] = pre
+            continue
+        trend_timeseries[p] = {
+            k: list(pre[k]) + list(post[k]) for k in ("eval_dates", "smooth_y", "smooth_std")
         }
 
     mandates = allocate_all_mandates(raw_est)

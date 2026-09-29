@@ -90,7 +90,9 @@ Tre funktioner delar samma logik:
 **Ankring i valresultatet** (`_anchor_to_baseline`): efter `BASELINE_ELECTION_DATE`
 släpps alla mätningar t.o.m. valdagen och valresultatet läggs in som första
 observation (σ = 0,1 pp). Backtest med `reference_date` före valet påverkas inte.
-Trend-/blockgrafen startar därför vid valdagen 2026.
+Trend-/blockgrafen visar augusti 2022 → idag (`TREND_START`) med streck vid valen
+(`TREND_ELECTIONS`): segmentet före valet 2026 körs oankrat, segmentet efter
+startar i valresultatet (linjen hoppar på valdagen).
 
 Viktig parameter: `sigma_process_per_day = 0.10` (process-brus; styr hur snabbt modellen reagerar på nya mätningar). Är satt i **alla tre funktionssignaturer** – ändra i alla om du justerar.
 
