@@ -31,7 +31,7 @@ def evaluate_question(q: dict, sim: dict) -> float:
         return sim["above_threshold"].get(q["party"], 0)
     if kind == "all_above_threshold":
         return float(np.mean(np.all(
-            np.stack([draws.get(p, np.zeros(n)) >= THRESHOLD for p in PARTIES]), axis=0
+            np.stack([draws.get(p, np.zeros(n)) * sim.get("threshold_scale", 1.0) >= THRESHOLD for p in PARTIES]), axis=0
         )))
     if kind == "seats_at_least":
         pm = sim["party_mandates"]

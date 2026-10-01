@@ -96,7 +96,7 @@ def _extract_valkretsar(vo: dict) -> dict:
             unmapped.append(feed_name)
             continue
         rf = vk["rostfordelning"]["rosterPaverkaMandat"]
-        entry = {"seats": int(vk["totaltAntalFastaMandat"])}
+        entry = {"seats": int(vk["totaltAntalFastaMandat"]), "valid_votes": int(rf["antalRoster"])}
         for pr in rf.get("partiRoster", []):
             fk = pr.get("partiforkortning")
             if fk in PARTIES:

@@ -75,6 +75,7 @@ from mandatorn_model.regional import (
     apply_uniform_swing,
 )
 from mandatorn_model.backtest import (
+    backtest_house_weights,
     compute_backtesting,
 )
 from mandatorn_model.valnatt import (
@@ -86,6 +87,7 @@ from mandatorn_model.valnatt import (
 
 from mandatorn_model.forecast import WINDOW_DAYS, build_forecast, reference_day
 from mandatorn_model.probabilities import coalition_summary, evaluate_questions
+from mandatorn_model.text import display_pct, verbal
 
 # Streamlit-cache runt modellfunktionerna (paketet är fritt från streamlit)
 build_forecast_cached = st.cache_data(show_spinner=False)(build_forecast)
@@ -1575,6 +1577,7 @@ def _render_rd_downstream(nowcast: dict) -> None:
             mandates_nc["adjustment"],
             mandates_nc["fixed"],
             mandates_nc["constituency_votes"],
+            placement=mandates_nc["adjustment_by_constituency"],
         )
         elected_adj_nc = predict_adjustment_candidates(
             adj_consts_nc, cand_df_nc, elected_nc
@@ -2531,7 +2534,7 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
 """)
         with st.spinner("Beräknar backtesting..."):
             bt_df = compute_backtesting(
-                polls_df, house_weights_df,
+                polls_df, backtest_house_weights(polls_df, _bt_year),
                 election_date=_bt_date, actual=_bt_actual,
             )
 
@@ -2620,17 +2623,8 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
         st.divider()
         st.subheader("Hur sannolikt är det att…")
 
-        def _fmt_pct(p_val):
-            if p_val >= 0.95: return ">95 %"
-            if p_val <= 0.05: return "<5 %"
-            return f"{p_val*100:.0f} %"
-
-        def _verdict(p_val):
-            if p_val >= 0.95: return "Väldigt troligt"
-            if p_val >= 0.70: return "Troligt"
-            if p_val >= 0.30: return "Osäkert"
-            if p_val >= 0.05: return "Osannolikt"
-            return "Väldigt osannolikt"
+        # Verbal skala och procentformat definieras på ett ställe (mandatorn_model.text, D3).
+        _fmt_pct, _verdict = display_pct, verbal
 
         _scenarios = [(q["text"], q["p"]) for q in evaluate_questions(sim)]
 
@@ -2663,7 +2657,7 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
         bv = sim["bloc_v"]
         p_h_maj = float((bh >= 175).mean())
         p_v_maj = float((bv >= 175).mean())
-        p_none   = 1.0 - p_h_maj - p_v_maj
+        p_none   = max(0.0, 1.0 - p_h_maj - p_v_maj)
 
         # ── Sannolikheter för majoriteter ──
         st.subheader("Sannolikhet för riksdagsmajoritet")
@@ -2895,6 +2889,7 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
                 mandates["adjustment"],
                 mandates["fixed"],
                 mandates["constituency_votes"],
+                placement=mandates["adjustment_by_constituency"],
             )
             elected_adj = predict_adjustment_candidates(
                 adj_constituencies, cand_df, elected

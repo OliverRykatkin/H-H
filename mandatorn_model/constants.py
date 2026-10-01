@@ -108,6 +108,13 @@ COALITIONS = {
 
 # Riksdagsvalet 2022 – nationellt slutresultat (behålls som historisk konstant
 # för backtesting mot 2022 års val — appens *aktiva* baslinje är nu 2026).
+# Riksdagsvalet 2018 – nationellt slutresultat (facit för institutsvikterna i
+# backtesten av 2022, DECISIONS D19).
+NATIONAL_2018 = {
+    "M": 19.84, "L": 5.49, "C": 8.61, "KD": 6.32,
+    "S": 28.26, "V": 8.00, "MP": 4.41, "SD": 17.53,
+}
+
 NATIONAL_2022 = {
     "M": 19.10, "L": 4.61, "C": 6.71, "KD": 5.34,
     "S": 30.33, "V": 6.75, "MP": 5.08, "SD": 20.54,
@@ -119,6 +126,7 @@ ELECTION_2026 = datetime(2026, 9, 13)
 
 
 ELECTION_2022 = datetime(2022, 9, 11)
+ELECTION_2018 = datetime(2018, 9, 9)
 
 
 def _load_election_2026() -> dict:

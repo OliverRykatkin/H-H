@@ -225,6 +225,7 @@ def predict_adjustment_constituencies(
     adjustment: dict,
     fixed_seats: dict,
     constituency_votes: dict,
+    placement: dict | None = None,
 ) -> dict:
     """
     Beräknar vilka valkretsar som ger ett parti dess utjämningsmandat.
@@ -237,6 +238,14 @@ def predict_adjustment_constituencies(
 
     Returns: {parti: [valkrets1, valkrets2, …]}  (längd = antal adj-mandat)
     """
+    if placement is not None:
+        # Placering enligt vallagen från allocate_all_mandates (valkrets → parti → antal).
+        out: dict = {}
+        for constituency, row in placement.items():
+            for party, n in row.items():
+                out.setdefault(party, []).extend([constituency] * int(n))
+        return out
+
     def _next_divisor(k: int) -> float:
         return 1.2 if k == 0 else float(2 * k + 1)
 

@@ -117,14 +117,16 @@ def compute_nowcast(
 
 
 def modified_sainte_lague(
-    votes: dict, n_seats: int = RIKSDAG_TOTAL_SEATS, first_divisor: float = 1.4
+    votes: dict, n_seats: int = RIKSDAG_TOTAL_SEATS, first_divisor: float = 1.2
 ) -> dict:
     """Modifierad Sainte-Laguë (jämkade uddatalsmetoden).
 
     Args:
         votes: {party: vote_share_or_count} för partier som klarat spärren.
         n_seats: Antal mandat att fördela.
-        first_divisor: 1.4 nationellt (riksdagens spärrnivå), 1.2 i valkretsar.
+        first_divisor: 1.2 för riksdagen både i valkretsar och i landet (vallagen
+            14 kap.; 1.4 gällde före 2018). Kommun/region-utjämningen anropar med 1.0.
+            Fullständiga riksdagsregler: mandatorn_model.vallag.
 
     Returns:
         {party: seat_count}.

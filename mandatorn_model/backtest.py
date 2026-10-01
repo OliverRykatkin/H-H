@@ -52,3 +52,17 @@ def compute_backtesting(
                 "Fel (pp)": round(est.get(p, 0) - actual[p], 2),
             })
     return pd.DataFrame(rows)
+
+
+def backtest_house_weights(polls_df: pd.DataFrame, year: int) -> pd.DataFrame:
+    """Institutsvikter för backtest av valet `year`, kalibrerade mot valet innan (D19).
+
+    Tidigare användes vikter kalibrerade mot facit för samma (eller ett senare) val,
+    vilket gjorde backtesten för optimistisk (PARITY A8).
+    """
+    from mandatorn_model.constants import ELECTION_2018, ELECTION_2022, NATIONAL_2018, NATIONAL_2022
+    from mandatorn_model.polls import compute_house_weights
+
+    prior = {2026: (ELECTION_2022, NATIONAL_2022, "2022"), 2022: (ELECTION_2018, NATIONAL_2018, "2018")}
+    date, actual, label = prior[year]
+    return compute_house_weights(polls_df, election_date=date, actual=actual, label=label)

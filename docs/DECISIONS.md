@@ -132,3 +132,17 @@ Sidhuvudets caption "*Nils Silverström — ett svenskt försök till FiveThirty
 ### D20. Cloud Run efter lanseringen
 Streamlit körs med `--min-instances 1`, vilket kostar ungefär 15–25 USD i månaden även utan trafik. **Förslag:** när den statiska sajten är live, sätt `min-instances 0` och flytta labbet till `lab.mandatorn.se`.
 **Beslut:** ✅ Förslaget. (2026-10-01)
+
+---
+
+## Nya beslut från fas 1
+
+### D21. Estimat mot valresultat på olika bas (PARITY A13)
+Estimaten visas som andel bland de 8 riksdagspartierna (summerar till 100). Valresultatet är andel av alla giltiga röster (övriga ≈ 1,6 %). Kolumnen "förändring sedan valet" blandar därför två baser, och stora partier ser ~0,2 pp starkare ut än de är.
+**Förslag:** visa estimaten som andel av alla röster, det vill säga omräknade med övriga på baslinjens nivå. Det är samma bas som mätningarna och valresultatet, och samma som spärren nu prövas mot. Alla visade andelar sjunker då med ~1,6 % relativt, men mandaten påverkas inte.
+**Beslut:** ☐
+
+### D22. Repo-inställning för automatiska PR:er
+Synk-jobbet mot SwedishPolls (D16) behöver inställningen *Allow GitHub Actions to create and approve pull requests* (Settings → Actions → General). Den är avstängd i dag.
+**Förslag:** slå på den.
+**Beslut:** ☐

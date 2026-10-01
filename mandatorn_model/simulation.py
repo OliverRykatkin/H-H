@@ -12,7 +12,7 @@ from mandatorn_model.constants import (
     THRESHOLD,
     TOTAL_SEATS,
 )
-from mandatorn_model.seats import modified_sainte_lague
+from mandatorn_model.seats import BASELINE_OTHERS, modified_sainte_lague
 
 def run_simulation(
     raw_est: dict,
@@ -79,9 +79,12 @@ def run_simulation(
     bloc_v = np.zeros(n_sims, dtype=int)
     above_threshold = {p: 0 for p in PARTIES}
 
+    # Dragningarna är andelar bland de åtta partierna; spärren prövas mot andel av alla
+    # giltiga röster med övriga på baslinjevalets nivå (PARITY A4, samma som seats).
+    scale = (100.0 - BASELINE_OTHERS) / 100.0
     for i in range(n_sims):
         sim = {p: draws[p][i] for p in PARTIES}
-        eligible = {p: v for p, v in sim.items() if v >= THRESHOLD}
+        eligible = {p: v for p, v in sim.items() if v * scale >= THRESHOLD}
         if not eligible:
             continue
         tot = sum(eligible.values())
@@ -90,7 +93,7 @@ def run_simulation(
         for p in PARTIES:
             m = alloc.get(p, 0)
             party_mandates[p][i] = m
-            if sim[p] >= THRESHOLD:
+            if sim[p] * scale >= THRESHOLD:
                 above_threshold[p] += 1
         bloc_h[i] = sum(alloc.get(p, 0) for p in ["M", "L", "KD", "SD"])
         bloc_v[i] = sum(alloc.get(p, 0) for p in ["S", "V", "MP", "C"])
@@ -105,4 +108,5 @@ def run_simulation(
         "bloc_v": bloc_v,
         "above_threshold": {p: above_threshold[p] / n_sims for p in PARTIES},
         "n_sims": n_sims,
+        "threshold_scale": scale,
     }

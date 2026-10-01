@@ -132,17 +132,23 @@ Naiv uniform swing ("offset-modell"):
   mandatuppskattningen och sving-tabellen på Regional-fliken.
 
 ### 3. Mandatberäkning
-- Modifierad Sainte-Laguë (första divisor 1,2 i valkretsar, 1,0 i landet)
+- Enligt vallagen (`mandatorn_model/vallag.py`, golden tests mot Valmyndighetens
+  officiella utfall 2022 och 2026 per valkrets i `tests/golden/`):
+  jämkade uddatalsmetoden (1,2; 3; 5 …) för fasta mandat och för landets fördelning,
+  4 % i landet eller 12 % i valkretsen (bara fasta mandat där), återföring vid
+  överhäng, utjämningsmandat placeras med *ojämkad* uddatal (1; 3; 5 …) på röster per
+  valkrets. Lika jämförelsetal: högst röstetal, sedan partikod (lagen: lottning).
+- Spärren prövas mot andel av alla giltiga röster (övriga antas = baslinjen, 1,59 %).
 - 310 fasta mandat (valkretsar) + 39 utjämningsmandat
-- 4%-spärr nationellt
 - Monte Carlo: 10 000 simuleringar med normalfördelad osäkerhet per parti.
   Inkluderar horisontterm `HORIZON_K·sqrt(andel)·sqrt(dagar kvar/TERM_DAYS)` mot
   `NEXT_ELECTION` (2030-09-08). Punktprognosen = "om det vore val idag".
 
 ### 4. Utjämningsmandat
-1. Räkna ut hur många mandat varje parti *borde* ha nationellt (Sainte-Laguë på riksnivå)
-2. Subtrahera faktiskt vunna valkretssmandat → differensen = utjämningsmandat
-3. Fördela dessa på valkretsar via skalad Sainte-Laguë (röstandel × valkretsstorlek som proxy-kvot)
+1. Landets 349 mandat fördelas med jämkade uddatalsmetoden bland partier ≥ 4 %
+2. Utjämningsmandat = landets fördelning − fasta mandat (återföring vid överhäng)
+3. Placering per valkrets: ojämkad uddatal på prognostiserade röster (andel × valkretsens
+   giltiga röster 2026, `valid_votes` i `data/election_2026.json`)
 
 ---
 

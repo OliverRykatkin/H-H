@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 
 from mandatorn_model import contracts as C
-from mandatorn_model.backtest import compute_backtesting
+from mandatorn_model.backtest import backtest_house_weights, compute_backtesting
 from mandatorn_model.constants import (
     BASELINE, BASELINE_ELECTION_DATE, BASELINE_YEAR, BLOC_PARTIES, CONSTITUENCIES, ELECTION_2022,
     LAN_TO_REGION_NAME, NATIONAL_2022, NEXT_ELECTION, PARTIES, PARTIES_WITH_OTHER, PARTY_NAMES,
@@ -267,7 +267,7 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
             sdTotal=float(sim["total_std"][p]), pAboveThreshold=float(sim["above_threshold"][p]),
         ) for p in PARTIES],
         blocs={"Högerblocket": {"pMajority": p_h}, "Vänsterblocket": {"pMajority": p_v},
-               "Inget block": {"pMajority": 1.0 - p_h - p_v}},
+               "Inget block": {"pMajority": max(0.0, 1.0 - p_h - p_v)}},
         blocHistogram=hist, coalitions=[C.Coalition(**c) for c in coalition_summary(sim)]))
 
     # probabilities.json
@@ -386,7 +386,7 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
 
     # backtest/<år>.json
     for year, edate, actual in ((BASELINE_YEAR, BASELINE_ELECTION_DATE, BASELINE), (2022, ELECTION_2022, NATIONAL_2022)):
-        bt = compute_backtesting(polls, fc.house_weights, election_date=edate, actual=actual)
+        bt = compute_backtesting(polls, backtest_house_weights(polls, year), election_date=edate, actual=actual)
         R.json(f"backtest/{year}.json", C.Backtest(year=year, rows=[
             {"date": r["Referensdatum"], "daysBefore": int(r["Dagar till val"]), "party": r["Parti"],
              "estimate": float(r["Estimat (%)"]), "actual": float(r["Faktiskt (%)"]), "error": float(r["Fel (pp)"])}
@@ -394,7 +394,7 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
 
     # institutes.json + institutsbias.csv (N4)
     bias = institute_bias(polls, fc.trend_timeseries, TREND_START, ref)
-    weights = fc.house_weights.rename(columns={"Institut": "institute", "MAE (pp)": "mae", "Antal mätningar": "n", "Vikt": "weight"})
+    weights = fc.house_weights.rename(columns=lambda c: {"Institut": "institute", "MAE (pp)": "mae", "Vikt": "weight"}.get(c, "n" if c.startswith("Antal mätningar") else c))
     R.json("institutes.json", C.Institutes(weights=weights.to_dict("records"), bias=bias.to_dict("records")))
     if od.get("institutsbias"):
         R.csv("open/institutsbias.csv", bias, {

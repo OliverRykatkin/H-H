@@ -1,0 +1,52 @@
+{
+ "_doc": "Syntetiska kantfall för mandatberäkningen (vallag.allocate_riksdag). Delas med TypeScript-porten. 'expected' är verifierat för hand i tests/test_vallag.py.",
+ "cases": [
+  {
+   "id": "lika-jamforelsetal",
+   "doc": "A och B har exakt lika röster; sista mandatet avgörs av partikod (A före B).",
+   "total_seats": 3,
+   "national_valid": 200,
+   "national_votes": {"A": 100, "B": 100},
+   "constituencies": [
+    {"name": "K1", "fixed_seats": 3, "valid_votes": 200, "votes": {"A": 100, "B": 100}}
+   ],
+   "expected": {"total": {"A": 2, "B": 1}, "fixed": {"K1": {"A": 2, "B": 1}}, "adjustment": {"K1": {}}}
+  },
+  {
+   "id": "precis-pa-sparren",
+   "doc": "C har exakt 4,0 % i landet och deltar; D har 3,9 % och deltar inte.",
+   "total_seats": 10,
+   "national_valid": 1000,
+   "national_votes": {"A": 500, "B": 421, "C": 40, "D": 39},
+   "constituencies": [
+    {"name": "K1", "fixed_seats": 8, "valid_votes": 1000, "votes": {"A": 500, "B": 421, "C": 40, "D": 39}}
+   ],
+   "expected_eligible": ["A", "B", "C"]
+  },
+  {
+   "id": "tolv-procent-i-valkrets",
+   "doc": "L har 2 % i landet men 30 % i K2: får fasta mandat i K2 men ingår inte i landets fördelning.",
+   "total_seats": 20,
+   "national_valid": 10000,
+   "national_votes": {"A": 5200, "B": 4600, "L": 200},
+   "constituencies": [
+    {"name": "K1", "fixed_seats": 15, "valid_votes": 9333, "votes": {"A": 4900, "B": 4433, "L": 0}},
+    {"name": "K2", "fixed_seats": 3, "valid_votes": 667, "votes": {"A": 300, "B": 167, "L": 200}}
+   ],
+   "expected_eligible": ["A", "B"]
+  },
+  {
+   "id": "aterforing-vid-overhang",
+   "doc": "R vinner fler fasta mandat än partiet har rätt till i landet; de med lägst jämförelsetal återförs.",
+   "total_seats": 10,
+   "national_valid": 10000,
+   "national_votes": {"R": 1100, "S": 8900},
+   "constituencies": [
+    {"name": "K1", "fixed_seats": 1, "valid_votes": 600, "votes": {"R": 350, "S": 250}},
+    {"name": "K2", "fixed_seats": 1, "valid_votes": 600, "votes": {"R": 350, "S": 250}},
+    {"name": "K3", "fixed_seats": 1, "valid_votes": 600, "votes": {"R": 340, "S": 260}},
+    {"name": "K4", "fixed_seats": 6, "valid_votes": 8200, "votes": {"R": 60, "S": 8140}}
+   ]
+  }
+ ]
+}
