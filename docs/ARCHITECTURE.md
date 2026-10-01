@@ -164,10 +164,18 @@ Bunny, Hetzner och R2 är S3-kompatibla och behöver bara en annan endpoint och 
 
 Varning: GitHub stänger av schemalagda workflows efter 60 dagar utan aktivitet i ett publikt repo. Heartbeat-jobbet ligger själv i ett schema och påverkas av samma regel. Larmet ska därför också gå via en extern tjänst som pingas av publish-jobbet (Healthchecks.io eller liknande, D15), så att utebliven ping larmar.
 
-## 8. Nowcast (fas 3, i korthet)
+## 8. Nowcast (fas 3)
 
-- En liten tjänst på Fly.io (`arn`) i en loop: `val_feed.fetch_index` → ny md5? → `compute_nowcast` → publish med `mode: nowcast` direkt till det publika manifestet. Ingen fördröjning (DECISIONS D4).
-- Simulator: `fetch_valnatt_2026.py` har redan rapporteringsordning och 2022-baslinje för 2026. Den återanvänds som integrationstest. 2022 och EU-valet 2024 kräver ny data.
+- **Tjänst:** `mandatorn_model/nowcast_live.py` körs som Fly-appen `mandatorn-nowcast` (region `arn`, `deploy/nowcast/`). Den gör följande i en loop:
+  1. Läser `index.md5`. Har den preliminära RD-filen ändrats hämtas den och verifieras med md5.
+  2. Kör `compute_nowcast` och mandaten enligt vallagen.
+  3. Publicerar en release med `mode: nowcast` direkt till det publika manifestet. Ingen fördröjning (DECISIONS D4).
+- **Releasen** bygger vidare på senaste prognosreleasen: samma filer plus `nowcast.json` (kontrakt `NowcastLive`). Sajtens övriga sidor fungerar därför hela natten. Klienten pollar manifestet var 45:e sekund i nowcast-läge.
+- **Baslinjen** är förra valets slutresultat per distrikt (`data/baseline_districts_<år>.csv.gz`). Den mappas till nya distrikt via `valdistriktskodForegaendeVal`: sammanslagningar summeras och delningar fördelas lika.
+- **Fel:** om Valmyndigheten inte svarar ligger senaste giltiga release kvar och `status.json` får `feedOk: false`.
+- **AWS-åtkomst** sker via Fly-OIDC (`infra/fly_oidc.tf`), utan långlivade nycklar.
+- **Simulatorn** (`ReplaySource`) spelar upp valnätterna 2022 och 2026 i verklig rapporteringsordning. Den är integrationstest (`tests/test_nowcast_live.py`, workflowen *Valnatt-simulator*) och demo. Data för EU-valet 2024 finns inte under samma adressmönster hos Valmyndigheten.
+- **Drift under natten:** `docs/RUNBOOK.md`.
 
 ## 9. Kostnadsuppskattning
 
@@ -232,6 +240,6 @@ Med per-valkrets-simuleringen (D11, `allocate_all_mandates` × 10 000) tillkomme
 - **Dragningar (D5):** objektet taggas `retention=draws` och gallras efter 7 dagar. Dygnets första dragning kopieras till `draws-daily/<datum>/`, som sparas i 400 dagar. Valdagen och dagen före kopieras till `draws-election/<datum>/`, som sparas för alltid.
 - **Referensdatum** avrundas till dygnets början (ASSUMPTIONS A-11).
 - **Kvalitetsgrind:** varje flagga har ett stabilt id. Godkända id ligger i `data/polls/quality_ack.txt`.
-- **Nowcast:** ingen fördröjning (D4), alltså inget `partner/`-prefix.
+- **Nowcast:** ingen fördröjning (D4), alltså inget `partner/`-prefix. Fas 3 (live-tjänst, simulator, Fly-OIDC, runbook) är på plats; deploy kräver Fly- och AWS-konto.
 - **Mandatmotor:** `mandatorn_model/vallag.py`. Den portas till TypeScript i fas 2 mot `tests/golden/`.
 - **Ej gjort i fas 1** (kräver kontot): `terraform apply` mot staging. Terraform är skrivet och validerat (`terraform validate`, även i CI). Det som återstår är state-bucket, en apply och repo-variablerna, se `infra/README.md`.

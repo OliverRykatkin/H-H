@@ -46,3 +46,8 @@ output "manual_dns_records" {
     )
   }
 }
+
+output "fly_nowcast_role_arn" {
+  description = "Sätts som Fly-hemligheten AWS_ROLE_ARN för mandatorn-nowcast (tom om fly_org saknas)"
+  value       = local.fly_enabled ? aws_iam_role.fly_nowcast[0].arn : ""
+}

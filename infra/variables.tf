@@ -60,3 +60,15 @@ locals {
   data_domain  = var.environment == "prod" ? "data.${var.root_domain}" : "data.beta.${var.root_domain}"
   site_aliases = var.environment == "prod" ? [var.root_domain, "www.${var.root_domain}"] : [local.site_domain]
 }
+
+variable "fly_org" {
+  description = "Fly.io-organisationens slug för live-nowcasten (fas 3). Tom = ingen Fly-OIDC-roll."
+  type        = string
+  default     = ""
+}
+
+variable "fly_app" {
+  description = "Fly.io-appens namn för live-nowcasten"
+  type        = string
+  default     = "mandatorn-nowcast"
+}

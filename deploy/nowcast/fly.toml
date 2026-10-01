@@ -1,0 +1,26 @@
+# Fly.io-app för live-nowcasten på valnatten (fas 3). Se deploy/nowcast/README.md.
+app = "mandatorn-nowcast"
+primary_region = "arn"   # Stockholm
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  YEAR = "2030"
+  ELECTION = "2030-09-08"
+  INTERVAL = "60"         # sekunder mellan hämtningar (Valmyndighetens rekommendation: ≥ 60)
+
+# En worker-process utan HTTP-tjänst ([http_service] saknas avsiktligt).
+[processes]
+  app = ""                # Dockerfilens CMD
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
+  processes = ["app"]
+
+# Ingen auto-stop: maskinen ska köra hela valnatten. Startas/stoppas manuellt
+# (`fly scale count 1` / `fly scale count 0`), se docs/RUNBOOK.md.
+[[restart]]
+  policy = "always"
+  processes = ["app"]

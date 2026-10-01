@@ -7,7 +7,8 @@
 import type {
   Area, Constituency, Institutes, Manifest, National, Simulation,
 } from "@contracts/contracts";
-import { fetchVerified, ReleaseError } from "./release";
+import { fetchManifest, fetchVerified, ReleaseError } from "./release";
+import { startPoller } from "../islands/livePoll";
 import { areaIngress, constituencyIngress, instituteIngress, nationalIngress, partyIngress } from "../text/ingress";
 
 async function render(kind: string, m: Manifest): Promise<string> {
@@ -64,3 +65,27 @@ document.addEventListener("mandatorn:newer-release", async (ev) => {
     }
   }
 });
+
+// ── Nowcast-läge (valnatt): pollning av manifestet ───────────────────────────
+let stopNowcast: (() => void) | null = null;
+
+/**
+ * Startas av release-bevakaren när senaste manifest har mode "nowcast". Hämtar manifestet
+ * var 45:e sekund (pausat när fliken är dold); vid ny release skickas "mandatorn:newer-release"
+ * (ingress/nyckeltal) och alltid "mandatorn:nowcast" (live-ön).
+ */
+export function startNowcastPolling(initial: Manifest): void {
+  if (stopNowcast) return;
+  let current = initial.release;
+  document.dispatchEvent(new CustomEvent("mandatorn:nowcast", { detail: initial }));
+  stopNowcast = startPoller(async () => {
+    const m = await fetchManifest().catch(() => null);
+    if (!m) return;
+    if (m.release !== current) {
+      current = m.release;
+      document.dispatchEvent(new CustomEvent("mandatorn:newer-release", { detail: m }));
+    }
+    document.dispatchEvent(new CustomEvent("mandatorn:nowcast", { detail: m }));
+    if (m.mode !== "nowcast") { stopNowcast?.(); stopNowcast = null; }
+  }, { doc: document, setTimer: (fn, ms) => window.setTimeout(fn, ms), clearTimer: (id) => window.clearTimeout(id as number) });
+}

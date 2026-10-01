@@ -16,7 +16,7 @@ from mandatorn_model.constants import (
 
 def _load_valnatt_2026() -> pd.DataFrame | None:
     """Valnattens preliminära räkning 2026 per distrikt (data/valnatt_2026.csv.gz,
-    genererad av fetch_valnatt_2026.py) inkl. rapporteringstid och 2022-baslinje."""
+    genererad av fetch_valnatt.py) inkl. rapporteringstid och 2022-baslinje."""
     import os as _os
     path = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "data", "valnatt_2026.csv.gz")
     if not _os.path.exists(path):

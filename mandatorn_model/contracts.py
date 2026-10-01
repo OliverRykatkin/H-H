@@ -376,7 +376,25 @@ class NowcastLive(_Model):
     final: dict[str, float] | None = Field(default=None, description="Slutresultat (bara i simulatorn)")
 
 
+class ResultConstituency(_Model):
+    name: str
+    fixedSeats: int
+    shares: dict[str, float]
+    fixed: dict[str, int]
+    adjustment: dict[str, int]
+
+
+class ElectionResult(_Model):
+    """Officiellt valresultat (Valmyndigheten) — nationellt och per valkrets."""
+    schemaVersion: int = SCHEMA_VERSION
+    year: int
+    national: dict[str, float]
+    seats: dict[str, int]
+    constituencies: list[ResultConstituency]
+
+
 ARTIFACT_MODELS: dict[str, type[_Model]] = {
+    "ElectionResult": ElectionResult,
     "NowcastLive": NowcastLive,
     "Elected": Elected, "Archive": Archive,
     "SeatModel": SeatModel,

@@ -20,8 +20,8 @@ Sist i dokumentet finns två avsnitt:
 Sajten (`web/`, Astro 7) har 725 förrenderade sidor. Alla sidor som PARITY beskriver är byggda, verifierade i webbläsaren och bockade ☑. Undantagen:
 - **3.4/6.7 Karta (◐):** MapLibre-ön är klar men renderas inte. Lantmäteriets gränsdata kräver konto på Geotorget och är licensierad CC BY 4.0, inte CC0 (DECISIONS D23).
 - **5.x Kandidater (◐/☐):** sidorna visar de 349 invalda 2026 (D10). Prognos och sannolikheter för invalda 2030 kommer när listorna finns.
-- **7.3, 8.2 (☐):** 2022 års valkretsresultat och backtest har ännu ingen egen sida. Datan finns i releasen (`backtest/<år>.json`).
-- **9.4 (☐):** live-nowcast hör till fas 3.
+- **7.3, 8.2 (☑):** `/arkiv/2022/` visar det officiella resultatet per valkrets (`results/<år>.json`), och `/om/backtest/` visar backtesten för 2022 och 2026.
+- **9.4 (☑, fas 3):** `mandatorn_model.nowcast_live` med en simulator för 2022 och 2026 och ett liveläge på sajten. Det som återstår är driftsättningen på Fly.io, som kräver konton (`docs/RUNBOOK.md`).
 
 Verifiering:
 - Golden tests för mandatberäkningen Python ↔ TS: 258 fall, bitidentiska.
@@ -137,7 +137,7 @@ Punktprognosen 2026-10-01 är oförändrad, 173–176 mandat. Majoritetssannolik
 |---|---|---|---|---|---|---|
 | 7.1 | Senaste mätningarna (reglage för antal rader) | inline | `/` och `/institut/<slug>`: tabell med valbar förändring | Samma rader | 2 | ☑ |
 | 7.2 | Institutsvikter, tabell och stapel | inline. **Texten säger "mot 2022", koden räknar mot 2026.** | `/institut/<slug>` och `latest/institutsbias.csv` (ny, se N4) | Samma vikter | 3 | ☑ |
-| 7.3 | Valresultat 2022 per valkrets | `CONSTITUENCIES_2022` | `/arkiv/2022` | Samma | 5 | ☐ |
+| 7.3 | Valresultat 2022 per valkrets | `CONSTITUENCIES_2022` | `/arkiv/2022` | Samma | 5 | ☑ |
 | 7.4 | Mandatdata som CSV | `fixed_df` | `latest/valkretsar.csv`, `latest/mandat.csv` | Samma | 2 | ☑ |
 | 7.5 | Licens, källor, rättelselogg | finns inte | STATISK `/data`, `/licens`, `CHANGELOG-data.md` | — | 3 | ☑ |
 
@@ -146,7 +146,7 @@ Punktprognosen 2026-10-01 är oförändrad, 173–176 mandat. Majoritetssannolik
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
 | 8.1 | Metodtext avsnitt 1–7 (markdown och LaTeX) | statisk. **Flera inaktuella uppgifter**, se A6. | STATISK. Formler med KaTeX vid bygget, ingen JS i klienten. | Granskas mot koden | 5 | ☑ |
-| 8.2 | Backtesting med radio 2026/2022: MAE och RMSE per referensdatum, fel per parti | `compute_backtesting()`, 0,3 s per år | PRE `backtest/<år>.json` | Exakt | 5 | ☐ |
+| 8.2 | Backtesting med radio 2026/2022: MAE och RMSE per referensdatum, fel per parti | `compute_backtesting()`, 0,3 s per år | PRE `backtest/<år>.json` | Exakt | 5 | ☑ |
 
 ## 9. 🌙 Valnatt → `/valnatt` (uppspelning) och nowcast-läge (fas 3)
 
@@ -155,7 +155,7 @@ Punktprognosen 2026-10-01 är oförändrad, 173–176 mandat. Majoritetssannolik
 | 9.1 | Uppspelning av valnatten 2026: klockslag 20:40–04:00, råräkning, nowcast, facit, felkurva | `_render_valnatt_replay()`, `_valnatt_state()`, `_valnatt_error_curve()` | PRE `valnatt/2026/<HHMM>.json` (45 filer) och `curve.json` | Exakt samma nowcast per tidpunkt | 5 | ☑ |
 | 9.2 | Mandat, valkretsar och invalda enligt nowcasten | `_render_rd_downstream()` | PRE per tidpunkt (mandat). Kandidater per tidpunkt efter beslut. | Exakt | 5 | ☑ |
 | 9.3 | KF/RF-mandat 2026 per kommun och region | `_render_valnatt_local_mandates()` | Länkas till `/kommun/<slug>` och `/region/<slug>` (samma data) | Samma | 5 | ☑ |
-| 9.4 | Live-nowcast mot Valmyndigheten | Borttagen 2026-09-29 (finns i git före `922dd3e`). `val_feed.fetch_live()` finns kvar. | Fas 3: ingest på Fly.io, releaser med `mode: nowcast`, fördröjning för partner | Simulatorn spelar upp 2026 (och 2022) | fas 3 | ☐ |
+| 9.4 | Live-nowcast mot Valmyndigheten | Borttagen 2026-09-29 (finns i git före `922dd3e`). `val_feed.fetch_live()` finns kvar. | Fas 3: ingest på Fly.io, releaser med `mode: nowcast`, fördröjning för partner | Simulatorn spelar upp 2026 (och 2022) | fas 3 | ☑ |
 
 ## 10. 🙋 Om mig → `/om#forfattare` eller `/kontakt`
 

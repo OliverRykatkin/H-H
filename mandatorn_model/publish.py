@@ -401,6 +401,18 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
         archive = C.Archive.model_validate_json(arch.read_text(encoding="utf-8"))
         R.json(f"archive/{archive.year}.json", archive)
 
+    # results/<år>.json — officiellt utfall per valkrets (ur tests/golden, Valmyndighetens slutliga filer)
+    for gpath in sorted((REPO / "tests" / "golden").glob("riksdag_*.json")):
+        g = json.loads(gpath.read_text(encoding="utf-8"))
+        R.json(f"results/{g['year']}.json", C.ElectionResult(
+            year=g["year"],
+            national={p: round(v / g["valid_votes"] * 100, 2) for p, v in g["national_votes"].items() if p in PARTIES},
+            seats={p: int(v) for p, v in g["official_total"].items()},
+            constituencies=[C.ResultConstituency(
+                name=c["name"], fixedSeats=c["fixed_seats"],
+                shares={p: round(v / c["valid_votes"] * 100, 2) for p, v in c["votes"].items() if p in PARTIES},
+                fixed=c["official_fixed"], adjustment=c["official_adjustment"]) for c in g["constituencies"]]))
+
     # margins.json
     nat = compute_national_margins(raw_est)
     R.json("margins.json", C.Margins(

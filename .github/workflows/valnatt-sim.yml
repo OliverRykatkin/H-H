@@ -1,0 +1,43 @@
+name: Valnatt-simulator
+
+# Integrationstest och demo: spelar upp valnatten 2026 i verklig rapporteringsordning
+# genom live-nowcasten och sparar releaserna som artefakt (även för redaktioner).
+on:
+  workflow_dispatch:
+    inputs:
+      step_minutes:
+        description: "Simulerad tid per steg (minuter)"
+        default: "10"
+  schedule:
+    - cron: "23 6 3 * *"   # den 3:e varje månad, udda minut
+
+permissions:
+  contents: read
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pipeline.txt
+      - run: pip install -r requirements-pipeline.txt pytest
+      - name: Integrationstester för live-nowcasten
+        run: pytest -q tests/test_nowcast_live.py
+      - name: Prognosrelease att bygga vidare på
+        run: python -m mandatorn_model.publish --out sim-data --force
+      - name: Spela upp valnatten 2026
+        run: |
+          python -m mandatorn_model.nowcast_live --out sim-data --replay 2026 \
+            --step-minutes "${{ inputs.step_minutes || '10' }}" --interval 0 | tee simulering.log
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; cat simulering.log >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: valnatt-simulering-2026
+          path: |
+            sim-data
+            simulering.log
+          retention-days: 14

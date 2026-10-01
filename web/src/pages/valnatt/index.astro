@@ -2,9 +2,14 @@
 import Layout from "../../layouts/Layout.astro";
 import ValnattCurve from "../../components/ValnattCurve.astro";
 import ValnattReplay from "../../islands/ValnattReplay";
-import type { ValnattState } from "@contracts/contracts";
+import ValnattLive from "../../islands/ValnattLive";
+import type { NowcastLive, ValnattState } from "@contracts/contracts";
 import * as D from "../../lib/data";
-import { readJSON } from "../../lib/release";
+import { hasFile, manifest, readJSON } from "../../lib/release";
+
+// Live-läge: förrenderas om releasen vid bygget är en nowcast-release. Ön finns alltid och
+// visar sig själv om manifestet blir "nowcast" efter bygget (ingen ombyggnad krävs).
+const live = manifest().mode === "nowcast" && hasFile("nowcast.json") ? readJSON<NowcastLive>("nowcast.json") : null;
 
 const idx = D.valnattIndex();
 const START = "2200";
@@ -12,7 +17,8 @@ const initial = idx ? readJSON<ValnattState>(`valnatt/2026/${idx.times.includes(
 const description = "Uppspelning av valnatten 2026 i verklig räkningsordning: hur nowcast-metoden träffade slutresultatet jämfört med råräkningen.";
 ---
 <Layout title="Valnatten 2026" description={description}>
-  <h1>Valnatten 2026 — uppspelning</h1>
+  <ValnattLive client:load initial={live} />
+  <h1>{live ? "Uppspelning av valnatten 2026" : "Valnatten 2026 — uppspelning"}</h1>
   <p class="lede">
     Under valnatten är råräkningen missvisande eftersom små distrikt rapporterar först. Nowcasten jämför i stället
     förändringen mot förra valet i de distrikt som räknats och skriver fram den för resten av landet.

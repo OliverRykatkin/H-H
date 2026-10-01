@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "ResultConstituency": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustment": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "fixed": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "fixedSeats": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "shares": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "fixedSeats",
+        "shares",
+        "fixed",
+        "adjustment"
+      ],
+      "title": "ResultConstituency",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/ElectionResult.json",
+  "additionalProperties": false,
+  "description": "Officiellt valresultat (Valmyndigheten) — nationellt och per valkrets.",
+  "properties": {
+    "constituencies": {
+      "items": {
+        "$ref": "#/$defs/ResultConstituency"
+      },
+      "type": "array"
+    },
+    "national": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seats": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "year": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "year",
+    "national",
+    "seats",
+    "constituencies"
+  ],
+  "title": "ElectionResult",
+  "type": "object"
+}

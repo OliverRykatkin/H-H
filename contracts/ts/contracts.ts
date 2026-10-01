@@ -165,6 +165,39 @@ export interface ElectedMember {
   valkrets: string;
 }
 
+// ── ElectionResult.schema.json ──
+/**
+ * Officiellt valresultat (Valmyndigheten) — nationellt och per valkrets.
+ */
+export interface ElectionResult {
+  constituencies: ResultConstituency[];
+  national: {
+    [k: string]: number;
+  };
+  schemaVersion?: number;
+  seats: {
+    [k: string]: number;
+  };
+  year: number;
+}
+/**
+ * This interface was referenced by `ElectionResult`'s JSON-Schema
+ * via the `definition` "ResultConstituency".
+ */
+export interface ResultConstituency {
+  adjustment: {
+    [k: string]: number;
+  };
+  fixed: {
+    [k: string]: number;
+  };
+  fixedSeats: number;
+  name: string;
+  shares: {
+    [k: string]: number;
+  };
+}
+
 // ── Institutes.schema.json ──
 export interface Institutes {
   bias: {

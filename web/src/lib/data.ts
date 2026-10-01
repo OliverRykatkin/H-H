@@ -1,6 +1,6 @@
 /** Typade genvägar till releasens filer (vid bygget). */
 import type {
-  Archive, Area, Backtest, Elected, Constituency, Institutes, Mandates, Margins, National, Polls, Probabilities,
+  Archive, Area, Backtest, Elected, ElectionResult, Constituency, Institutes, Mandates, Margins, National, Polls, Probabilities,
   Simulation, Timeseries, ValnattIndex,
 } from "@contracts/contracts";
 import { hasFile, paths, readJSON } from "./release";
@@ -34,3 +34,4 @@ export function todayBand(key: string) {
 
 export const elected = () => (hasFile("elected/2026.json") ? readJSON<Elected>("elected/2026.json") : null);
 export const archive = (year: number) => (hasFile(`archive/${year}.json`) ? readJSON<Archive>(`archive/${year}.json`) : null);
+export const results = (year: number) => (hasFile(`results/${year}.json`) ? readJSON<ElectionResult>(`results/${year}.json`) : null);

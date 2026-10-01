@@ -1,0 +1,55 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import LineChart from "../../components/LineChart.astro";
+import { PARTIES } from "@contracts/constants";
+import { backtest } from "../../lib/data";
+import { paths } from "../../lib/release";
+import { formatNumber } from "../../lib/text/grammar";
+import { partyName } from "../../lib/format";
+
+const years = paths("backtest/").map((p) => Number(p.split("/")[1].replace(".json", ""))).sort((a, b) => b - a);
+const data = years.map((y) => {
+  const raw = backtest(y).rows as { date: string; daysBefore: number; party: string; estimate: number; actual: number; error: number }[];
+  // Skattningen är andel bland de åtta partierna; räknas om till andel av alla röster med valets andel övriga (D21).
+  const first = raw.filter((r) => r.daysBefore === raw[0].daysBefore);
+  const k = first.reduce((s, r) => s + r.actual, 0) / 100;
+  const rows = raw.map((r) => ({ ...r, estimate: r.estimate * k, error: r.estimate * k - r.actual }));
+  const byDay = new Map<number, typeof rows>();
+  for (const r of rows) byDay.set(r.daysBefore, [...(byDay.get(r.daysBefore) ?? []), r]);
+  const days = [...byDay.keys()].sort((a, b) => b - a);
+  const mae = days.map((d) => byDay.get(d)!.reduce((s, r) => s + Math.abs(r.error), 0) / byDay.get(d)!.length);
+  const rmse = days.map((d) => Math.sqrt(byDay.get(d)!.reduce((s, r) => s + r.error ** 2, 0) / byDay.get(d)!.length));
+  const week = byDay.get(7) ?? byDay.get(days[days.length - 1])!;
+  return { year: y, days, dates: days.map((d) => byDay.get(d)![0].date), mae, rmse, week };
+});
+const fmt = (v: number) => formatNumber(v, 2);
+const description = "Hur träffsäker Mandatorns modell hade varit inför riksdagsvalen 2022 och 2026, från ett år före valet till valdagen.";
+---
+<Layout title="Backtest" description={description}>
+  <p class="small"><a href="/om/">Metod</a> › Backtest</p>
+  <h1>Backtest: hur träffsäker är modellen?</h1>
+  <p class="lede">Modellen har körts i efterhand med bara de mätningar som fanns vid varje tidpunkt, och jämförts med valresultatet. Institutens vikter kalibreras mot valet innan, så att facit aldrig används i skattningen.</p>
+  {data.map((d) => (
+    <section>
+      <h2>Valet {d.year}</h2>
+      <p>En vecka före valet låg skattningen i genomsnitt <strong>{fmt(d.week.reduce((s, r) => s + Math.abs(r.error), 0) / d.week.length)} procentenheter</strong> från utfallet per parti.</p>
+      <LineChart dates={d.dates} title={`Genomsnittligt fel per parti inför valet ${d.year}`} yMin={0} step={1} unit="pe"
+        series={[
+          { key: "mae", label: "Medelabsolutfel (MAE)", color: "#0b5cad", values: d.mae },
+          { key: "rmse", label: "RMSE", color: "#c2405f", values: d.rmse },
+        ]} />
+      <div class="table-scroll">
+        <table>
+          <caption>Skattning {d.week[0].date} ({d.week[0].daysBefore} dagar före valet) mot resultatet, andel av alla giltiga röster (procent). Övriga partier antas ha samma andel som i valet.</caption>
+          <thead><tr><th>Parti</th><th class="r">Skattning</th><th class="r">Resultat</th><th class="r">Fel (pe)</th></tr></thead>
+          <tbody>
+            {PARTIES.map((p) => {
+              const r = d.week.find((x) => x.party === partyName(p) || x.party === p);
+              return r ? <tr><td>{partyName(p)}</td><td class="r">{formatNumber(r.estimate, 1)}</td><td class="r">{formatNumber(r.actual, 1)}</td><td class="r">{(r.error > 0 ? "+" : "") + fmt(r.error)}</td></tr> : null;
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  ))}
+</Layout>

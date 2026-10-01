@@ -96,6 +96,13 @@ npm run build      # 725 sidor + sitemap, OG-bilder och prestandabudget (dist/)
 ```
 I produktion pekar `PUBLIC_DATA_URL` på `https://data.mandatorn.se`. Klienten verifierar varje fil mot manifestet och uppdaterar ingress och nyckeltal när en nyare release finns.
 
+### Valnatten (fas 3)
+```bash
+python -m mandatorn_model.nowcast_live --out dist-data --replay 2026 --step-minutes 30 --interval 0   # simulator
+python -m mandatorn_model.nowcast_live --out s3://<data-bucket> --year 2030                          # live
+```
+Live-tjänsten körs på Fly.io (`deploy/nowcast/`). Steg för steg inför och under valnatten: `docs/RUNBOOK.md`.
+
 ### Infrastruktur
 AWS (S3 + CloudFront i `eu-north-1`) beskrivs som kod i `infra/`; se `infra/README.md`.
 

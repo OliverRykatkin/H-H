@@ -46,7 +46,7 @@ riksdagsprediction/
 ├── validate_nowcast.py       # Offline-validering mot 2022 års val
 ├── fetch_election_2026.py    # Slutligt RD 2026 (riks, valkrets, kommun) → data/election_2026.json
 ├── fetch_muni_cache.py       # KF/RF-struktur + röster → data/muni_structure_<år>.json
-├── fetch_valnatt_2026.py     # Valnattens distriktsräkning 2026 → data/valnatt_2026.csv.gz
+├── fetch_valnatt.py          # Valnattens distriktsräkning per år → data/valnatt_<år>.csv.gz (+ --baseline)
 ├── tests/
 │   └── test_nowcast.py       # Pytest-enhetstester (10 st)
 ├── data/
@@ -313,7 +313,8 @@ python validate_nowcast.py   # Reproducerar valprognos.se:s MAE-siffror
 # Uppdatera valdata (körs sällan — t.ex. när Länsstyrelserna fastställt mandat)
 python fetch_election_2026.py   # → data/election_2026.json
 python fetch_muni_cache.py      # → data/muni_structure_2026.json
-python fetch_valnatt_2026.py    # → data/valnatt_2026.csv.gz
+python fetch_valnatt.py 2026     # → data/valnatt_2026.csv.gz (simulator: 2022)
+python fetch_valnatt.py --baseline 2026   # → data/baseline_districts_2026.csv.gz (live-nowcast 2030)
 ```
 
 **OBS Windows arm64:** Streamlits transitiva beroenden (httptools, pyarrow)
@@ -361,3 +362,9 @@ efter Cloud Run-cutover bekräftats stabil.
 - **Sannolikheter visas alltid med `displayPct`/`verbal`** (aldrig 0 %/100 %); skalan definieras i `contracts/verbal_scale.json`.
 - Konstanter (partier, färger, valdatum) genereras ur Python: kör `python tools/gen_contracts.py` efter ändring i `mandatorn_model/constants.py` eller `contracts.py`.
 - Tomma miljövariabler ska behandlas som osatta (`||`, inte `??`).
+
+## Valnatten (fas 3)
+- `mandatorn_model/nowcast_live.py`: Source (Valmyndigheten | Replay) → `compute_state` → `publish_state` (ny release = senaste prognosreleasen + `nowcast.json`, `mode: "nowcast"`). Ingen fördröjning (D4).
+- Baslinje 2030 = `data/baseline_districts_2026.csv.gz` (`fetch_valnatt.py --baseline 2026`), mappad till nya distrikt via `valdistriktskodForegaendeVal` (`align_baseline`).
+- Simulator/integrationstest: `ReplaySource(2022|2026)`, `tests/test_nowcast_live.py`, workflowen `valnatt-sim.yml`. Drift: `deploy/nowcast/`, `infra/fly_oidc.tf`, `docs/RUNBOOK.md`.
+- Sajten: `ValnattLive`-ön + pollning var 45:e s i nowcast-läge (`lib/client/live.ts`, `lib/islands/livePoll.ts`).

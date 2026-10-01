@@ -88,11 +88,17 @@ const path = Astro.url.pathname;
     </footer>
     <script>
       import { releaseStatus, ReleaseError } from "../lib/client/release";
+      import { startNowcastPolling } from "../lib/client/live";
       const banner = document.getElementById("release-banner");
       releaseStatus()
         .then((s) => {
           if (!banner) return;
-          if (s.supersededBy) {
+          if (s.latest.mode === "nowcast") {
+            // Valnatt: siffrorna uppdateras automatiskt (pollning var 45:e sekund).
+            if (s.isNewer) document.dispatchEvent(new CustomEvent("mandatorn:newer-release", { detail: s.latest }));
+            banner.innerHTML = `<p class="banner warn">Valnatt: siffrorna uppdateras automatiskt.</p>`;
+            startNowcastPolling(s.latest);
+          } else if (s.supersededBy) {
             banner.innerHTML = `<p class="banner warn">Siffrorna på sidan har rättats i en senare release. <a href="">Ladda om sidan</a> för de rättade värdena.</p>`;
           } else if (s.isNewer) {
             document.dispatchEvent(new CustomEvent("mandatorn:newer-release", { detail: s.latest }));

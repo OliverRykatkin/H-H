@@ -214,6 +214,13 @@ def run(source: Source, storage: Storage, election: str, baseline_year: int, int
         max_iterations: int | None = None, sleep=time.sleep, log=print) -> list[str]:
     """Pollingloop. Publicerar bara när datan ändrats. Returnerar publicerade release-id."""
     published, last_fp, i = [], None, 0
+
+    def say(msg: str) -> None:
+        try:  # loggning får aldrig påverka publiceringen eller statusen
+            log(msg)
+        except Exception:  # noqa: BLE001
+            pass
+
     while max_iterations is None or i < max_iterations:
         i += 1
         try:
@@ -223,11 +230,11 @@ def run(source: Source, storage: Storage, election: str, baseline_year: int, int
                 rid = publish_state(storage, state, snap.fingerprint)
                 published.append(rid)
                 last_fp = snap.fingerprint
-                log(f"{state.feedUpdatedAt}: {state.nCounted}/{state.nTotal} distrikt, "
+                say(f"{state.feedUpdatedAt}: {state.nCounted}/{state.nTotal} distrikt, "
                     f"{state.voteShareCounted:.0%} av rösterna → release {rid[:12]}")
             write_feed_status(storage, True, updated_at=snap.updated_at if snap else None)
         except Exception as e:  # noqa: BLE001 — senaste giltiga release ligger kvar
-            log(f"Fel vid hämtning/publicering: {type(e).__name__}: {e}")
+            say(f"Fel vid hämtning/publicering: {type(e).__name__}: {e}")
             write_feed_status(storage, False, error=f"{type(e).__name__}: {e}")
         if getattr(source, "done", False):
             break
@@ -237,6 +244,8 @@ def run(source: Source, storage: Storage, election: str, baseline_year: int, int
 
 
 def main(argv: list[str] | None = None) -> int:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", required=True, help="Katalog eller s3://bucket (måste ha en prognosrelease)")
     ap.add_argument("--year", type=int, default=2030, help="Valår för live-flödet")

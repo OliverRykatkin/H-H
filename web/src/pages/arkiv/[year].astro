@@ -2,68 +2,74 @@
 import Layout from "../../layouts/Layout.astro";
 import LineChart from "../../components/LineChart.astro";
 import { PARTIES, PARTY_COLORS } from "@contracts/constants";
-import { archive } from "../../lib/data";
+import { archive, results } from "../../lib/data";
 import { paths } from "../../lib/release";
 import { pct, signed, partyName, dateSv } from "../../lib/format";
 import { displayPct } from "../../lib/text/scale";
 import { sentences } from "../../lib/text/grammar";
 
 export function getStaticPaths() {
-  return paths("archive/").map((p) => ({ params: { year: p.slice("archive/".length, -".json".length) } }));
+  const years = new Set([...paths("archive/"), ...paths("results/")].map((p) => p.split("/")[1].replace(".json", "")));
+  return [...years].map((year) => ({ params: { year } }));
 }
 const year = Number(Astro.params.year);
-const a = archive(year)!;
-const dates = a.days.map((d) => d.date);
-const last = a.days[a.days.length - 1];
-const weekBefore = a.days.find((d) => d.daysLeft === 7) ?? last;
-const result = a.result.shares;
-const seatsResult = a.result.seats;
+const res = results(year);
+const a = archive(year);
+if (!a && !res) throw new Error(`Inget arkiv för ${year}`);
+const dates = a ? a.days.map((d) => d.date) : [];
+const last = a?.days[a.days.length - 1];
+const weekBefore = a?.days.find((d) => d.daysLeft === 7) ?? last;
+const result = a?.result.shares ?? res!.national;
+const seatsResult = a?.result.seats ?? res!.seats;
 // Arkivets skattningar är andel bland de åtta partierna; räknas om till andel av alla röster
 // med valresultatets andel övriga (D21), så att jämförelsen mot utfallet görs på samma bas.
 const k = PARTIES.reduce((s, p) => s + result[p], 0) / 100;
 const share = (d: { shares: Record<string, number> }, p: string) => d.shares[p] * k;
-const errors = PARTIES.map((p) => share(weekBefore, p) - result[p]);
-const mae = errors.reduce((s, e) => s + Math.abs(e), 0) / errors.length;
+const errors = weekBefore ? PARTIES.map((p) => share(weekBefore, p) - result[p]) : [];
+const mae = errors.length ? errors.reduce((s, e) => s + Math.abs(e), 0) / errors.length : null;
 const blocs = { "Högerblocket": ["M", "L", "KD", "SD"], "Vänsterblocket": ["S", "V", "MP", "C"] } as const;
 const winner = Object.entries(blocs).map(([b, ps]) => ({ b, seats: ps.reduce((s, p) => s + (seatsResult[p] ?? 0), 0) }))
   .sort((x, y) => y.seats - x.seats)[0];
+const electionDate = a?.electionDate ?? (year === 2022 ? "2022-09-11" : `${year}-09-01`);
 const ingress = sentences([
-  `Riksdagsvalet ${year} hölls den ${dateSv(a.electionDate)}`,
-  `${winner.b} fick ${winner.seats} av ${a.totalSeats} mandat`,
-  `En vecka före valet låg Mandatorns skattning i genomsnitt ${pct(mae).replace(" %", "")} procentenheter från utfallet per parti`,
+  `Riksdagsvalet ${year} hölls den ${dateSv(electionDate)}`,
+  `${winner.b} fick ${winner.seats} av 349 mandat`,
+  ...(mae != null ? [`En vecka före valet låg Mandatorns skattning i genomsnitt ${pct(mae).replace(" %", "")} procentenheter från utfallet per parti`] : []),
 ]);
-const description = `Mandatorns prognos inför riksdagsvalet ${year} jämförd med utfallet.`;
+const description = a ? `Mandatorns prognos inför riksdagsvalet ${year} jämförd med utfallet.` : `Riksdagsvalet ${year}: officiellt resultat per parti och valkrets.`;
 ---
-<Layout title={`Arkiv: valet ${year}`} description={description} jsonLd={{ "@context": "https://schema.org", "@type": "Dataset", name: `Mandatorn – prognosen inför valet ${year}`, temporalCoverage: `${dates[0]}/${a.electionDate}` }}>
-  <h1>Valet {year}: prognosen och utfallet</h1>
+<Layout title={`Arkiv: valet ${year}`} description={description} jsonLd={{ "@context": "https://schema.org", "@type": "Dataset", name: `Mandatorn – prognosen inför valet ${year}`, temporalCoverage: a ? `${dates[0]}/${a.electionDate}` : String(year) }}>
+  <h1>Valet {year}{a ? ": prognosen och utfallet" : ""}</h1>
   <p class="lede">{ingress}</p>
-  <p class="banner warn small">{a.note} Modellversion {a.modelVersion.slice(0, 10)}, {a.nSims.toLocaleString("sv-SE")} simuleringar per dag.</p>
+  {a && weekBefore && (
+    <>
+  <p class="banner warn small">{a!.note} Modellversion {a!.modelVersion.slice(0, 10)}, {a!.nSims.toLocaleString("sv-SE")} simuleringar per dag.</p>
 
   <h2>Skattat stöd det sista året</h2>
   <LineChart dates={dates} title={`Skattat partistöd inför valet ${year}`}
-    series={PARTIES.map((p) => ({ key: p, label: partyName(p), color: PARTY_COLORS[p], values: a.days.map((d) => share(d, p)), final: result[p] }))} />
+    series={PARTIES.map((p) => ({ key: p, label: partyName(p), color: PARTY_COLORS[p], values: a!.days.map((d) => share(d, p)), final: result[p] }))} />
 
   <h2>Sannolikhet för egen majoritet</h2>
   <LineChart dates={dates} title="Sannolikhet för egen majoritet per block" yMin={0} yMax={100} refLine={50}
     series={[
-      { key: "H", label: "Högerblocket", color: "#1f8f78", values: a.days.map((d) => d.pMajority["Högerblocket"] * 100) },
-      { key: "V", label: "Vänsterblocket", color: "#c2405f", values: a.days.map((d) => d.pMajority["Vänsterblocket"] * 100) },
+      { key: "H", label: "Högerblocket", color: "#1f8f78", values: a!.days.map((d) => d.pMajority["Högerblocket"] * 100) },
+      { key: "V", label: "Vänsterblocket", color: "#c2405f", values: a!.days.map((d) => d.pMajority["Vänsterblocket"] * 100) },
     ]} />
 
   <h2>En vecka före valet jämfört med utfallet</h2>
   <div class="table-scroll">
     <table>
-      <caption>Skattning {dateSv(weekBefore.date)} ({weekBefore.daysLeft} dagar kvar) mot valresultatet. Mandat = median i simuleringarna (fördelning i landet).</caption>
+      <caption>Skattning {dateSv(weekBefore!.date)} ({weekBefore!.daysLeft} dagar kvar) mot valresultatet. Mandat = median i simuleringarna (fördelning i landet).</caption>
       <thead><tr><th>Parti</th><th class="r">Skattning</th><th class="r">Resultat</th><th class="r">Fel</th><th class="r">P(spärr)</th><th class="r">Mandat (prognos)</th><th class="r">Mandat (utfall)</th></tr></thead>
       <tbody>
         {PARTIES.map((p, i) => (
           <tr>
             <td><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span>{partyName(p)}</td>
-            <td class="r">{pct(share(weekBefore, p))}</td>
+            <td class="r">{pct(share(weekBefore!, p))}</td>
             <td class="r">{pct(result[p])}</td>
             <td class="r">{signed(errors[i])}</td>
-            <td class="r">{displayPct(weekBefore.pThreshold[p])}</td>
-            <td class="r">{weekBefore.seatsMedian[p]}</td>
+            <td class="r">{displayPct(weekBefore!.pThreshold[p])}</td>
+            <td class="r">{weekBefore!.seatsMedian[p]}</td>
             <td class="r">{seatsResult[p] ?? 0}</td>
           </tr>
         ))}
@@ -71,4 +77,34 @@ const description = `Mandatorns prognos inför riksdagsvalet ${year} jämförd m
     </table>
   </div>
   <p class="small muted">Andelar av alla giltiga röster; för skattningen antas övriga partier ha samma andel som i valet.</p>
+    </>
+  )}
+  {res && (
+    <>
+      <h2>Officiellt resultat {year}</h2>
+      <div class="table-scroll">
+        <table>
+          <caption>Andel av alla giltiga röster och mandat enligt Valmyndigheten.</caption>
+          <thead><tr><th>Parti</th><th class="r">Röster</th><th class="r">Mandat</th></tr></thead>
+          <tbody>{PARTIES.map((p) => <tr><td><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span>{partyName(p)}</td><td class="r">{pct(res.national[p])}</td><td class="r">{res.seats[p] ?? 0}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <h3>Per valkrets</h3>
+      <div class="table-scroll">
+        <table>
+          <caption>Röstandel (%) och mandat (fasta + utjämning) per valkrets.</caption>
+          <thead><tr><th>Valkrets</th>{PARTIES.map((p) => <th class="r">{p}</th>)}<th class="r">Mandat</th></tr></thead>
+          <tbody>
+            {res.constituencies.map((c) => (
+              <tr>
+                <td>{c.name}</td>
+                {PARTIES.map((p) => <td class="r small">{c.shares[p] != null ? String(c.shares[p].toFixed(1)).replace(".", ",") : "–"}<br /><span class="muted">{(c.fixed[p] ?? 0) + (c.adjustment[p] ?? 0) || ""}</span></td>)}
+                <td class="r">{c.fixedSeats + Object.values(c.adjustment).reduce((x, y) => x + y, 0)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  )}
 </Layout>

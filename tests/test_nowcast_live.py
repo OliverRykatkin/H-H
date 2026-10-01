@@ -108,3 +108,12 @@ def test_simulator_spelar_upp_valnatten_2022(storage):
     nc = _nowcast(storage)
     mae = sum(abs(nc.nowcast[p] - nc.final[p]) for p in nc.nowcast) / len(nc.nowcast) * 100
     assert mae < 0.6, mae
+
+
+def test_loggfel_paverkar_inte_status(storage):
+    def bad_log(*a):
+        raise UnicodeEncodeError("cp1252", "→", 0, 1, "kan inte koda")
+    src = NL.ReplaySource(2026, datetime(2026, 9, 13, 22, 0), timedelta(hours=1), end=datetime(2026, 9, 13, 22, 0))
+    published = NL.run(src, storage, election="2026-09-13", baseline_year=2022, interval=0, sleep=lambda s: None, log=bad_log)
+    assert len(published) == 1
+    assert json.loads(storage.get("status.json"))["feedOk"] is True
