@@ -24,7 +24,7 @@ import sys
 import time
 from pathlib import Path
 
-from val_feed import (
+from mandatorn_model.val_feed import (
     download_file,
     extract_mandatfordelning,
     fetch_index,

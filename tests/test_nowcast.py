@@ -7,7 +7,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from nowcast import (
+from mandatorn_model.nowcast import (
     compute_nowcast,
     modified_sainte_lague,
     project_mandates,

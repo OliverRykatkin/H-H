@@ -30,3 +30,7 @@ requirements-dev.txt
 .agents/
 .claude/
 skills-lock.json
+
+docs/
+tools/
+mandatorn_rebuild_prompt.md

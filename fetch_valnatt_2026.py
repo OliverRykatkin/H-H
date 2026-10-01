@@ -23,7 +23,7 @@ from pathlib import Path
 
 import pandas as pd
 
-import val_feed as vf
+import mandatorn_model.val_feed as vf
 
 PARTIES = vf.PARTIES
 OUT_PATH = Path(__file__).parent / "data" / "valnatt_2026.csv.gz"

@@ -22,13 +22,14 @@ tröskeln för att listas) räknas in i nämnaren men konkurrerar inte om mandat
 from __future__ import annotations
 
 import json
+import functools
 from pathlib import Path
 
-from nowcast import modified_sainte_lague
+from mandatorn_model.nowcast import modified_sainte_lague
 
 PARTIES = ["M", "L", "C", "KD", "S", "V", "MP", "SD"]
 
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 STRUCTURE_2026 = DATA_DIR / "muni_structure_2026.json"
 STRUCTURE_2022 = DATA_DIR / "muni_structure_2022.json"
 # Bakåtkompatibel default (används av äldre kod som pekar direkt på STRUCTURE_PATH).
@@ -72,6 +73,15 @@ def load_structure(path: Path | str | None = None) -> dict:
             if current is None or current.get("total_seats", 0) == 0:
                 primary.setdefault(valtyp, {})[kod] = area
     return primary
+
+
+@functools.lru_cache(maxsize=1)
+def load_structure_cached() -> dict | None:
+    """load_structure() en gång per process; None om filerna saknas."""
+    try:
+        return load_structure()
+    except Exception:
+        return None
 
 
 def list_areas(structure: dict, valtyp: str) -> list[tuple[str, str]]:

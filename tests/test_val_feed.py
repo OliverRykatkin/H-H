@@ -12,8 +12,8 @@ import zipfile
 
 import pytest
 
-import val_feed
-from val_feed import (
+import mandatorn_model.val_feed as val_feed
+from mandatorn_model.val_feed import (
     AreaMandat,
     FeedResult,
     _to_int,

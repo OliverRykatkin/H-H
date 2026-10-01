@@ -19,11 +19,23 @@ Aktiv feature-branch i utveckling: `feature/nowcast` — innehåller nowcasting-
 
 ```
 riksdagsprediction/
-├── app.py                    # Streamlit-appen (~4 400 rader)
-├── nowcast.py                # Delta-baserad nowcasting-algoritm (valprognos.se-metoden)
-├── val_feed.py               # Live-feed-klient: RD-röster + KF/RF-mandat + valkretsstruktur
-├── muni_mandates.py          # Opinionsbaserad kommunal/regional mandatmodell (full Sainte-Laguë)
-├── data_loader.py            # Hämtar 2018+2022 valdistriktsdata från Valmyndigheten
+├── app.py                    # Streamlit-labbet: bara UI, importerar mandatorn_model (~3 700 rader)
+├── mandatorn_model/          # Modellen, fri från streamlit (utbruten 2026-10-01, paritet verifierad)
+│   ├── constants.py          # partier, valkretsar, valdatum, baslinje (laddar data/election_2026.json)
+│   ├── polls.py              # fetch_polls_text/parse_polls, compute_house_weights
+│   ├── kalman.py             # Kalman + RTS, ankring i valresultatet, trenddata
+│   ├── seats.py              # modified_sainte_lague, allocate_all_mandates, baslinjemandat
+│   ├── simulation.py         # run_simulation (Monte Carlo)
+│   ├── margins.py            # mandatmarginaler
+│   ├── candidates.py         # kandidatlistor + förväntade invalda
+│   ├── regional.py           # uniform swing per kommun/region
+│   ├── backtest.py, valnatt.py
+│   ├── nowcast.py            # Delta-baserad nowcasting-algoritm (valprognos.se-metoden)
+│   ├── val_feed.py           # Valmyndighetens resultatfeed: RD-röster + KF/RF-mandat + valkretsstruktur
+│   ├── muni_mandates.py      # Kommunal/regional mandatmodell (full Sainte-Laguë)
+│   └── data_loader.py        # 2018+2022 valdistriktsdata (XLSX) för validate_nowcast
+├── tools/parity_capture.py   # Fångar allt app.main() ritar (fryst klocka, lokala nätverkssvar)
+├── tools/parity_compare.py   # Jämför två fångster — paritetsgrind vid refaktorering
 ├── validate_nowcast.py       # Offline-validering mot 2022 års val
 ├── fetch_election_2026.py    # Slutligt RD 2026 (riks, valkrets, kommun) → data/election_2026.json
 ├── fetch_muni_cache.py       # KF/RF-struktur + röster → data/muni_structure_<år>.json
@@ -49,9 +61,12 @@ riksdagsprediction/
 └── CLAUDE.md                 # Den här filen
 ```
 
-**App-koden är fortfarande dominerad av `app.py`.** Sedan maj 2026 finns dock
-separata moduler för nowcasting — de hålls avsiktligt utanför app.py för att
-isolera ny logik från den 4 000-radersfilen fram till efter september-valet.
+**Modellen ligger i `mandatorn_model/`** (ingen streamlit-import). `app.py` är bara
+UI och lägger Streamlit-cache runt paketets funktioner (`st.cache_data(...)(fn)`
+överst i filen). Ändra modellogik i paketet, inte i app.py. Vid refaktorering:
+kör `tools/parity_capture.py` före och efter och jämför med `tools/parity_compare.py`
+— hela appens utdata ska vara identisk. Ombyggnaden till statisk sajt styrs av
+`mandatorn_rebuild_prompt.md` + `docs/` (PARITY, ARCHITECTURE, DECISIONS, ASSUMPTIONS).
 
 ---
 
@@ -324,5 +339,5 @@ efter Cloud Run-cutover bekräftats stabil.
 - **Plotly bar charts:** Använd INTE `text`-attributet på `go.Bar` – det blöder in i hover oavsett `hovertemplate`. Använd layout `annotations` istället för stapeletiketter
 - **Favicon:** `favicon.png` genereras från `favicon.svg` via cairosvg. Om du ändrar SVG:n, regenerera PNG:n
 - **Logo:** Inline base64-SVG i `app.py` – om `logo.svg` saknas faller den tillbaka på `st.title("Mandatorn")`
-- **Sainte-Laguë** finns i två varianter: `app.py:modified_sainte_lague()` och `nowcast.py:modified_sainte_lague()`. Synka båda vid ändring. (Avsiktlig duplikation tills app.py styckas efter valet.)
+- **Sainte-Laguë** finns i två varianter: `mandatorn_model/seats.py:modified_sainte_lague()` (riksdagen, divisor 1,2) och `mandatorn_model/nowcast.py:modified_sainte_lague()` (OBS standard `first_divisor=1.4`, se docs/PARITY.md A9). Samordnas i D6-steget.
 - **Valnatt-fliken** läggs in i `app.py` via `_tab_labels.insert(8, ...)` — om tab-strukturen ändras, kontrollera att unpacking-raderna (`tab1, tab2, ...`) fortsatt matchar.

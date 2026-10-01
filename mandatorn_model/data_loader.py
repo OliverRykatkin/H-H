@@ -13,9 +13,9 @@ from pathlib import Path
 
 import pandas as pd
 
-from nowcast import PARTIES
+from mandatorn_model.nowcast import PARTIES
 
-DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 RAW_DIR = DATA_DIR / "raw"
 CACHE_DIR = DATA_DIR / "cache"
 

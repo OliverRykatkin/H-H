@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from muni_mandates import (
+from mandatorn_model.muni_mandates import (
     PARTIES,
     STRUCTURE_PATH,
     allocate_area_mandates,
@@ -138,7 +138,7 @@ def test_zero_votes_returns_zeros():
 
 @pytest.mark.skipif(
     not Path(STRUCTURE_PATH).exists(),
-    reason="data/muni_structure_2022.json saknas (kör fetch_muni_cache.py)",
+    reason="data/muni_structure_2026.json saknas (kör fetch_muni_cache.py)",
 )
 def test_real_structure_stockholm_zero_swing():
     """Nollsving mot Stockholm KF ska ge exakt 101 mandat fördelat."""
@@ -149,7 +149,7 @@ def test_real_structure_stockholm_zero_swing():
 
 @pytest.mark.skipif(
     not Path(STRUCTURE_PATH).exists(),
-    reason="data/muni_structure_2022.json saknas",
+    reason="data/muni_structure_2026.json saknas",
 )
 def test_list_areas_counts():
     struct = load_structure()

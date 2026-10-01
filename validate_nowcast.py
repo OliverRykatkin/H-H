@@ -19,8 +19,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from data_loader import load_aligned_pair
-from nowcast import PARTIES, simulate_election_night
+from mandatorn_model.data_loader import load_aligned_pair
+from mandatorn_model.nowcast import PARTIES, simulate_election_night
 
 ARTIKEL_MAE = {
     0.01: (2.10, 1.15),

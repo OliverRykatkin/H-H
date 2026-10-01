@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 
 import pandas as pd
 
-from nowcast import PARTIES
+from mandatorn_model.nowcast import PARTIES
 
 RESULT_BASE = "https://resultat.val.se/resultatfiler"
 

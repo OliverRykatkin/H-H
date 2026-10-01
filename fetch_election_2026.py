@@ -25,7 +25,7 @@ import os
 import sys
 from pathlib import Path
 
-import val_feed as vf
+import mandatorn_model.val_feed as vf
 
 # Valmyndighetens valkretsnamn → appens interna namn (kopia från app.py:VALKRETS_MAPPING).
 VALKRETS_MAPPING = {
