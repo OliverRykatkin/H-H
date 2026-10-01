@@ -6,13 +6,20 @@ import { partyName } from "../lib/format";
 interface Props { seats: Record<string, number>; order?: string[]; caption?: string }
 const { seats, order = ["V", "S", "MP", "C", "L", "KD", "M", "SD"], caption } = Astro.props;
 const parts = order.filter((p) => (seats[p] ?? 0) > 0);
+// Text i svart eller vitt efter partifärgens relativa luminans (WCAG-kontrast).
+function textColor(hex: string) {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255)
+    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  return (1.05) / (L + 0.05) >= (L + 0.05) / 0.05 ? "#ffffff" : "#111213";
+}
 ---
 <figure>
   <div style="position:relative">
     <div role="img" aria-label={parts.map((p) => `${partyName(p)} ${seats[p]} mandat`).join(", ")}
       style="display:flex;height:2.2rem;border-radius:4px;overflow:hidden;border:1px solid var(--c-border)">
       {parts.map((p) => (
-        <div title={`${partyName(p)}: ${seats[p]}`} style={`flex:${seats[p]} 0 0;background:${PARTY_COLORS[p]};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.8rem;text-shadow:0 0 2px #0008`}>{seats[p] >= 12 ? `${p} ${seats[p]}` : ""}</div>
+        <div title={`${partyName(p)}: ${seats[p]}`} style={`flex:${seats[p]} 0 0;background:${PARTY_COLORS[p]};display:flex;align-items:center;justify-content:center;color:${textColor(PARTY_COLORS[p])};font-weight:700;font-size:0.8rem`}>{seats[p] >= 12 ? `${p} ${seats[p]}` : ""}</div>
       ))}
     </div>
     <div aria-hidden="true" style={`position:absolute;top:-4px;bottom:-4px;left:${(175 / TOTAL_SEATS) * 100}%;border-left:2px dashed #111`}></div>

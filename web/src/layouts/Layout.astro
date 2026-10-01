@@ -1,6 +1,6 @@
 ---
-import "@fontsource/dm-sans/latin-400.css";
-import "@fontsource/dm-sans/latin-700.css";
+import dm400 from "@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff2?url";
+import dm700 from "@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff2?url";
 import "../styles/global.css";
 import { PARTY_COLORS } from "@contracts/constants";
 import { manifest, dataUrl } from "../lib/release";
@@ -49,7 +49,10 @@ const path = Astro.url.pathname;
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="mandatorn:release" content={m.release} />
     <meta name="mandatorn:data" content={dataUrl()} />
-    <style set:html={`:root{${partyVars}}`}></style>
+    <link rel="preload" href={dm400} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={dm700} as="font" type="font/woff2" crossorigin />
+    {/* font-display: optional — typsnittet byts aldrig mitt i visningen (ingen layoutförskjutning). */}
+    <style set:html={`@font-face{font-family:"DM Sans";font-style:normal;font-weight:400;font-display:optional;src:url(${dm400}) format("woff2")}@font-face{font-family:"DM Sans";font-style:normal;font-weight:700;font-display:optional;src:url(${dm700}) format("woff2")}:root{${partyVars}}`}></style>
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     {plausible && <script defer data-domain={plausible} src="https://plausible.io/js/script.js"></script>}
   </head>

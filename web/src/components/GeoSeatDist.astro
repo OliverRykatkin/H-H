@@ -8,6 +8,15 @@ interface Props { dist: Record<string, Record<string, number>>; now: Record<stri
 const { dist, now } = Astro.props;
 const maxK = Math.max(...PARTIES.flatMap((p) => Object.keys(dist[p] ?? {}).map(Number)), 1);
 const ks = Array.from({ length: maxK + 1 }, (_, k) => k);
+// Bakgrund = partifärg blandad med vitt; textfärg efter blandningens luminans (WCAG AA).
+function cellStyle(hex: string, w: number) {
+  const rgb = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const mix = rgb.map((c) => Math.round(c * w + 255 * (1 - w)));
+  const lin = mix.map((c) => c / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  const L = 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2];
+  const text = 1.05 / (L + 0.05) >= (L + 0.05) / 0.05 ? "#fff" : "#111";
+  return `background:rgb(${mix.join(",")});color:${text}`;
+}
 ---
 <div class="table-scroll">
   <table class="seatdist">
@@ -21,7 +30,7 @@ const ks = Array.from({ length: maxK + 1 }, (_, k) => k);
             const v = dist[p]?.[String(k)] ?? 0;
             return (
               <td class={`r cell${now[p] === k ? " point" : ""}`} title={v ? displayPct(v) : ""}
-                style={v ? `background:color-mix(in srgb, ${PARTY_COLORS[p]} ${Math.round(Math.sqrt(v) * 85)}%, white)` : ""}>
+                style={v ? cellStyle(PARTY_COLORS[p], Math.sqrt(v) * 0.85) : ""}>
                 {v >= 0.005 ? <span class="visually-hidden">{displayPct(v)}</span> : ""}
                 <span aria-hidden="true">{v >= 0.05 ? Math.round(v * 100) : ""}</span>
               </td>
@@ -33,7 +42,7 @@ const ks = Array.from({ length: maxK + 1 }, (_, k) => k);
   </table>
 </div>
 <style>
-  .seatdist td.cell { font-size: 0.75rem; padding: 0.25rem 0.3rem; min-width: 1.8rem; color: #111; }
+  .seatdist td.cell { font-size: 0.75rem; padding: 0.25rem 0.3rem; min-width: 1.8rem; }
   .seatdist td.point { outline: 2px solid #111; outline-offset: -2px; }
   .seatdist th, .seatdist td { border-bottom: 1px solid #fff; }
 </style>
