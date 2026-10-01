@@ -118,6 +118,8 @@ jobs:
           PUBLIC_DATA_URL: ${{ vars.PUBLIC_DATA_URL }}
           PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
           PUBLIC_PLAUSIBLE_DOMAIN: ${{ vars.PUBLIC_PLAUSIBLE_DOMAIN }}
+          PUBLIC_LICENSE_EMAIL: ${{ vars.PUBLIC_LICENSE_EMAIL }}
+          PUBLIC_PRIVACY_EMAIL: ${{ vars.PUBLIC_PRIVACY_EMAIL }}
           PUBLIC_BUILD_COMMIT: ${{ github.sha }}
         run: npm ci && npm run build
 

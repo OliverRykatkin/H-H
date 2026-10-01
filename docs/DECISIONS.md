@@ -150,8 +150,8 @@ Synk-jobbet mot SwedishPolls (D16) behöver inställningen *Allow GitHub Actions
 ### D23. Kartdata: Lantmäteriet kräver konto och är CC BY 4.0 (rättelse av D9)
 D9 utgick från att Lantmäteriets gränser är CC0. Den öppna datan *Administrativ indelning* är licensierad **CC BY 4.0**: källan ska anges, men det krockar inte med CC BY-NC. Datan kan bara hämtas efter registrering på Geotorget.
 **Förslag:** registrera ett konto och beställ *Administrativ indelning* (kommuner och län) som nedladdning. Jag förenklar den sedan till GeoJSON i releasen med attribution. Kartan (MapLibre-ön) är klar och aktiveras via `PUBLIC_GEO_KOMMUNER_URL`, `PUBLIC_GEO_REGIONER_URL` och `PUBLIC_GEO_ATTRIBUTION`.
-**Beslut:** ☐
+**Beslut:** ✅ Kartan skippas tills vidare. MapLibre-ön finns kvar men aktiveras inte, och kommun- och regionsidorna visar tabeller. (2026-10-02)
 
 ### D24. Kontaktadresser
 `/licens` och `/integritet` hänvisar till GitHub tills e-postadresser finns (`PUBLIC_LICENSE_EMAIL`, `PUBLIC_PRIVACY_EMAIL`). Vilka adresser ska användas?
-**Beslut:** ☐
+**Beslut:** ✅ oliver.rykatkin@gmail.com för både licens och integritet, satt som repo-variablerna `PUBLIC_LICENSE_EMAIL` och `PUBLIC_PRIVACY_EMAIL`. (2026-10-02)
