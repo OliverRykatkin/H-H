@@ -55,6 +55,7 @@ from mandatorn_model.kalman import (
     build_trend_data,
 )
 from mandatorn_model.seats import (
+    estimate_constituency_votes,
     compute_baseline_mandates,
     allocate_all_mandates,
 )
@@ -84,6 +85,7 @@ from mandatorn_model.valnatt import (
 )
 
 from mandatorn_model.forecast import WINDOW_DAYS, build_forecast, reference_day
+from mandatorn_model.probabilities import coalition_summary, evaluate_questions
 
 # Streamlit-cache runt modellfunktionerna (paketet är fritt från streamlit)
 build_forecast_cached = st.cache_data(show_spinner=False)(build_forecast)
@@ -1043,24 +1045,7 @@ def make_coalition_chart(sim: dict) -> go.Figure:
     Horisontellt sannolikhetsdiagram per koalition.
     Visar P(≥175 mandat), mandatmedelvärde och 90 % CI.
     """
-    n_sims = sim["n_sims"]
-    pm = sim["party_mandates"]
-
-    rows = []
-    for name, parties in COALITIONS.items():
-        arr = sum(pm.get(p, np.zeros(n_sims)) for p in parties)
-        prob = float((arr >= 175).mean())
-        rows.append({
-            "name": name,
-            "prob": prob,
-            "mean": float(arr.mean()),
-            "p5":  int(np.percentile(arr, 5)),
-            "p25": int(np.percentile(arr, 25)),
-            "med": int(np.median(arr)),
-            "p75": int(np.percentile(arr, 75)),
-            "p95": int(np.percentile(arr, 95)),
-        })
-
+    rows = coalition_summary(sim)
     rows.sort(key=lambda r: r["prob"])
     fig = go.Figure()
 
@@ -1943,11 +1928,8 @@ def main():
         sel_const_t1 = st.selectbox("Välj valkrets", const_names_t1, key="tab1_const_sel")
 
         # Använder raw_est – samma estimat som mandatfördelningen
-        _swing_t1 = {p: raw_est.get(p, 0) - BASELINE.get(p, 0) for p in PARTIES}
         _c22_t1 = CONSTITUENCIES[sel_const_t1]
-        _raw_t1 = {p: max(0.0, _c22_t1.get(p, 0) + _swing_t1.get(p, 0)) for p in PARTIES}
-        _tot_t1 = sum(_raw_t1.values())
-        _pred_t1 = {p: _raw_t1[p] / _tot_t1 * 100 if _tot_t1 > 0 else 0.0 for p in PARTIES}
+        _pred_t1 = estimate_constituency_votes(raw_est, _c22_t1)
 
         _baseline_col_t1 = f"{BASELINE_YEAR} (%)"
         _now_col_t1 = "Opinion nu (%)"
@@ -2215,11 +2197,8 @@ def main():
 
         # Beräkna predicted vote share per valkrets med uniform swing
         # Använder raw_est – samma estimat som mandatfördelningen
-        _swing = {p: raw_est.get(p, 0) - BASELINE.get(p, 0) for p in PARTIES}
         _c22 = CONSTITUENCIES[sel_const]
-        _raw = {p: max(0.0, _c22.get(p, 0) + _swing.get(p, 0)) for p in PARTIES}
-        _tot = sum(_raw.values())
-        _pred = {p: _raw[p] / _tot * 100 if _tot > 0 else 0.0 for p in PARTIES}
+        _pred = estimate_constituency_votes(raw_est, _c22)
 
         _baseline_col = f"{BASELINE_YEAR} (%)"
         _now_col = "Opinion nu (%)"
@@ -2641,17 +2620,6 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
         st.divider()
         st.subheader("Hur sannolikt är det att…")
 
-        _draws = sim["draws"]
-        _n = sim["n_sims"]
-        _at = sim["above_threshold"]
-
-        # Beräkna röstandelar per block
-        _bloc_v_votes = sum(_draws.get(p, np.zeros(_n)) for p in ["S", "V", "MP", "C"])
-        _bloc_h_votes = sum(_draws.get(p, np.zeros(_n)) for p in ["M", "L", "KD", "SD"])
-        _svmp_votes   = sum(_draws.get(p, np.zeros(_n)) for p in ["S", "V", "MP"])
-        _scmp_votes   = sum(_draws.get(p, np.zeros(_n)) for p in ["S", "C", "MP"])
-        _gov_votes    = sum(_draws.get(p, np.zeros(_n)) for p in ["M", "L", "KD"])
-
         def _fmt_pct(p_val):
             if p_val >= 0.95: return ">95 %"
             if p_val <= 0.05: return "<5 %"
@@ -2664,28 +2632,7 @@ mått: **MAE** (medelabsolut fel) och **RMSE** (root mean squared error).
             if p_val >= 0.05: return "Osannolikt"
             return "Väldigt osannolikt"
 
-        _scenarios = [
-            ("Magdalena Anderssons regeringsunderlag har större stöd än Ulf Kristerssons?",
-             float((_bloc_v_votes > _bloc_h_votes).mean())),
-            ("Ulf Kristerssons regeringsunderlag har större stöd än Magdalena Anderssons?",
-             float((_bloc_h_votes > _bloc_v_votes).mean())),
-            ("S, V och MP har en majoritet av väljarna (utan C)?",
-             float((_svmp_votes > 50).mean())),
-            ("S, C och MP har en majoritet av väljarna (utan V)?",
-             float((_scmp_votes > 50).mean())),
-            ("Är SD större än regeringspartierna (M+L+KD) tillsammans?",
-             float((_draws.get("SD", np.zeros(_n)) > _gov_votes).mean())),
-            ("MP ligger över spärren?",    _at.get("MP", 0)),
-            ("L ligger över spärren?",     _at.get("L", 0)),
-            ("KD ligger över spärren?",    _at.get("KD", 0)),
-            ("C ligger över spärren?",     _at.get("C", 0)),
-            ("Samtliga riksdagspartier ligger över spärren?",
-             float(np.mean(np.all(
-                 np.stack([_draws.get(p, np.zeros(_n)) >= THRESHOLD for p in PARTIES]), axis=0
-             )))),
-            ("M är större än SD?",
-             float((_draws.get("M", np.zeros(_n)) > _draws.get("SD", np.zeros(_n))).mean())),
-        ]
+        _scenarios = [(q["text"], q["p"]) for q in evaluate_questions(sim)]
 
         for question, prob in _scenarios:
             verdict = _verdict(prob)

@@ -1,0 +1,82 @@
+# "Hur sannolikt är det att …" — deklarativa sannolikhetsfrågor.
+#
+# Varje fråga utvärderas på simuleringens dragningar (mandatorn_model.probabilities).
+# Typer:
+#   votes_greater    : summa röstandel(left) > summa röstandel(right)
+#   votes_above      : summa röstandel(parties) > value (procent)
+#   above_threshold  : partiet når 4 %-spärren (andel dragningar)
+#   all_above_threshold : samtliga riksdagspartier når spärren
+#   seats_at_least   : summa mandat(parties) >= value
+#
+# id är stabilt (används i URL:er och öppen data); text får ändras.
+
+[[question]]
+id = "vansterunderlaget-storre"
+text = "Magdalena Anderssons regeringsunderlag har större stöd än Ulf Kristerssons?"
+type = "votes_greater"
+left = ["S", "V", "MP", "C"]
+right = ["M", "L", "KD", "SD"]
+
+[[question]]
+id = "hogerunderlaget-storre"
+text = "Ulf Kristerssons regeringsunderlag har större stöd än Magdalena Anderssons?"
+type = "votes_greater"
+left = ["M", "L", "KD", "SD"]
+right = ["S", "V", "MP", "C"]
+
+[[question]]
+id = "s-v-mp-majoritet-roster"
+text = "S, V och MP har en majoritet av väljarna (utan C)?"
+type = "votes_above"
+parties = ["S", "V", "MP"]
+value = 50
+
+[[question]]
+id = "s-c-mp-majoritet-roster"
+text = "S, C och MP har en majoritet av väljarna (utan V)?"
+type = "votes_above"
+parties = ["S", "C", "MP"]
+value = 50
+
+[[question]]
+id = "sd-storre-an-m-l-kd"
+text = "Är SD större än regeringspartierna (M+L+KD) tillsammans?"
+type = "votes_greater"
+left = ["SD"]
+right = ["M", "L", "KD"]
+
+[[question]]
+id = "mp-over-sparren"
+text = "MP ligger över spärren?"
+type = "above_threshold"
+party = "MP"
+
+[[question]]
+id = "l-over-sparren"
+text = "L ligger över spärren?"
+type = "above_threshold"
+party = "L"
+
+[[question]]
+id = "kd-over-sparren"
+text = "KD ligger över spärren?"
+type = "above_threshold"
+party = "KD"
+
+[[question]]
+id = "c-over-sparren"
+text = "C ligger över spärren?"
+type = "above_threshold"
+party = "C"
+
+[[question]]
+id = "alla-over-sparren"
+text = "Samtliga riksdagspartier ligger över spärren?"
+type = "all_above_threshold"
+
+[[question]]
+id = "m-storre-an-sd"
+text = "M är större än SD?"
+type = "votes_greater"
+left = ["M"]
+right = ["SD"]
