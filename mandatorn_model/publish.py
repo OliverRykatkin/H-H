@@ -191,14 +191,14 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
     # national.json
     baseline_o = max(0.0, 100.0 - sum(BASELINE[p] for p in PARTIES))
     estimates = [C.PartyEstimate(
-        party=p, name=PARTY_NAMES.get(p, "Övriga"), share=fc.raw_est_with_other[p],
+        party=p, name=PARTY_NAMES.get(p, "Övriga"), share=fc.shares_all[p],
         baseline=BASELINE.get(p, baseline_o) if p != "O" else baseline_o,
-        change=fc.raw_est_with_other[p] - (BASELINE.get(p) if p != "O" else baseline_o),
+        change=fc.shares_all[p] - (BASELINE.get(p) if p != "O" else baseline_o),
         sd=float(sim["total_std"][p]) if p in PARTIES else None,
         pAboveThreshold=float(sim["above_threshold"][p]) if p in PARTIES else None,
     ) for p in PARTIES_WITH_OTHER]
     blocs = [C.Bloc(name=b, parties=ps, seats=sum(mandates["total"].get(p, 0) for p in ps),
-                    share=sum(raw_est[p] for p in ps), pMajority=float((blocs_sim[b] >= 175).mean()))
+                    share=sum(fc.shares_all[p] for p in ps), pMajority=float((blocs_sim[b] >= 175).mean()))
              for b, ps in BLOC_PARTIES.items()]
     trend_keys = {p: [p] for p in PARTIES} | dict(BLOC_PARTIES)
     trend = [C.TrendRow(name=PARTY_NAMES.get(r["key"], r["key"]), **r)
@@ -283,7 +283,9 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
     vk_rows, mandat_rows = [], []
     for c, name in enumerate(cs["constituencies"]):
         cdata = CONSTITUENCIES[name]
-        now = estimate_constituency_votes(raw_est, cdata)
+        # Andel av alla röster i valkretsen (D21): övriga hålls på valkretsens nivå i baslinjevalet
+        others_c = max(0.0, 100.0 - sum(cdata.get(q, 0.0) for q in PARTIES))
+        now = {q: v * (100.0 - others_c) / 100.0 for q, v in estimate_constituency_votes(raw_est, cdata).items()}
         margins = compute_constituency_margins(raw_est, name)
         dist = {p: seat_distribution(cs["fixed"][:, c, j]) for j, p in enumerate(PARTIES)}
         R.json(f"valkrets/{slugify(name)}.json", C.Constituency(

@@ -18,7 +18,11 @@ const last = a.days[a.days.length - 1];
 const weekBefore = a.days.find((d) => d.daysLeft === 7) ?? last;
 const result = a.result.shares;
 const seatsResult = a.result.seats;
-const errors = PARTIES.map((p) => weekBefore.shares[p] - result[p]);
+// Arkivets skattningar är andel bland de åtta partierna; räknas om till andel av alla röster
+// med valresultatets andel övriga (D21), så att jämförelsen mot utfallet görs på samma bas.
+const k = PARTIES.reduce((s, p) => s + result[p], 0) / 100;
+const share = (d: { shares: Record<string, number> }, p: string) => d.shares[p] * k;
+const errors = PARTIES.map((p) => share(weekBefore, p) - result[p]);
 const mae = errors.reduce((s, e) => s + Math.abs(e), 0) / errors.length;
 const blocs = { "Högerblocket": ["M", "L", "KD", "SD"], "Vänsterblocket": ["S", "V", "MP", "C"] } as const;
 const winner = Object.entries(blocs).map(([b, ps]) => ({ b, seats: ps.reduce((s, p) => s + (seatsResult[p] ?? 0), 0) }))
@@ -37,7 +41,7 @@ const description = `Mandatorns prognos inför riksdagsvalet ${year} jämförd m
 
   <h2>Skattat stöd det sista året</h2>
   <LineChart dates={dates} title={`Skattat partistöd inför valet ${year}`}
-    series={PARTIES.map((p) => ({ key: p, label: partyName(p), color: PARTY_COLORS[p], values: a.days.map((d) => d.shares[p]), final: result[p] }))} />
+    series={PARTIES.map((p) => ({ key: p, label: partyName(p), color: PARTY_COLORS[p], values: a.days.map((d) => share(d, p)), final: result[p] }))} />
 
   <h2>Sannolikhet för egen majoritet</h2>
   <LineChart dates={dates} title="Sannolikhet för egen majoritet per block" yMin={0} yMax={100} refLine={50}
@@ -55,7 +59,7 @@ const description = `Mandatorns prognos inför riksdagsvalet ${year} jämförd m
         {PARTIES.map((p, i) => (
           <tr>
             <td><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span>{partyName(p)}</td>
-            <td class="r">{pct(weekBefore.shares[p])}</td>
+            <td class="r">{pct(share(weekBefore, p))}</td>
             <td class="r">{pct(result[p])}</td>
             <td class="r">{signed(errors[i])}</td>
             <td class="r">{displayPct(weekBefore.pThreshold[p])}</td>
@@ -66,5 +70,5 @@ const description = `Mandatorns prognos inför riksdagsvalet ${year} jämförd m
       </tbody>
     </table>
   </div>
-  <p class="small muted">Skattningen är andel bland de åtta riksdagspartierna; resultatet är andel av alla giltiga röster.</p>
+  <p class="small muted">Andelar av alla giltiga röster; för skattningen antas övriga partier ha samma andel som i valet.</p>
 </Layout>

@@ -23,6 +23,8 @@ def load_area_results(val_type: str) -> tuple[pd.DataFrame, dict]:
     if val_type == "RD":
         for kod, shares in _ELECTION_2026.get("kommuner", {}).items():
             rows += [{"region_code": kod, "party": p, "pct_base": shares.get(p, 0.0)} for p in PARTIES]
+            # Övriga partier i riksdagsvalet hålls på sin nivå i kommunen (D21: andel av alla röster)
+            ovriga[kod] = max(0.0, 100.0 - sum(shares.get(p, 0.0) for p in PARTIES))
     else:
         struct = load_structure_cached() or {}
         for kod, area in struct.get(val_type, {}).items():

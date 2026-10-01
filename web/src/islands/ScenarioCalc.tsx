@@ -59,7 +59,7 @@ export default function ScenarioCalc({ initial, baselineSeats }: Props) {
     <section className="card scenario" aria-labelledby="scenario-h">
       <h3 id="scenario-h" style={{ marginTop: 0 }}>Räkna själv: egna andelar → mandat</h3>
       <p className="small muted">
-        Ange andel bland de åtta riksdagspartierna. Mandaten räknas med samma motor som prognosen
+        Ange andel av alla röster. Det som blir över till 100 % räknas som övriga partier. Mandaten räknas med samma motor som prognosen
         (vallagen: {fmt1.format(THRESHOLD)} %-spärr i landet, 12 % i valkrets, jämkade uddatalsmetoden, utjämningsmandat).
         Spärren prövas mot andel av alla giltiga röster, med övriga partier på valresultatets nivå.
       </p>
@@ -85,7 +85,7 @@ export default function ScenarioCalc({ initial, baselineSeats }: Props) {
       </div>
       <p className="small">
         Summa: <strong>{fmt1.format(result?.sum8 ?? Object.values(shares).reduce((a, b) => a + b, 0))} %</strong>{" "}
-        <span className="muted">(normeras till 100 före beräkningen)</span>{" "}
+        <span className="muted">(övriga partier: {fmt1.format(Math.max(0, 100 - (result?.sum8 ?? Object.values(shares).reduce((a, b) => a + b, 0))))} %; summerar andelarna till 100 antas övriga ligga kvar på valresultatets nivå)</span>{" "}
         <button type="button" onClick={reset}>Återställ till prognosen</button>
       </p>
       <div aria-live="polite">

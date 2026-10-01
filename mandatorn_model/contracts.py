@@ -64,7 +64,7 @@ class ReleaseIndex(_Model):
 class PartyEstimate(_Model):
     party: PartyOrOther
     name: str
-    share: float = Field(description="Skattad röstandel i procent (8 partier normerade till 100; O separat)")
+    share: float = Field(description="Skattad andel av alla giltiga röster i procent; övriga (O) antas som i baslinjevalet")
     baseline: float | None = Field(description="Valresultat i baslinjevalet (procent)")
     change: float | None
     sd: float | None = Field(default=None, description="Simuleringens totala σ (pp)")

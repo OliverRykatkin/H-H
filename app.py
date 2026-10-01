@@ -1775,6 +1775,7 @@ def main():
     raw_est = fc.raw_est
     raw_est_with_other = fc.raw_est_with_other
     raw_est_other = raw_est_with_other["O"]
+    shares_all = fc.shares_all  # visningsandelar: andel av alla röster (D21)
     trend_timeseries = fc.trend_timeseries
     mandates = fc.mandates
 
@@ -1881,9 +1882,9 @@ def main():
                 {
                     "Parti": PARTY_NAMES.get(p, p),
                     _baseline_label: f"{BASELINE.get(p, 0):.1f}",
-                    "Nu (%)": f"{raw_est_with_other.get(p, 0):.1f}",
-                    _delta_label: f"{raw_est_with_other.get(p, 0) - BASELINE.get(p, 0):+.1f}",
-                    "Över spärren": "Ja" if raw_est_with_other.get(p, 0) >= THRESHOLD else "Nej",
+                    "Nu (%)": f"{shares_all.get(p, 0):.1f}",
+                    _delta_label: f"{shares_all.get(p, 0) - BASELINE.get(p, 0):+.1f}",
+                    "Över spärren": "Ja" if shares_all.get(p, 0) >= THRESHOLD else "Nej",
                 }
                 for p in PARTIES
             ]

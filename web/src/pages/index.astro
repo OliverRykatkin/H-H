@@ -51,7 +51,7 @@ const jsonLd = {
   <h2>Partistöd i dag</h2>
   <div class="table-scroll">
     <table>
-      <caption>Andel bland de åtta riksdagspartierna. Intervall = 90 %. P(spärr) = sannolikhet att klara 4 %-spärren på valdagen.</caption>
+      <caption>Andel av alla giltiga röster (övriga partier antas ha samma andel som i valet {BASELINE_YEAR}). Intervall = 90 %. P(spärr) = sannolikhet att klara 4 %-spärren på valdagen.</caption>
       <thead><tr><th>Parti</th><th class="r">Stöd</th><th class="r">90 % intervall</th><th class="r">Val {BASELINE_YEAR}</th><th class="r">Förändring</th><th class="r">P(spärr)</th><th class="r">Mandat</th></tr></thead>
       <tbody>
         {PARTIES.map((p) => {

@@ -140,12 +140,12 @@ Streamlit körs med `--min-instances 1`, vilket kostar ungefär 15–25 USD i m�
 ### D21. Estimat mot valresultat på olika bas (PARITY A13)
 Estimaten visas som andel bland de 8 riksdagspartierna (summerar till 100). Valresultatet är andel av alla giltiga röster (övriga ≈ 1,6 %). Kolumnen "förändring sedan valet" blandar därför två baser, och stora partier ser ~0,2 pp starkare ut än de är.
 **Förslag:** visa estimaten som andel av alla röster, det vill säga omräknade med övriga på baslinjens nivå. Det är samma bas som mätningarna och valresultatet, och samma som spärren nu prövas mot. Alla visade andelar sjunker då med ~1,6 % relativt, men mandaten påverkas inte.
-**Beslut:** ☐
+**Beslut:** ✅ Andel av alla giltiga röster, med övriga på baslinjevalets nivå (1,59 %). Gäller releaser, sajt och labbets tabell; mandaten påverkas inte. (2026-10-02)
 
 ### D22. Repo-inställning för automatiska PR:er
 Synk-jobbet mot SwedishPolls (D16) behöver inställningen *Allow GitHub Actions to create and approve pull requests* (Settings → Actions → General). Den är avstängd i dag.
 **Förslag:** slå på den.
-**Beslut:** ☐
+**Beslut:** ✅ Påslagen via GitHub-API:t; synk-jobbet testkört. (2026-10-02)
 
 ### D23. Kartdata: Lantmäteriet kräver konto och är CC BY 4.0 (rättelse av D9)
 D9 utgick från att Lantmäteriets gränser är CC0. Den öppna datan *Administrativ indelning* är licensierad **CC BY 4.0**: källan ska anges, men det krockar inte med CC BY-NC. Datan kan bara hämtas efter registrering på Geotorget.

@@ -26,7 +26,8 @@ def evaluate_question(q: dict, sim: dict) -> float:
     if kind == "votes_greater":
         return float((_votes(draws, q["left"], n) > _votes(draws, q["right"], n)).mean())
     if kind == "votes_above":
-        return float((_votes(draws, q["parties"], n) > q["value"]).mean())
+        # Andel av alla väljare (D21): dragningarna är andel bland de åtta partierna
+        return float((_votes(draws, q["parties"], n) * sim.get("threshold_scale", 1.0) > q["value"]).mean())
     if kind == "above_threshold":
         return sim["above_threshold"].get(q["party"], 0)
     if kind == "all_above_threshold":

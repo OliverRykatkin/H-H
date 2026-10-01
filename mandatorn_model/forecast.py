@@ -16,7 +16,7 @@ from mandatorn_model.constants import (
 )
 from mandatorn_model.kalman import aggregate_polls_kalman, aggregate_polls_kalman_timeseries
 from mandatorn_model.polls import compute_house_weights
-from mandatorn_model.seats import allocate_all_mandates, compute_baseline_mandates
+from mandatorn_model.seats import BASELINE_OTHERS, allocate_all_mandates, compute_baseline_mandates
 from mandatorn_model.simulation import run_simulation
 
 WINDOW_DAYS = 365
@@ -31,6 +31,7 @@ class Forecast:
     house_weights: pd.DataFrame
     raw_est: dict
     raw_est_with_other: dict
+    shares_all: dict
     trend_timeseries: dict
     mandates: dict
     sim: dict
@@ -46,7 +47,7 @@ def reference_day(now: datetime) -> datetime:
 
 
 def build_trend_timeseries(polls_df: pd.DataFrame, house_weights: pd.DataFrame,
-                           reference_date: datetime, raw_est_with_other: dict) -> dict:
+                           reference_date: datetime, endpoint_targets: dict) -> dict:
     """Trendserie i två segment: TREND_START → valdagen (oankrat) och valdagen →
     reference_date (ankrat i valresultatet, skalat så att slutpunkten = estimatet)."""
     trend_days = (reference_date - BASELINE_ELECTION_DATE).days + 1
@@ -60,7 +61,7 @@ def build_trend_timeseries(polls_df: pd.DataFrame, house_weights: pd.DataFrame,
             continue
         ts = raw_ts[p]
         endpoint = ts["smooth_y"][-1] if ts["smooth_y"] else 0.0
-        target = raw_est_with_other.get(p, endpoint)
+        target = endpoint_targets.get(p, endpoint)
         scale = target / endpoint if abs(endpoint) > 0.01 else 1.0
         trend[p] = {
             "eval_dates": ts["eval_dates"],
@@ -98,6 +99,10 @@ def build_forecast(polls_df: pd.DataFrame, reference_date: datetime,
     o_ts = post_ts.get("O", {})
     raw_est_other = max(0.0, float(o_ts["smooth_y"][-1]) if o_ts.get("smooth_y") else 0.0)
     raw_est_with_other = {**raw_est, "O": raw_est_other}
+    # Visningsandelar (D21): andel av alla giltiga röster, med övriga på baslinjevalets nivå
+    # — samma bas som mätningarna, valresultatet och spärrprövningen. Mandaten påverkas inte.
+    scale = (100.0 - BASELINE_OTHERS) / 100.0
+    shares_all = {**{p: raw_est[p] * scale for p in PARTIES}, "O": BASELINE_OTHERS}
 
     days_left = max(0, (NEXT_ELECTION - reference_date).days)
     baseline_seats = compute_baseline_mandates()
@@ -107,7 +112,8 @@ def build_forecast(polls_df: pd.DataFrame, reference_date: datetime,
         house_weights=house_weights,
         raw_est=raw_est,
         raw_est_with_other=raw_est_with_other,
-        trend_timeseries=build_trend_timeseries(polls_df, house_weights, reference_date, raw_est_with_other),
+        shares_all=shares_all,
+        trend_timeseries=build_trend_timeseries(polls_df, house_weights, reference_date, shares_all),
         mandates=allocate_all_mandates(raw_est),
         sim=run_simulation(raw_est, polls_df, WINDOW_DAYS, n_sims=n_sims, horizon_days=days_left,
                            reference_date=reference_date, seed=seed),
