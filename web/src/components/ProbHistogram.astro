@@ -1,0 +1,23 @@
+---
+/** Statiskt histogram över blockens mandat i simuleringen, med 175-gräns. */
+interface Props { histogram: Record<string, number>; color: string; title: string; nSims: number }
+const { histogram, color, title, nSims } = Astro.props;
+const entries = Object.entries(histogram).map(([k, v]) => [Number(k), v] as const).sort((a, b) => a[0] - b[0]);
+const lo = Math.max(0, Math.min(...entries.map((e) => e[0])) - 5);
+const hi = Math.min(349, Math.max(...entries.map((e) => e[0])) + 5);
+const max = Math.max(...entries.map((e) => e[1]));
+const W = 760, H = 150, L = 10, B = 22;
+const x = (s: number) => L + ((s - lo) / (hi - lo)) * (W - 2 * L);
+const bw = Math.max(1, (W - 2 * L) / (hi - lo) - 0.5);
+const ticks = [];
+for (let t = Math.ceil(lo / 10) * 10; t <= hi; t += 10) ticks.push(t);
+const above = entries.filter(([s]) => s >= 175).reduce((a, [, v]) => a + v, 0);
+---
+<figure>
+  <svg class="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${title}: ${Math.round((above / nSims) * 100)} procent av simuleringarna ger minst 175 mandat`}>
+    {ticks.map((t) => <text x={x(t)} y={H - 6} text-anchor="middle" font-size="11" fill="#5c5f63">{t}</text>)}
+    {entries.map(([s, v]) => <rect x={x(s) - bw / 2} y={H - B - (v / max) * (H - B - 8)} width={bw} height={(v / max) * (H - B - 8)} fill={color} fill-opacity={s >= 175 ? 0.95 : 0.4} />)}
+    {lo <= 175 && 175 <= hi && <g><line x1={x(175)} x2={x(175)} y1="4" y2={H - B} stroke="#111" stroke-dasharray="4 3" /><text x={x(175) + 4} y="14" font-size="11">175</text></g>}
+  </svg>
+  <figcaption class="small muted">{title}. Mörkare staplar = egen majoritet.</figcaption>
+</figure>

@@ -1,0 +1,15 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const plausible = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
+const contact = import.meta.env.PUBLIC_PRIVACY_EMAIL as string | undefined;
+---
+<Layout title="Integritet" description="Mandatorn använder inga cookies och samlar inte in personuppgifter om besökare.">
+  <h1>Integritet</h1>
+  <h2>Besökare</h2>
+  <p>Mandatorn använder inga cookies och samlar inte in personuppgifter om dig som besöker sajten. {plausible
+    ? "Besöksstatistik räknas med Plausible, som inte använder cookies och inte lagrar IP-adresser eller annat som kan identifiera dig."
+    : "Ingen besöksstatistik samlas in."} Typsnitt och all data levereras från Mandatorns egna servrar.</p>
+  <h2>Kandidater och ledamöter</h2>
+  <p>Sajten visar namn, parti, valkrets och valgrund för ledamöter och kandidater i riksdagsvalet, hämtat från Valmyndighetens offentliga uppgifter. Syftet är samhällsinformation om val (berättigat intresse). Ålder, hemort och andra uppgifter publiceras inte.</p>
+  <p>Vill du att en uppgift om dig rättas eller tas bort? {contact ? <>Kontakta <a href={`mailto:${contact}`}>{contact}</a>.</> : <>Hör av dig via <a href="https://github.com/OliverRykatkin/H-H/issues">GitHub</a>.</>}</p>
+</Layout>

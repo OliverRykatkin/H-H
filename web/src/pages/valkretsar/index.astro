@@ -1,0 +1,33 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PARTIES, PARTY_COLORS, BASELINE_YEAR } from "@contracts/constants";
+import * as D from "../../lib/data";
+import { pct } from "../../lib/format";
+
+const cs = D.constituencies();
+const largest = (c: (typeof cs)[number]) => PARTIES.reduce((a, p) => ((c.now[p] ?? 0) > (c.now[a] ?? 0) ? p : a), PARTIES[0]);
+const description = `Prognos för alla 29 riksdagsvalkretsar: röstandelar och fasta mandat jämfört med valet ${BASELINE_YEAR}.`;
+---
+<Layout title="Valkretsar" description={description}>
+  <h1>Riksdagsvalkretsar</h1>
+  <p class="lede">Sverige är indelat i 29 valkretsar med sammanlagt 310 fasta mandat. Tabellen visar prognosens fasta mandat per valkrets om det vore val i dag. De 39 utjämningsmandaten fördelas efter riksresultatet.</p>
+  <div class="table-scroll">
+    <table>
+      <caption>Fasta mandat per valkrets och parti (prognos). Största parti markerat.</caption>
+      <thead><tr><th scope="col">Valkrets</th><th scope="col" class="r">Mandat</th>{PARTIES.map((p) => <th scope="col" class="r">{p}</th>)}<th scope="col">Störst</th></tr></thead>
+      <tbody>
+        {cs.map((c) => (
+          <tr>
+            <th scope="row"><a href={`/valkrets/${c.slug}/`}>{c.name}</a></th>
+            <td class="r">{c.seats}</td>
+            {PARTIES.map((p) => <td class="r">{c.fixedNow[p] || ""}</td>)}
+            <td><span class="swatch" style={`background:${PARTY_COLORS[largest(c)]}`}></span>{largest(c)} {pct(c.now[largest(c)])}</td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot>
+        <tr><th scope="row">Summa</th><td class="r">{cs.reduce((a, c) => a + c.seats, 0)}</td>{PARTIES.map((p) => <td class="r">{cs.reduce((a, c) => a + (c.fixedNow[p] ?? 0), 0)}</td>)}<td></td></tr>
+      </tfoot>
+    </table>
+  </div>
+</Layout>

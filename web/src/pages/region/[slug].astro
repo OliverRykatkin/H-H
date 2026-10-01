@@ -1,0 +1,29 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Ingress from "../../components/Ingress.astro";
+import GeoAreaBody from "../../components/GeoAreaBody.astro";
+import type { Area } from "@contracts/contracts";
+import * as D from "../../lib/data";
+import { areaIngress } from "../../lib/text/ingress";
+import { kommunerInRegion, kommunHref } from "../../components/GeoUtil";
+
+export function getStaticPaths() {
+  return D.regioner().map((area) => ({ params: { slug: area.slug }, props: { area } }));
+}
+const { area } = Astro.props as { area: Area };
+const ingress = areaIngress(area);
+const kommuner = kommunerInRegion(area.code);
+const jsonLd = {
+  "@context": "https://schema.org", "@type": "AdministrativeArea", name: `Region ${area.name}`, identifier: area.code,
+  url: new URL(Astro.url.pathname, Astro.site).href, containedInPlace: { "@type": "Country", name: "Sverige" },
+};
+---
+<Layout title={`Region ${area.name}: valprognos`} description={ingress} jsonLd={jsonLd}>
+  <p class="small"><a href="/regioner/">Regioner</a> › {area.name}</p>
+  <h1>Region {area.name}</h1>
+  <Ingress text={ingress} live={`region:${area.code}`} />
+  <p class="small muted">Länskod {area.code}. Prognosen bygger på det nationella opinionsläget (uniform swing), inte på lokala mätningar.</p>
+  <GeoAreaBody area={area} />
+  <h2>Kommuner i regionen</h2>
+  <p>{kommuner.map((k, i) => <>{i > 0 && ", "}<a href={kommunHref(k.code)}>{k.name}</a></>)}</p>
+</Layout>

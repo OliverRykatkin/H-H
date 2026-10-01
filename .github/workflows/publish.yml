@@ -100,4 +100,39 @@ jobs:
         if: steps.publish.outputs.code == '0' && vars.HEALTHCHECK_URL != ''
         run: curl -fsS -m 10 --retry 3 "${{ vars.HEALTHCHECK_URL }}"
 
-      # Fas 2: bygg Astro-sajten mot den nya releasen, ladda upp och invalidera HTML.
+      - name: Lokal kopia av releasen för sajtbygget
+        if: steps.publish.outputs.code == '0' && env.AWS_ROLE_ARN != ''
+        run: python -m mandatorn_model.publish --out dist-data --force ${{ inputs.reference_date && format('--reference-date {0}', inputs.reference_date) || '' }}
+
+      - uses: actions/setup-node@v4
+        if: steps.publish.outputs.code == '0'
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Bygg sajten
+        if: steps.publish.outputs.code == '0'
+        working-directory: web
+        env:
+          PUBLIC_DATA_URL: ${{ vars.PUBLIC_DATA_URL }}
+          PUBLIC_SITE_URL: ${{ vars.PUBLIC_SITE_URL }}
+          PUBLIC_PLAUSIBLE_DOMAIN: ${{ vars.PUBLIC_PLAUSIBLE_DOMAIN }}
+          PUBLIC_BUILD_COMMIT: ${{ github.sha }}
+        run: npm ci && npm run build
+
+      - name: Ladda upp sajten och invalidera HTML
+        if: steps.publish.outputs.code == '0' && env.AWS_ROLE_ARN != '' && vars.SITE_BUCKET != ''
+        working-directory: web
+        run: |
+          aws s3 sync dist/_astro "s3://${{ vars.SITE_BUCKET }}/_astro" --cache-control "public, max-age=31536000, immutable"
+          aws s3 sync dist "s3://${{ vars.SITE_BUCKET }}" --exclude "_astro/*" --exclude "_data/*"             --cache-control "public, max-age=0, s-maxage=300" --delete
+          aws cloudfront create-invalidation --distribution-id "${{ vars.SITE_DISTRIBUTION_ID }}" --paths "/*"
+
+      - name: Spara sajten som artefakt (ingen AWS konfigurerad än)
+        if: steps.publish.outputs.code == '0' && env.AWS_ROLE_ARN == ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: web/dist
+          retention-days: 7

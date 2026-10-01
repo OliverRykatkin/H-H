@@ -1,0 +1,39 @@
+---
+/** Mandat i ett fullmäktige eller en valkrets: prognos nu mot baslinjevalet (inkl. lokala partier). */
+import { PARTIES, PARTY_COLORS, BASELINE_YEAR } from "@contracts/constants";
+import { partyName, signedInt } from "../lib/format";
+import { partyOrder } from "./GeoUtil";
+
+interface Props {
+  caption: string;
+  now: Record<string, number>;
+  baseline: Record<string, number>;
+  names?: Record<string, string>;
+  total: number;
+}
+const { caption, now, baseline, names = {}, total } = Astro.props;
+const union: Record<string, number> = {};
+for (const p of new Set([...Object.keys(now), ...Object.keys(baseline)])) union[p] = Math.max(now[p] ?? 0, baseline[p] ?? 0);
+const order = partyOrder(union, PARTIES).filter((p) => (now[p] ?? 0) + (baseline[p] ?? 0) > 0);
+const label = (p: string) => ((PARTIES as readonly string[]).includes(p) ? partyName(p) : names[p] ?? p);
+---
+<div class="table-scroll">
+  <table>
+    <caption>{caption}</caption>
+    <thead><tr><th scope="col">Parti</th><th scope="col" class="r">Prognos</th><th scope="col" class="r">{BASELINE_YEAR}</th><th scope="col" class="r">Förändring</th></tr></thead>
+    <tbody>
+      {order.map((p) => {
+        const d = (now[p] ?? 0) - (baseline[p] ?? 0);
+        return (
+          <tr>
+            <th scope="row"><span class="swatch" style={`background:${PARTY_COLORS[p] ?? "#9a9a9a"}`}></span>{label(p)}</th>
+            <td class="r"><strong>{now[p] ?? 0}</strong></td>
+            <td class="r">{baseline[p] ?? 0}</td>
+            <td class={`r ${d > 0 ? "pos" : d < 0 ? "neg" : ""}`}>{signedInt(d)}</td>
+          </tr>
+        );
+      })}
+    </tbody>
+    <tfoot><tr><th scope="row">Totalt</th><td class="r">{Object.values(now).reduce((a, b) => a + b, 0)}</td><td class="r">{Object.values(baseline).reduce((a, b) => a + b, 0)}</td><td class="r small muted">{total} mandat</td></tr></tfoot>
+  </table>
+</div>

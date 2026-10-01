@@ -11,6 +11,7 @@ from mandatorn_model.constants import (
     NEXT_ELECTION,
     PARTIES,
     PARTIES_WITH_OTHER,
+    SEATS_NATIONAL_2026,
     TREND_START,
 )
 from mandatorn_model.kalman import aggregate_polls_kalman, aggregate_polls_kalman_timeseries
@@ -113,5 +114,7 @@ def build_forecast(polls_df: pd.DataFrame, reference_date: datetime,
         days_left=days_left,
         latest_poll_date=polls_df["PublDate"].max().strftime("%Y-%m-%d"),
         baseline_seats=baseline_seats,
-        baseline_seats_total={p: sum(baseline_seats[c].get(p, 0) for c in baseline_seats) for p in PARTIES},
+        # Totala mandat (fasta + utjämning) i baslinjevalet; faller tillbaka på fasta om totalen saknas.
+        baseline_seats_total={p: int(SEATS_NATIONAL_2026.get(p, {}).get("total", sum(baseline_seats[c].get(p, 0) for c in baseline_seats)))
+                              for p in PARTIES},
     )

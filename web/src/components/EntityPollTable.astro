@@ -1,0 +1,37 @@
+---
+/** Tabell över mätningar (polls.json), valfritt filtrerad på institut och/eller parti. */
+import type { Poll } from "@contracts/contracts";
+import { PARTIES } from "@contracts/constants";
+import { slugify } from "../lib/format";
+import { formatNumber, formatInteger } from "../lib/text/grammar";
+
+interface Props { polls: Poll[]; caption: string; parties?: string[]; showInstitute?: boolean; limit?: number }
+const { polls, caption, parties = [...PARTIES], showInstitute = true, limit = 15 } = Astro.props;
+const rows = polls.slice(0, limit);
+const period = (p: Poll) => (p.fieldFrom && p.fieldTo ? `${p.fieldFrom} – ${p.fieldTo}` : `publ. ${p.published}`);
+---
+{rows.length === 0 ? <p class="muted">Inga mätningar i den senaste releasen.</p> : (
+  <div class="table-scroll">
+    <table>
+      <caption>{caption}</caption>
+      <thead>
+        <tr>
+          {showInstitute && <th scope="col">Institut</th>}
+          <th scope="col">Fältperiod</th>
+          <th scope="col" class="r">Urval</th>
+          {parties.map((p) => <th scope="col" class="r">{p}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr>
+            {showInstitute && <td><a href={`/institut/${slugify(r.institute)}/`}>{r.institute}</a></td>}
+            <td class="small">{period(r)}</td>
+            <td class="r small">{r.n == null ? "–" : formatInteger(r.n)}</td>
+            {parties.map((p) => <td class="r">{r.shares[p] == null ? "–" : formatNumber(r.shares[p] as number, 1)}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}

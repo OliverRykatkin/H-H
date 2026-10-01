@@ -1,0 +1,15 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import GeoAreaIndex from "../../components/GeoAreaIndex.astro";
+import * as D from "../../lib/data";
+import { kommunHref } from "../../components/GeoUtil";
+import { BASELINE_YEAR } from "@contracts/constants";
+
+const areas = D.kommuner();
+const description = `Valprognos för Sveriges ${areas.length} kommuner: kommunval och riksdagsval om det vore val i dag, jämfört med ${BASELINE_YEAR}.`;
+---
+<Layout title="Kommuner" description={description}>
+  <h1>Kommuner</h1>
+  <p class="lede">Prognos för kommunfullmäktige i alla {areas.length} kommuner. Det nationella opinionsläget förs över till varje kommun med uniform swing från valet {BASELINE_YEAR}; lokala partier antas få samma resultat som då.</p>
+  <GeoAreaIndex areas={areas} hrefFor={(a) => kommunHref(a.code)} kind="kommun" anchors />
+</Layout>

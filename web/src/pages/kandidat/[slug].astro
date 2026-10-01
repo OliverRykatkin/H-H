@@ -1,0 +1,51 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PARTY_COLORS, BASELINE_YEAR, NEXT_ELECTION_YEAR } from "@contracts/constants";
+import type { ElectedMember } from "@contracts/contracts";
+import * as D from "../../lib/data";
+import { partyName, slugify } from "../../lib/format";
+
+export function getStaticPaths() {
+  const el = D.elected();
+  return (el?.members ?? []).map((m) => ({ params: { slug: m.slug }, props: { m } }));
+}
+const { m } = Astro.props as { m: ElectedMember };
+const vkSlug = D.constituencies().find((c) => c.name === m.valkrets)?.slug ?? slugify(m.valkrets);
+const party = partyName(m.parti);
+const sameList = (D.elected()?.members ?? []).filter((x) => x.valkrets === m.valkrets && x.parti === m.parti && x.slug !== m.slug);
+const description = `${m.namn} (${m.parti}) valdes in i riksdagen ${BASELINE_YEAR} från ${m.valkrets}.`;
+const jsonLd = {
+  "@context": "https://schema.org", "@type": "Person", name: m.namn, jobTitle: "Riksdagsledamot",
+  memberOf: { "@type": "PoliticalParty", name: party },
+  url: new URL(Astro.url.pathname, Astro.site).href,
+};
+---
+<Layout title={m.namn} description={description} jsonLd={jsonLd}>
+  <p class="small"><a href="/kandidater/">Kandidater</a> /</p>
+  <h1>{m.namn}</h1>
+  <p class="lede">
+    {m.namn} valdes in i riksdagen i valet {BASELINE_YEAR} för
+    <a href={`/parti/${slugify(party)}/`}>{party}</a> i valkretsen <a href={`/valkrets/${vkSlug}/`}>{m.valkrets}</a>.
+  </p>
+  <dl class="card">
+    <dt class="small muted">Parti</dt><dd><span class="swatch" style={`background:${PARTY_COLORS[m.parti] ?? "#888"}`}></span>{party}</dd>
+    <dt class="small muted">Valkrets</dt><dd>{m.valkrets}</dd>
+    <dt class="small muted">Hur ledamoten valdes</dt><dd>{m.valgrund || "–"}</dd>
+  </dl>
+  {sameList.length > 0 && (
+    <>
+      <h2>Fler invalda för {party} i {m.valkrets}</h2>
+      <ul>{sameList.map((x) => <li><a href={`/kandidat/${x.slug}/`}>{x.namn}</a></li>)}</ul>
+    </>
+  )}
+  <p class="small muted">
+    Uppgifterna kommer från Valmyndighetens slutliga resultat {BASELINE_YEAR}. Mandatorn visar bara namn, parti,
+    valkrets och valgrund. Sannolikheten att bli invald i valet {NEXT_ELECTION_YEAR} visas när partiernas
+    kandidatlistor för {NEXT_ELECTION_YEAR} har registrerats hos Valmyndigheten.
+    Rättelse eller frågor: se <a href="/integritet/">integritet</a>.
+  </p>
+</Layout>
+<style>
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-2) var(--space-4); }
+  dd { margin: 0; }
+</style>

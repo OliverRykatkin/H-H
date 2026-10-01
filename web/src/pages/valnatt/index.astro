@@ -1,0 +1,38 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ValnattCurve from "../../components/ValnattCurve.astro";
+import ValnattReplay from "../../islands/ValnattReplay";
+import type { ValnattState } from "@contracts/contracts";
+import * as D from "../../lib/data";
+import { readJSON } from "../../lib/release";
+
+const idx = D.valnattIndex();
+const START = "2200";
+const initial = idx ? readJSON<ValnattState>(`valnatt/2026/${idx.times.includes(START) ? START : idx.times[0]}.json`) : null;
+const description = "Uppspelning av valnatten 2026 i verklig räkningsordning: hur nowcast-metoden träffade slutresultatet jämfört med råräkningen.";
+---
+<Layout title="Valnatten 2026" description={description}>
+  <h1>Valnatten 2026 — uppspelning</h1>
+  <p class="lede">
+    Under valnatten är råräkningen missvisande eftersom små distrikt rapporterar först. Nowcasten jämför i stället
+    förändringen mot förra valet i de distrikt som räknats och skriver fram den för resten av landet.
+    Dra i reglaget för att se hur prognosen utvecklades.
+  </p>
+  {idx && initial ? (
+    <>
+      <ValnattReplay client:visible times={idx.times} initialTime={idx.times.includes(START) ? START : idx.times[0]} initial={initial} />
+      <noscript><p class="banner warn">Reglaget kräver JavaScript. Läget klockan 22.00 visas nedan.</p></noscript>
+      <h2>Felet under natten</h2>
+      <ValnattCurve curve={idx.curve} />
+      <h2>Om metoden</h2>
+      <ul>
+        <li>Distrikten läggs till i den ordning de faktiskt rapporterades in till Valmyndigheten.</li>
+        <li>Baslinjen är Valmyndighetens jämförelsesiffror för 2022, omräknade till 2026 års distrikt. Ungefär var femte distrikt går inte att jämföra och ingår bara i råräkningen.</li>
+        <li>Facit är det slutliga valresultatet, som även innehåller röster räknade efter valnatten. Därför planar båda kurvorna ut en bit över noll.</li>
+        <li>Metoden: <a href="https://www.nationalekonomi.se/artikel/nowcasting-pa-valnatten-metod-och-utvardering-fran-valprognos-se/">Nowcasting på valnatten (valprognos.se)</a>.</li>
+      </ul>
+    </>
+  ) : (
+    <p class="banner warn">Valnattsdata saknas i den här releasen.</p>
+  )}
+</Layout>

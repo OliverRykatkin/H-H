@@ -1,0 +1,46 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PARTIES, PARTY_COLORS, BASELINE_YEAR, NEXT_ELECTION_YEAR } from "@contracts/constants";
+import * as D from "../../lib/data";
+import { pct, signed, signedInt, partyName, slugify, changeClass } from "../../lib/format";
+import { displayPct } from "../../lib/text/scale";
+
+const nat = D.national();
+const sim = D.simulation();
+const md = D.mandates();
+// Officiella totala mandat i baslinjevalet = antal invalda (mandates.parties.baseline är bara fasta mandat).
+const electedCount = (p: string) => (D.elected()?.members ?? []).filter((m) => m.parti === p).length;
+const rows = PARTIES.map((code) => ({
+  code,
+  est: nat.estimates.find((e) => e.party === code)!,
+  sp: sim.parties.find((p) => p.party === code)!,
+  seats: md.parties.find((p) => p.party === code)!,
+})).sort((a, b) => b.est.share - a.est.share);
+---
+<Layout title="Partier" description={`Riksdagspartierna i Mandatorns prognos: stöd, mandat och sannolikhet att klara spärren i valet ${NEXT_ELECTION_YEAR}.`}>
+  <h1>Partier</h1>
+  <p class="lede">Skattat stöd i dag, mandat om det vore val i dag och sannolikheten att klara 4 %-spärren i valet {NEXT_ELECTION_YEAR}.</p>
+  <div class="table-scroll">
+    <table>
+      <caption>Sorterat efter stöd. Förändring mot valet {BASELINE_YEAR} i procentenheter.</caption>
+      <thead><tr>
+        <th scope="col">Parti</th><th scope="col" class="r">Stöd</th><th scope="col" class="r">Förändring</th>
+        <th scope="col" class="r">Mandat</th><th scope="col" class="r">Mot {BASELINE_YEAR}</th>
+        <th scope="col" class="r">Mandat i valet (90 %)</th><th scope="col" class="r">Klarar spärren</th>
+      </tr></thead>
+      <tbody>
+        {rows.map(({ code, est, sp, seats }) => (
+          <tr>
+            <th scope="row"><span class="swatch" style={`background:${PARTY_COLORS[code]}`}></span><a href={`/parti/${slugify(partyName(code))}/`}>{partyName(code)}</a></th>
+            <td class="r">{pct(est.share)}</td>
+            <td class={`r ${changeClass(est.change)}`}>{signed(est.change)}</td>
+            <td class="r">{seats.total}</td>
+            <td class="r">{signedInt(seats.total - (electedCount(code) || seats.baseline))}</td>
+            <td class="r">{sp.p5}–{sp.p95}</td>
+            <td class="r">{displayPct(sp.pAboveThreshold)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Layout>

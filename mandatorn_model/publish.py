@@ -461,7 +461,8 @@ def _parquet(cols: dict) -> bytes:
     import polars as pl
 
     buf = io.BytesIO()
-    pl.DataFrame(cols).write_parquet(buf, compression="zstd", statistics=False)
+    # snappy: läsbar av hyparquet i webbläsaren utan extra kompressorbibliotek
+    pl.DataFrame(cols).write_parquet(buf, compression="snappy", statistics=False)
     return buf.getvalue()
 
 

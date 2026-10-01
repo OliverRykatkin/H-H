@@ -1,0 +1,91 @@
+---
+import fs from "node:fs";
+import path from "node:path";
+import Layout from "../../layouts/Layout.astro";
+import { manifest, paths, readJSON, dataUrl, RELEASE_DIR } from "../../lib/release";
+import { dateSv } from "../../lib/format";
+
+interface Schema { title: string; license: string; attribution: string; columns: { name: string; description: string; type: string }[] }
+const m = manifest();
+const base = dataUrl();
+const csvs = paths("open/").filter((p) => p.endsWith(".csv"));
+const files = csvs.map((p) => {
+  const name = p.slice("open/".length);
+  const schema = readJSON<Schema>(p.replace(".csv", ".schema.json"));
+  const e = m.files.find((f) => f.path === p)!;
+  return { name, schema, size: e.size, sha256: e.sha256 };
+});
+const draws = m.files.find((f) => f.path === "open/draws.parquet");
+const indexPath = path.join(RELEASE_DIR, "releases", "index.json");
+const releases = fs.existsSync(indexPath)
+  ? (JSON.parse(fs.readFileSync(indexPath, "utf-8")).releases as { release: string; generatedAt: string; mode: string; supersededBy: string | null }[])
+  : [];
+const changelogPath = path.resolve(process.cwd(), "..", "CHANGELOG-data.md");
+const changelogRows = fs.existsSync(changelogPath)
+  ? fs.readFileSync(changelogPath, "utf-8").split("\n").filter((l) => l.startsWith("|") && !l.includes("---") && !l.startsWith("| Datum"))
+      .map((l) => l.split("|").slice(1, -1).map((c) => c.trim()))
+  : [];
+const kb = (n: number) => `${(n / 1024).toFixed(0)} kB`;
+const description = "Mandatorns prognoser som öppen data: CSV-filer på stabila adresser, versionerade releaser med kontrollsummor, licens CC BY-NC 4.0.";
+const jsonLd = {
+  "@context": "https://schema.org", "@type": "DataCatalog", name: "Mandatorn – öppen data", url: "https://mandatorn.se/data/",
+  license: "https://creativecommons.org/licenses/by-nc/4.0/",
+  dataset: files.map((f) => ({ "@type": "Dataset", name: f.schema.title, license: "https://creativecommons.org/licenses/by-nc/4.0/",
+    distribution: { "@type": "DataDownload", encodingFormat: "text/csv", contentUrl: `https://data.mandatorn.se/latest/${f.name}` } })),
+};
+---
+<Layout title="Öppen data" description={description} jsonLd={jsonLd}>
+  <h1>Öppen data</h1>
+  <p class="lede">All data bakom prognosen publiceras som öppna filer. Varje körning ger en oföränderlig release med kontrollsummor, och de senaste versionerna finns alltid på stabila adresser.</p>
+
+  <h2>Licens och källa</h2>
+  <p>Datan får användas fritt för icke-kommersiella ändamål enligt <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.sv">CC BY-NC 4.0</a>. Medier och företag kan teckna en <a href="/licens/">kommersiell licens</a>.</p>
+  <p>Ange källa så här: <em>{files[0]?.schema.attribution}</em></p>
+
+  <h2>Filer</h2>
+  <p class="small muted">Senaste release <span class="num">{m.release.slice(0, 16)}</span>, referensdatum {dateSv(m.generatedAt)}. Stabila adresser under <code>{base}/latest/</code> skrivs om vid varje release; samma filer finns i varje release (se <a href={`${base}/manifest.json`}>manifestet</a>).</p>
+  {files.map((f) => (
+    <section class="card" style="margin-bottom:1rem">
+      <h3 style="margin-top:0"><a href={`${base}/latest/${f.name}`}>{f.name}</a> <span class="small muted">({kb(f.size)})</span></h3>
+      <p>{f.schema.title}. <a href={`${base}/latest/${f.name.replace(".csv", ".schema.json")}`} class="small">Schema (JSON)</a></p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Kolumn</th><th>Beskrivning</th><th>Typ</th></tr></thead>
+          <tbody>{f.schema.columns.map((c) => <tr><td><code>{c.name}</code></td><td>{c.description}</td><td class="small muted">{c.type}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="small muted">SHA-256 {f.sha256}</p>
+    </section>
+  ))}
+  {draws && (
+    <section class="card">
+      <h3 style="margin-top:0"><a href={`${base}/latest/draws.parquet`}>draws.parquet</a> <span class="small muted">({kb(draws.size)})</span></h3>
+      <p>Urval av simuleringsdragningar: röstandel per parti (kolumner <code>M</code>…<code>SD</code>) och mandat (<code>seats_M</code>…) per dragning. Används för egna villkor, t.ex. koalitioner. Dragningar sparas för den senaste releasen, en release per dygn och valdagen.</p>
+    </section>
+  )}
+
+  <h2>Rättelser</h2>
+  <p>Releaser raderas aldrig. En felaktig release rättas genom en ny release, och den gamla markeras som ersatt (<code>supersededBy</code> i dess manifest).</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Datum</th><th>Rättad release</th><th>Ny release</th><th>Vad var fel</th><th>Påverkan</th></tr></thead>
+      <tbody>{changelogRows.map((r) => <tr>{r.map((c) => <td>{c}</td>)}</tr>)}</tbody>
+    </table>
+  </div>
+
+  <h2>Releaser</h2>
+  <p class="small muted">De senaste releaserna. Alla manifest finns under <code>{base}/releases/&lt;id&gt;/manifest.json</code> och listas i <a href={`${base}/releases/index.json`}>releases/index.json</a>.</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Release</th><th>Referensdatum</th><th>Läge</th><th>Status</th></tr></thead>
+      <tbody>
+        {[...releases].reverse().slice(0, 20).map((r) => (
+          <tr><td class="num"><a href={`${base}/releases/${r.release}/manifest.json`}>{r.release.slice(0, 16)}</a></td><td>{r.generatedAt.slice(0, 10)}</td><td>{r.mode}</td><td>{r.supersededBy ? `ersatt av ${r.supersededBy.slice(0, 12)}` : "giltig"}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Återskapa en release</h2>
+  <p>Varje manifest anger modellversion (git-commit), seed och en hash av all indata. Med samma indata ger <code>python -m mandatorn_model.publish --reference-date &lt;datum&gt;</code> samma release-id. Koden finns på <a href="https://github.com/OliverRykatkin/H-H">GitHub</a> (MIT).</p>
+</Layout>

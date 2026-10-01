@@ -1,0 +1,77 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ProbCard from "../../components/ProbCard.astro";
+import ProbHistogram from "../../components/ProbHistogram.astro";
+import CoalitionBuilder from "../../islands/CoalitionBuilder";
+import { PARTY_COLORS } from "@contracts/constants";
+import * as D from "../../lib/data";
+import { partyName, dateSv, slugify } from "../../lib/format";
+import { displayPct, verbal } from "../../lib/text/scale";
+import { formatNumber, formatInteger } from "../../lib/text/grammar";
+
+const nat = D.national();
+const sim = D.simulation();
+const probs = D.probabilities();
+const blocColor: Record<string, string> = { "Högerblocket": "#1f8f78", "Vänsterblocket": "#c2405f" };
+const majority = Object.entries(sim.blocs).map(([name, v]) => ({ name, p: v.pMajority }));
+const parties = [...sim.parties].sort((a, b) => b.median - a.median);
+const coalitions = [...sim.coalitions].sort((a, b) => b.prob - a.prob);
+const top = [...majority].sort((a, b) => b.p - a.p)[0];
+const description = `Sannolikheter för valet ${nat.nextElection.slice(0, 4)} ur ${formatInteger(sim.nSims)} simuleringar: ${majority.map((m) => `${m.name} ${displayPct(m.p)}`).join(", ")}.`;
+---
+<Layout title="Sannolikheter" description={description}>
+  <h1>Hur sannolikt är det att …</h1>
+  <p class="lede">
+    Sannolikheterna bygger på {formatInteger(sim.nSims)} simuleringar av valet {nat.nextElection.slice(0, 4)},
+    {sim.horizonDays} dagar framåt. Mest sannolikt utfall för majoriteten: {top.name.toLocaleLowerCase("sv-SE") === "inget block" ? "inget block får egen majoritet" : `${top.name} får egen majoritet`} ({displayPct(top.p)}, {verbal(top.p).toLocaleLowerCase("sv-SE")}).
+  </p>
+  <p class="small muted">Uppdaterad {dateSv(nat.referenceDate)}. Osäkerheten växer med tiden kvar till valet. Simuleringar visar aldrig 0 eller 100 procent — mindre än 1 procent visas som &lt;1 %.</p>
+
+  <div class="grid grid-3">
+    {probs.questions.map((q) => <ProbCard q={q} />)}
+  </div>
+
+  <h2>Egen majoritet</h2>
+  <section class="grid grid-3" aria-label="Majoritetssannolikheter">
+    {majority.map((m) => (
+      <div class="card metric"><div class="label">{m.name}</div><div class="value">{displayPct(m.p)}</div><div class="sub">{verbal(m.p)}</div></div>
+    ))}
+  </section>
+  {Object.entries(sim.blocHistogram).map(([name, h]) => (
+    <ProbHistogram histogram={h} color={blocColor[name] ?? "#888"} title={`${name}: mandat i simuleringarna`} nSims={sim.nSims} />
+  ))}
+
+  <h2>Mandat per parti på valdagen</h2>
+  <div class="table-scroll">
+    <table>
+      <caption>Simuleringens fördelning. σ = osäkerhet i procentenheter (mätningar, horisont, totalt).</caption>
+      <thead><tr><th>Parti</th><th class="r">Median</th><th class="r">50 % intervall</th><th class="r">90 % intervall</th><th class="r">Över spärren</th><th class="r">σ mätn.</th><th class="r">σ horisont</th><th class="r">σ totalt</th></tr></thead>
+      <tbody>
+        {parties.map((r) => (
+          <tr>
+            <td><span class="swatch" style={`background:${PARTY_COLORS[r.party]}`}></span><a href={`/parti/${slugify(partyName(r.party))}/`}>{partyName(r.party)}</a></td>
+            <td class="r"><strong>{r.median}</strong></td><td class="r">{r.p25}–{r.p75}</td><td class="r">{r.p5}–{r.p95}</td>
+            <td class="r">{displayPct(r.pAboveThreshold)}</td>
+            <td class="r">{formatNumber(r.sdPolls, 1)}</td><td class="r">{formatNumber(r.sdHorizon, 1)}</td><td class="r">{formatNumber(r.sdTotal, 1)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Koalitioner</h2>
+  <div class="table-scroll">
+    <table>
+      <caption>Sannolikhet för minst 175 mandat och mandatfördelning per koalition.</caption>
+      <thead><tr><th>Koalition</th><th class="r">Egen majoritet</th><th class="r">Median</th><th class="r">90 % intervall</th></tr></thead>
+      <tbody>
+        {coalitions.map((c) => (
+          <tr><td>{c.name}</td><td class="r"><strong>{displayPct(c.prob)}</strong> <span class="small muted">{verbal(c.prob)}</span></td><td class="r">{c.med}</td><td class="r">{c.p5}–{c.p95}</td></tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <CoalitionBuilder client:visible />
+  <noscript><p class="banner warn">Koalitionsbyggaren kräver JavaScript. Fasta koalitioner finns i tabellen ovan.</p></noscript>
+</Layout>

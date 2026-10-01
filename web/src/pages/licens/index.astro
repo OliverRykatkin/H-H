@@ -1,0 +1,15 @@
+---
+import Layout from "../../layouts/Layout.astro";
+const contact = import.meta.env.PUBLIC_LICENSE_EMAIL as string | undefined;
+---
+<Layout title="Licens" description="Mandatorns data får användas fritt för icke-kommersiella ändamål (CC BY-NC 4.0). Kommersiell licens för medier och företag.">
+  <h1>Licens</h1>
+  <h2>Öppen data — CC BY-NC 4.0</h2>
+  <p>Prognoser, tidsserier och övriga filer på <a href="/data/">öppen data</a> får delas och bearbetas för icke-kommersiella ändamål, om Mandatorn anges som källa (<a href="https://creativecommons.org/licenses/by-nc/4.0/deed.sv">licenstext</a>). Det gäller till exempel forskning, undervisning, privata projekt och ideella organisationer.</p>
+  <h2>Kommersiell licens</h2>
+  <p>Medier, analysföretag och andra som vill använda datan kommersiellt — i publicerade artiklar och grafik, betaltjänster eller kundrapporter — tecknar en kommersiell licens. {contact ? <>Kontakta <a href={`mailto:${contact}`}>{contact}</a>.</> : <>Kontakta upphovspersonen via <a href="https://github.com/OliverRykatkin/H-H">GitHub</a>.</>}</p>
+  <h2>Kod — MIT</h2>
+  <p>Källkoden är öppen under MIT-licensen på <a href="https://github.com/OliverRykatkin/H-H">GitHub</a>.</p>
+  <h2>Källdata</h2>
+  <p>Opinionsmätningarna kommer från respektive institut via SwedishPolls (CC0). Valresultat kommer från Valmyndigheten, som ska anges som källa.</p>
+</Layout>

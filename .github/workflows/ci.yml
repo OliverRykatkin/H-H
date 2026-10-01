@@ -32,6 +32,45 @@ jobs:
       - name: TypeScript-typerna kompilerar
         run: npx --yes -p typescript@5 tsc --noEmit --strict contracts/ts/contracts.ts
 
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements-pipeline.txt
+      - run: pip install -r requirements-pipeline.txt
+      - name: Bygg en release att rendera mot
+        run: python -m mandatorn_model.publish --out dist-data --force
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - name: Golden tests (mandat Python↔TS) och mallmotor
+        run: npx vitest run
+        working-directory: web
+      - name: Typkontroll
+        run: npx astro check
+        working-directory: web
+      - name: Bygg sajten + prestandabudget, sitemap, OG-bilder
+        run: npm run build
+        working-directory: web
+      - name: Lighthouse (mobil) för startsidan och en kommunsida
+        run: npx --yes @lhci/cli@0.14 autorun
+        working-directory: web
+      - name: Förhandsvisning (artefakt per PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-site
+          path: web/dist
+          retention-days: 7
+
   terraform:
     runs-on: ubuntu-latest
     defaults:

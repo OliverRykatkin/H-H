@@ -1,0 +1,64 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { VERBAL_SCALE, BASELINE_YEAR, NEXT_ELECTION_YEAR } from "@contracts/constants";
+import { simulation } from "../../lib/data";
+
+const sim = simulation();
+const steps = VERBAL_SCALE.steps as { below?: number; atMost?: number; label: string }[];
+let lo = 0;
+const scaleRows = steps.map((s) => {
+  const hi = s.below ?? s.atMost ?? 1;
+  const row = { label: s.label, from: lo, to: hi, closed: s.atMost != null };
+  lo = hi;
+  return row;
+});
+const pc = (v: number) => `${Math.round(v * 100)} %`;
+const description = "Så fungerar Mandatorn: aggregering av opinionsmätningar med Kalmanfilter, simuleringar, mandatfördelning enligt vallagen, lokala prognoser och nowcast på valnatten.";
+---
+<Layout title="Metod" description={description} jsonLd={{ "@context": "https://schema.org", "@type": "TechArticle", headline: "Mandatorns metod", inLanguage: "sv" }}>
+  <h1>Så fungerar Mandatorn</h1>
+  <p class="lede">Mandatorn väger samman alla publicerade opinionsmätningar till ett skattat partistöd, simulerar osäkerheten fram till valet och räknar om resultatet till mandat enligt vallagen — nationellt, per valkrets och i varje kommun och region.</p>
+
+  <h2>1. Sammanvägning av mätningar</h2>
+  <p>Varje partis stöd modelleras som en slumpvandring som rör sig lite varje dag (processbrus 0,10 procentenheter per dag). Varje mätning ses som en brusig observation av det verkliga läget. Bruset beror på urvalets storlek och på institutets träffsäkerhet i det senaste valet: institut som träffade bättre får större vikt. Skattningen görs med ett Kalmanfilter och utjämnas bakåt i tiden (Rauch–Tung–Striebel).</p>
+  <p>Efter ett val startar filtret om i valresultatet. Valresultatet {BASELINE_YEAR} läggs in som en mätning utan osäkerhet, och bara mätningar publicerade efter valdagen påverkar skattningen. Vallokalsundersökningar från valdagen räknas bort.</p>
+
+  <h2>2. Osäkerhet och simuleringar</h2>
+  <p>Prognosen visar läget <em>om det vore val i dag</em>. Sannolikheterna avser däremot valdagen {NEXT_ELECTION_YEAR}: varje parti får en normalfördelad osäkerhet som består av spridningen mellan mätningarna, en strukturell osäkerhet på 1,0 procentenhet och en horisontterm som växer med tiden kvar till valet (ungefär 2 procentenheter för ett parti på 12 % fyra år ut). Modellen drar {sim.nSims.toLocaleString("sv-SE")} möjliga utfall och räknar fram mandaten i vart och ett.</p>
+  <p>Sannolikheter visas aldrig som 0 eller 100 %, eftersom simuleringar inte kan utesluta något helt; i stället "&lt;1 %" och "&gt;99 %". Ord som "troligt" följer en fast skala:</p>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Sannolikhet</th><th>Beskrivning</th></tr></thead>
+      <tbody>{scaleRows.map((r) => <tr><td>{pc(r.from)}–{pc(r.to)}{r.closed ? "" : " (ej inklusive)"}</td><td>{r.label}</td></tr>)}</tbody>
+    </table>
+  </div>
+
+  <h2>3. Mandatfördelning enligt vallagen</h2>
+  <ul>
+    <li><strong>Spärrar.</strong> Ett parti deltar i mandatfördelningen om det fått minst 4 % av rösterna i landet. Ett parti med minst 12 % i en valkrets deltar i fördelningen av de fasta mandaten i just den valkretsen. Spärrarna prövas mot andelen av alla giltiga röster.</li>
+    <li><strong>Fasta valkretsmandat (310).</strong> Fördelas i varje valkrets med den jämkade uddatalsmetoden: partiets röster delas med 1,2 för första mandatet och sedan med 3, 5, 7 …</li>
+    <li><strong>Hela landet (349).</strong> Samma metod på landets röster avgör hur många mandat varje parti ska ha totalt. Har ett parti fått fler fasta mandat än så återförs de med lägst jämförelsetal.</li>
+    <li><strong>Utjämningsmandat (39).</strong> Övriga partier får mellanskillnaden. Mandaten placeras i den valkrets där partiet har högst jämförelsetal enligt den vanliga uddatalsmetoden (1, 3, 5 …).</li>
+    <li><strong>Lika jämförelsetal.</strong> Vallagen föreskriver lottning; Mandatorn avgör i stället till förmån för partiet med flest röster, sedan i bokstavsordning, så att resultaten går att återskapa.</li>
+  </ul>
+  <p>Beräkningen återskapar Valmyndighetens officiella fördelning av fasta mandat och utjämningsmandat i alla 29 valkretsar i valen 2022 och 2026 exakt. Samma kod körs i webbläsaren för egna scenarier.</p>
+
+  <h2>4. Valkretsar, kommuner och regioner</h2>
+  <p>De lokala prognoserna bygger på varje områdes avvikelse från rikssnittet i valet {BASELINE_YEAR}. Den nationella förändringen sedan valet läggs på lika i alla områden (uniform swing), räknad så att förändringarna summerar till noll. Lokala partier, som saknar opinionsmätningar, antas få samma resultat som i valet {BASELINE_YEAR}. Kommun- och regionmandaten fördelas med respektive områdes spärr (2 eller 3 %) och utjämningsmandat. Metoden fångar inte lokala trender som avviker från riket.</p>
+
+  <h2>5. Valnatten</h2>
+  <p>På valnatten räknas små distrikt ofta först, så den löpande räkningen är missvisande. Nowcasten jämför i stället <em>förändringen</em> mot förra valet i de distrikt som räknats och skriver fram den till de oräknade (metoden från valprognos.se). <a href="/valnatt/">Uppspelningen av valnatten 2026</a> visar hur den träffade.</p>
+
+  <h2>6. Kandidater</h2>
+  <p>Fram till att partierna lämnat in sina listor för {NEXT_ELECTION_YEAR} visar kandidatsidorna de ledamöter som valdes {BASELINE_YEAR}. Prognosen för vilka som väntas bli invalda bygger på listordningen; personkryss modelleras inte.</p>
+
+  <h2>7. Begränsningar</h2>
+  <ul>
+    <li>Institutens vikter bygger på ett enda val och kan spegla tillfälligheter.</li>
+    <li>Övriga partiers andel antas ligga kvar på valresultatets nivå när spärren prövas.</li>
+    <li>Mätningar från ett och samma institut behandlas som oberoende.</li>
+  </ul>
+
+  <h2>8. Data och kod</h2>
+  <p>Opinionsmätningar: <a href="https://github.com/MansMeg/SwedishPolls">SwedishPolls</a> (CC0), med respektive institut som ursprung. Valresultat och invalda: <a href="https://www.val.se">Valmyndigheten</a>. All publicerad data finns som <a href="/data/">öppen data</a> och koden är öppen på <a href="https://github.com/OliverRykatkin/H-H">GitHub</a>.</p>
+</Layout>

@@ -1,0 +1,15 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import GeoAreaIndex from "../../components/GeoAreaIndex.astro";
+import * as D from "../../lib/data";
+import { regionHref } from "../../components/GeoUtil";
+import { BASELINE_YEAR } from "@contracts/constants";
+
+const areas = D.regioner();
+const description = `Valprognos för Sveriges ${areas.length} regioner: regionval om det vore val i dag, jämfört med ${BASELINE_YEAR}.`;
+---
+<Layout title="Regioner" description={description}>
+  <h1>Regioner</h1>
+  <p class="lede">Prognos för regionfullmäktige i {areas.length} regioner (Gotland har inget regionval). Det nationella opinionsläget förs över med uniform swing från valet {BASELINE_YEAR}; lokala partier antas få samma resultat som då.</p>
+  <GeoAreaIndex areas={areas} hrefFor={regionHref} kind="region" />
+</Layout>

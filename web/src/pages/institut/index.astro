@@ -1,0 +1,48 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { BASELINE_YEAR } from "@contracts/constants";
+import * as D from "../../lib/data";
+import { slugify } from "../../lib/format";
+import { formatNumber } from "../../lib/text/grammar";
+
+const inst = D.institutes();
+const polls = D.polls().polls;
+const num = (v: unknown) => (typeof v === "number" && !Number.isNaN(v) ? v : null);
+const names = [...new Set<string>([
+  ...polls.map((p) => p.institute),
+  ...inst.bias.map((b) => String(b.institute)),
+  ...inst.weights.map((w) => String(w.institute)),
+])].sort((a, b) => a.localeCompare(b, "sv"));
+const rows = names.map((name) => {
+  const w = inst.weights.find((x) => x.institute === name);
+  const bias = inst.bias.filter((b) => b.institute === name);
+  const absMean = bias.length ? bias.reduce((s, b) => s + Math.abs(num(b.mean_dev_pp) ?? 0), 0) / bias.length : null;
+  const last = polls.find((p) => p.institute === name);
+  return { name, w, absMean, n: bias.reduce((m, r) => Math.max(m, num(r.n) ?? 0), 0), last };
+});
+---
+<Layout title="Opinionsinstitut" description={`Opinionsinstituten i Mandatorn: vikter efter träffsäkerhet mot valet ${BASELINE_YEAR} och husbias per parti.`}>
+  <h1>Opinionsinstitut</h1>
+  <p class="lede">Mandatorn väger samman alla publicerade mätningar. Institut som träffade bättre i valet {BASELINE_YEAR} väger tyngre. Husbiasen visar hur institutens mätningar avvikit från trenden.</p>
+  <div class="table-scroll">
+    <table>
+      <caption>Vikt 1,00 = genomsnitt. Genomsnittlig husbias = medelvärdet av absolut medelavvikelse över partierna (procentenheter).</caption>
+      <thead><tr>
+        <th scope="col">Institut</th><th scope="col" class="r">Vikt</th><th scope="col" class="r">Medelfel {BASELINE_YEAR}</th>
+        <th scope="col" class="r">Mätningar</th><th scope="col" class="r">Genomsnittlig husbias</th><th scope="col">Senaste mätning</th>
+      </tr></thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr>
+            <th scope="row"><a href={`/institut/${slugify(r.name)}/`}>{r.name}</a></th>
+            <td class="r">{r.w && num(r.w.weight) != null ? formatNumber(num(r.w.weight)!, 2) : "1,00"}</td>
+            <td class="r">{r.w && num(r.w.mae) != null ? `${formatNumber(num(r.w.mae)!, 2)} pe` : "–"}</td>
+            <td class="r">{r.n || "–"}</td>
+            <td class="r">{r.absMean == null ? "–" : `${formatNumber(r.absMean, 2)} pe`}</td>
+            <td class="small">{r.last ? r.last.published : "–"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Layout>

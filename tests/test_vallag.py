@@ -86,3 +86,18 @@ def test_prognosmotorn_med_valresultatet_2026_ger_officiella_mandat():
     for name in CONSTITUENCIES:
         assert {p: v for p, v in m["fixed"][name].items() if v} == official[name]["official_fixed"], name
         assert m["adjustment_by_constituency"][name] == official[name]["official_adjustment"], name
+
+
+def test_baslinjens_totala_mandat_inkluderar_utjamning():
+    """Jämförelsen mot valet ska avse totala mandat (fasta + utjämning), inte bara fasta."""
+    from datetime import datetime
+    from pathlib import Path as _P
+
+    from mandatorn_model.forecast import build_forecast
+    from mandatorn_model.polls import parse_polls
+
+    polls = parse_polls((_P(__file__).resolve().parents[1] / "data" / "polls" / "Polls.csv").read_text(encoding="utf-8"))
+    fc = build_forecast(polls, datetime(2026, 10, 1), n_sims=100)
+    g = _load("riksdag_2026.json")
+    assert fc.baseline_seats_total == {p: g["official_total"].get(p, 0) for p in fc.baseline_seats_total}
+    assert sum(fc.baseline_seats_total.values()) == 349

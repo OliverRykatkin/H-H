@@ -1,0 +1,70 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import LineChart from "../../components/LineChart.astro";
+import { PARTIES, PARTY_COLORS } from "@contracts/constants";
+import { archive } from "../../lib/data";
+import { paths } from "../../lib/release";
+import { pct, signed, partyName, dateSv } from "../../lib/format";
+import { displayPct } from "../../lib/text/scale";
+import { sentences } from "../../lib/text/grammar";
+
+export function getStaticPaths() {
+  return paths("archive/").map((p) => ({ params: { year: p.slice("archive/".length, -".json".length) } }));
+}
+const year = Number(Astro.params.year);
+const a = archive(year)!;
+const dates = a.days.map((d) => d.date);
+const last = a.days[a.days.length - 1];
+const weekBefore = a.days.find((d) => d.daysLeft === 7) ?? last;
+const result = a.result.shares;
+const seatsResult = a.result.seats;
+const errors = PARTIES.map((p) => weekBefore.shares[p] - result[p]);
+const mae = errors.reduce((s, e) => s + Math.abs(e), 0) / errors.length;
+const blocs = { "Högerblocket": ["M", "L", "KD", "SD"], "Vänsterblocket": ["S", "V", "MP", "C"] } as const;
+const winner = Object.entries(blocs).map(([b, ps]) => ({ b, seats: ps.reduce((s, p) => s + (seatsResult[p] ?? 0), 0) }))
+  .sort((x, y) => y.seats - x.seats)[0];
+const ingress = sentences([
+  `Riksdagsvalet ${year} hölls den ${dateSv(a.electionDate)}`,
+  `${winner.b} fick ${winner.seats} av ${a.totalSeats} mandat`,
+  `En vecka före valet låg Mandatorns skattning i genomsnitt ${pct(mae).replace(" %", "")} procentenheter från utfallet per parti`,
+]);
+const description = `Mandatorns prognos inför riksdagsvalet ${year} jämförd med utfallet.`;
+---
+<Layout title={`Arkiv: valet ${year}`} description={description} jsonLd={{ "@context": "https://schema.org", "@type": "Dataset", name: `Mandatorn – prognosen inför valet ${year}`, temporalCoverage: `${dates[0]}/${a.electionDate}` }}>
+  <h1>Valet {year}: prognosen och utfallet</h1>
+  <p class="lede">{ingress}</p>
+  <p class="banner warn small">{a.note} Modellversion {a.modelVersion.slice(0, 10)}, {a.nSims.toLocaleString("sv-SE")} simuleringar per dag.</p>
+
+  <h2>Skattat stöd det sista året</h2>
+  <LineChart dates={dates} title={`Skattat partistöd inför valet ${year}`}
+    series={PARTIES.map((p) => ({ key: p, label: partyName(p), color: PARTY_COLORS[p], values: a.days.map((d) => d.shares[p]), final: result[p] }))} />
+
+  <h2>Sannolikhet för egen majoritet</h2>
+  <LineChart dates={dates} title="Sannolikhet för egen majoritet per block" yMin={0} yMax={100} refLine={50}
+    series={[
+      { key: "H", label: "Högerblocket", color: "#1f8f78", values: a.days.map((d) => d.pMajority["Högerblocket"] * 100) },
+      { key: "V", label: "Vänsterblocket", color: "#c2405f", values: a.days.map((d) => d.pMajority["Vänsterblocket"] * 100) },
+    ]} />
+
+  <h2>En vecka före valet jämfört med utfallet</h2>
+  <div class="table-scroll">
+    <table>
+      <caption>Skattning {dateSv(weekBefore.date)} ({weekBefore.daysLeft} dagar kvar) mot valresultatet. Mandat = median i simuleringarna (fördelning i landet).</caption>
+      <thead><tr><th>Parti</th><th class="r">Skattning</th><th class="r">Resultat</th><th class="r">Fel</th><th class="r">P(spärr)</th><th class="r">Mandat (prognos)</th><th class="r">Mandat (utfall)</th></tr></thead>
+      <tbody>
+        {PARTIES.map((p, i) => (
+          <tr>
+            <td><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span>{partyName(p)}</td>
+            <td class="r">{pct(weekBefore.shares[p])}</td>
+            <td class="r">{pct(result[p])}</td>
+            <td class="r">{signed(errors[i])}</td>
+            <td class="r">{displayPct(weekBefore.pThreshold[p])}</td>
+            <td class="r">{weekBefore.seatsMedian[p]}</td>
+            <td class="r">{seatsResult[p] ?? 0}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">Skattningen är andel bland de åtta riksdagspartierna; resultatet är andel av alla giltiga röster.</p>
+</Layout>

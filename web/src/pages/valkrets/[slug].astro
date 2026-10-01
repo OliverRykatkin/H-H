@@ -1,0 +1,84 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Ingress from "../../components/Ingress.astro";
+import GeoShareTable from "../../components/GeoShareTable.astro";
+import GeoSeatTable from "../../components/GeoSeatTable.astro";
+import GeoSeatDist from "../../components/GeoSeatDist.astro";
+import type { Constituency } from "@contracts/contracts";
+import { PARTIES, PARTY_COLORS, BASELINE_YEAR } from "@contracts/constants";
+import * as D from "../../lib/data";
+import { constituencyIngress } from "../../lib/text/ingress";
+import { partyName } from "../../lib/format";
+import { formatNumber } from "../../lib/text/grammar";
+import { kommunerInValkrets, kommunHref } from "../../components/GeoUtil";
+
+export function getStaticPaths() {
+  return D.constituencies().map((c) => ({ params: { slug: c.slug }, props: { c } }));
+}
+const { c } = Astro.props as { c: Constituency };
+const nat = D.national();
+const ingress = constituencyIngress(c, nat);
+const members = (D.elected()?.members ?? []).filter((m) => m.valkrets === c.name);
+const kommuner = kommunerInValkrets(c.name);
+const margins = [...c.margins].sort((a, b) => Math.min(a.gainPp ?? 99, a.losePp ?? 99) - Math.min(b.gainPp ?? 99, b.losePp ?? 99));
+const pp = (v: number | null) => (v == null ? "–" : `${formatNumber(v, 2)} pe`);
+const jsonLd = {
+  "@context": "https://schema.org", "@type": "AdministrativeArea", name: `Riksdagsvalkrets ${c.name}`,
+  url: new URL(`/valkrets/${c.slug}/`, Astro.site).href, containedInPlace: { "@type": "Country", name: "Sverige" },
+};
+---
+<Layout title={`Valkrets ${c.name}`} description={ingress} jsonLd={jsonLd}>
+  <p class="small"><a href="/valkretsar/">Valkretsar</a> › {c.name}</p>
+  <h1>Valkrets {c.name}</h1>
+  <Ingress text={ingress} live={`valkrets:${c.slug}`} />
+  <p class="small muted">{c.seats} fasta mandat. Prognosen gäller om det vore val i dag; sannolikheterna avser valdagen.</p>
+
+  <h2>Partistöd</h2>
+  <GeoShareTable caption={`Röstandel i valkretsen: valet ${BASELINE_YEAR} och prognos nu (uniform swing från det nationella läget).`} baseline={c.baseline} now={c.now} />
+
+  <h2>Fasta mandat</h2>
+  <GeoSeatTable caption={`Fasta valkretsmandat: prognos om det vore val i dag och utfallet ${BASELINE_YEAR}. Utjämningsmandat tillkommer.`} now={c.fixedNow} baseline={c.fixedBaseline} total={c.seats} />
+  {c.seatDistribution && <GeoSeatDist dist={c.seatDistribution} now={c.fixedNow} />}
+
+  <h2>Mandatmarginal</h2>
+  <div class="table-scroll">
+    <table>
+      <caption>Hur mycket partiets lokala röstandel behöver ändras för att vinna eller förlora ett fast mandat (procentenheter). Lägst först.</caption>
+      <thead><tr><th scope="col">Parti</th><th scope="col" class="r">Fasta mandat</th><th scope="col" class="r">För +1</th><th scope="col" class="r">För −1</th></tr></thead>
+      <tbody>
+        {margins.map((m) => (
+          <tr>
+            <th scope="row"><span class="swatch" style={`background:${PARTY_COLORS[m.party]}`}></span>{partyName(m.party)}</th>
+            <td class="r">{c.fixedNow[m.party] ?? 0}</td>
+            <td class="r">{pp(m.gainPp)}</td>
+            <td class="r">{(c.fixedNow[m.party] ?? 0) > 0 ? pp(m.losePp) : "–"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {members.length > 0 && (
+    <>
+      <h2>Invalda {BASELINE_YEAR}</h2>
+      <p class="small muted">Riksdagsledamöter valda från valkretsen {BASELINE_YEAR}, inklusive utjämningsmandat (Valmyndigheten). Kandidatlistor för nästa val finns inte än.</p>
+      <ul class="geo-members">
+        {PARTIES.flatMap((p) => members.filter((m) => m.parti === p)).map((m) => (
+          <li><span class="swatch" style={`background:${PARTY_COLORS[m.parti] ?? "#999"}`}></span><a href={`/kandidat/${m.slug}/`}>{m.namn}</a> <span class="small muted">({m.parti})</span></li>
+        ))}
+      </ul>
+    </>
+  )}
+
+  {kommuner.length > 0 && (
+    <>
+      <h2>Kommuner i valkretsen</h2>
+      <p>{kommuner.map((k, i) => <>{i > 0 && ", "}<a href={kommunHref(k.code)}>{k.name}</a></>)}</p>
+    </>
+  )}
+  <p class="small"><a href={`/partier/`}>Partier</a> · <a href="/valkretsar/">Alla valkretsar</a> · <a href={`/data/`}>Ladda ner valkretsprognosen (CSV)</a></p>
+</Layout>
+<style>
+  .geo-members { columns: 2 16rem; padding-left: 1rem; }
+  .geo-members li { break-inside: avoid; }
+</style>

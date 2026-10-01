@@ -1,0 +1,30 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { manifest } from "../../lib/release";
+const m = manifest();
+const build = { commit: import.meta.env.PUBLIC_BUILD_COMMIT ?? "lokal", builtAt: new Date().toISOString() };
+---
+<Layout title="Status" description="Status för Mandatorns publicering: senaste release, bygge och körning." noindex>
+  <h1>Status</h1>
+  <div class="table-scroll">
+    <table>
+      <tbody>
+        <tr><th scope="row">Sidan byggd</th><td class="num">{build.builtAt.slice(0, 16).replace("T", " ")} UTC (commit {build.commit.slice(0, 10)})</td></tr>
+        <tr><th scope="row">Release i bygget</th><td class="num">{m.release.slice(0, 16)} · referensdatum {m.generatedAt.slice(0, 10)}</td></tr>
+        <tr><th scope="row">Modellversion</th><td class="num">{m.modelVersion.slice(0, 10)}</td></tr>
+        <tr><th scope="row">Mätningar</th><td>{m.pollsIncluded.count} st, senaste publicerad {m.pollsIncluded.latestPublished}</td></tr>
+        <tr><th scope="row">Senaste release just nu</th><td id="live-release">hämtas …</td></tr>
+        <tr><th scope="row">Senaste körning</th><td id="live-run">hämtas …</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="small muted">Maskinläsbar version: <a href="/version.json">/version.json</a>.</p>
+  <script>
+    import { dataBase, fetchManifest } from "../../lib/client/release";
+    const set = (id: string, text: string) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+    fetchManifest().then((m) => set("live-release", `${m.release.slice(0, 16)} · referensdatum ${m.generatedAt.slice(0, 10)} · ${m.mode}`))
+      .catch((e) => set("live-release", `kunde inte hämtas (${e.message})`));
+    fetch(`${dataBase()}/status.json`, { cache: "no-cache" }).then((r) => r.json())
+      .then((s) => set("live-run", `${s.runAt} (${s.mode})`)).catch(() => set("live-run", "okänd"));
+  </script>
+</Layout>

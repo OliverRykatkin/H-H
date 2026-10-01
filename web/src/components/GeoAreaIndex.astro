@@ -1,0 +1,69 @@
+---
+/** Lista över kommuner eller regioner: största parti i fullmäktige (prognos), mandat och karta (om geodata finns). */
+import type { Area } from "@contracts/contracts";
+import { PARTIES, PARTY_COLORS } from "@contracts/constants";
+import { partyName } from "../lib/format";
+import MapView from "../islands/MapView";
+
+interface Props { areas: Area[]; hrefFor: (a: Area) => string; kind: "kommun" | "region"; anchors?: boolean }
+const { areas, hrefFor, kind, anchors = false } = Astro.props;
+const seatsOf = (a: Area) => (kind === "kommun" ? a.kommunSeats : a.regionSeats);
+function largest(a: Area) {
+  const s = seatsOf(a);
+  if (!s) return null;
+  const [p, n] = Object.entries(s.now).sort((x, y) => y[1] - x[1])[0] ?? [];
+  if (!p) return null;
+  const isNat = (PARTIES as readonly string[]).includes(p);
+  return { p, n, total: s.totalSeats, name: isNat ? partyName(p) : s.names[p] ?? p, color: PARTY_COLORS[p] ?? "#9a9a9a" };
+}
+const rows = areas.map((a) => ({ a, l: largest(a), href: hrefFor(a) }));
+const letters = [...new Set(rows.map((r) => r.a.name[0].toLocaleUpperCase("sv-SE")))];
+const geoUrl = kind === "kommun" ? import.meta.env.PUBLIC_GEO_KOMMUNER_URL : import.meta.env.PUBLIC_GEO_REGIONER_URL;
+const attribution = import.meta.env.PUBLIC_GEO_ATTRIBUTION ?? "© Lantmäteriet (CC BY 4.0)";
+const values = Object.fromEntries(rows.filter((r) => r.l).map((r) => [r.a.code, {
+  name: r.a.name, href: r.href, color: r.l!.color, label: `${r.l!.name} största parti (${r.l!.n} av ${r.l!.total} mandat)`,
+}]));
+---
+{geoUrl && <MapView client:visible geoUrl={geoUrl} idProperty={kind === "kommun" ? "kommunkod" : "lanskod"} values={values}
+  title={`Största parti i ${kind === "kommun" ? "kommunfullmäktige" : "regionfullmäktige"} om det vore val i dag`} attribution={attribution} />}
+
+{anchors && (
+  <nav aria-label="Hoppa till bokstav" class="geo-letters">
+    {letters.map((l) => <a href={`#bokstav-${l}`}>{l}</a>)}
+  </nav>
+)}
+<p>
+  <label for="geo-filter">Sök {kind === "kommun" ? "kommun" : "region"}:</label>
+  <input id="geo-filter" type="search" autocomplete="off" />
+</p>
+<div class="table-scroll">
+  <table id="geo-table">
+    <caption>Största parti i {kind === "kommun" ? "kommunfullmäktige" : "regionfullmäktige"} enligt prognosen om det vore val i dag (mandat).</caption>
+    <thead><tr><th scope="col">{kind === "kommun" ? "Kommun" : "Region"}</th><th scope="col">Största parti</th><th scope="col" class="r">Mandat</th></tr></thead>
+    <tbody>
+      {rows.map((r, i) => {
+        const first = i === 0 || rows[i - 1].a.name[0].toLocaleUpperCase("sv-SE") !== r.a.name[0].toLocaleUpperCase("sv-SE");
+        return (
+          <tr data-name={r.a.name.toLocaleLowerCase("sv-SE")} id={anchors && first ? `bokstav-${r.a.name[0].toLocaleUpperCase("sv-SE")}` : undefined}>
+            <th scope="row"><a href={r.href}>{r.a.name}</a></th>
+            <td>{r.l ? <><span class="swatch" style={`background:${r.l.color}`}></span>{r.l.name}</> : "–"}</td>
+            <td class="r">{r.l ? `${r.l.n} av ${r.l.total}` : "–"}</td>
+          </tr>
+        );
+      })}
+    </tbody>
+  </table>
+</div>
+<script>
+  const input = document.getElementById("geo-filter") as HTMLInputElement | null;
+  const rows = document.querySelectorAll<HTMLTableRowElement>("#geo-table tbody tr");
+  input?.addEventListener("input", () => {
+    const q = input.value.trim().toLocaleLowerCase("sv-SE");
+    rows.forEach((r) => { r.hidden = !!q && !(r.dataset.name ?? "").includes(q); });
+  });
+</script>
+<style>
+  .geo-letters { display: flex; flex-wrap: wrap; gap: 0.4rem 0.7rem; margin: 0.5rem 0 1rem; }
+  .geo-letters a { padding: 0.2rem 0.3rem; }
+  #geo-filter { font: inherit; padding: 0.35rem 0.5rem; border: 1px solid var(--c-border); border-radius: 4px; margin-left: 0.4rem; }
+</style>

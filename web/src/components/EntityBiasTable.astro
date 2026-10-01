@@ -1,0 +1,52 @@
+---
+/** Husbias-tabell (institutes.bias): en rad per institut (partisida) eller per parti (institutsida). */
+import { PARTY_COLORS } from "@contracts/constants";
+import { partyName, signed, slugify } from "../lib/format";
+import { formatNumber } from "../lib/text/grammar";
+
+type Row = Record<string, string | number | null>;
+interface Props { rows: Row[]; by: "institute" | "party"; caption: string }
+const { rows, by, caption } = Astro.props;
+const num = (v: unknown) => (typeof v === "number" && !Number.isNaN(v) ? v : null);
+const pctOf = (v: unknown) => { const n = num(v); return n == null ? "–" : `${formatNumber(n * 100, 0)} %`; };
+const pp = (v: unknown) => { const n = num(v); return n == null ? "–" : signed(n, 2); };
+const rel = (v: unknown) => { const n = num(v); return n == null ? "–" : `${n > 0 ? "+" : n < 0 ? "−" : ""}${formatNumber(Math.abs(n) * 100, 1)} %`; };
+const sorted = [...rows].sort((a, b) => (by === "institute"
+  ? String(a.institute).localeCompare(String(b.institute), "sv")
+  : String(a.party).localeCompare(String(b.party), "sv")));
+---
+{sorted.length === 0 ? <p class="muted">Ingen husbias kan beräknas ännu.</p> : (
+  <div class="table-scroll">
+    <table>
+      <caption>{caption}</caption>
+      <thead>
+        <tr>
+          <th scope="col">{by === "institute" ? "Institut" : "Parti"}</th>
+          <th scope="col" class="r">Mätningar</th>
+          <th scope="col" class="r">Över trenden</th>
+          <th scope="col" class="r">Under trenden</th>
+          <th scope="col" class="r">Medel (pe)</th>
+          <th scope="col" class="r">Median (pe)</th>
+          <th scope="col" class="r">Medel, relativt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((r) => (
+          <tr>
+            <th scope="row">
+              {by === "institute"
+                ? <a href={`/institut/${slugify(String(r.institute))}/`}>{r.institute}</a>
+                : <><span class="swatch" style={`background:${PARTY_COLORS[String(r.party)] ?? "#888"}`}></span><a href={`/parti/${slugify(partyName(String(r.party)))}/`}>{partyName(String(r.party))}</a></>}
+            </th>
+            <td class="r">{num(r.n) ?? "–"}</td>
+            <td class="r">{pctOf(r.share_over)}</td>
+            <td class="r">{pctOf(r.share_under)}</td>
+            <td class="r">{pp(r.mean_dev_pp)}</td>
+            <td class="r">{pp(r.median_dev_pp)}</td>
+            <td class="r">{rel(r.mean_dev_rel)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}

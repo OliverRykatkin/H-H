@@ -1,0 +1,38 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Ingress from "../../components/Ingress.astro";
+import GeoAreaBody from "../../components/GeoAreaBody.astro";
+import type { Area } from "@contracts/contracts";
+import * as D from "../../lib/data";
+import { areaIngress } from "../../lib/text/ingress";
+import { genitive } from "../../lib/text/grammar";
+import { kommunSlugs, regionForKommun, regionHref, valkretsForKommun } from "../../components/GeoUtil";
+import { slugify } from "../../lib/format";
+
+export function getStaticPaths() {
+  const slugs = kommunSlugs();
+  return D.kommuner().map((area) => ({ params: { slug: slugs.get(area.code)! }, props: { area } }));
+}
+const { area } = Astro.props as { area: Area };
+const ingress = areaIngress(area);
+const region = regionForKommun(area.code);
+const valkrets = valkretsForKommun(area.code);
+const title = `${genitive(area.name)} kommun`;
+const jsonLd = {
+  "@context": "https://schema.org", "@type": "AdministrativeArea", name: title, identifier: area.code,
+  url: new URL(Astro.url.pathname, Astro.site).href,
+  containedInPlace: region ? { "@type": "AdministrativeArea", name: `Region ${region.name}` } : { "@type": "Country", name: "Sverige" },
+};
+---
+<Layout title={`${title}: valprognos`} description={ingress} jsonLd={jsonLd}>
+  <p class="small"><a href="/kommuner/">Kommuner</a> › {area.name}</p>
+  <h1>{title}</h1>
+  <Ingress text={ingress} live={`kommun:${area.code}`} />
+  <p class="small muted">
+    Kommunkod {area.code}.
+    {valkrets && <> Riksdagsvalkrets: <a href={`/valkrets/${slugify(valkrets)}/`}>{valkrets}</a>.</>}
+    {region && <> Region: <a href={regionHref(region)}>{region.name}</a>.</>}
+    Prognosen bygger på det nationella opinionsläget (uniform swing), inte på lokala mätningar.
+  </p>
+  <GeoAreaBody area={area} />
+</Layout>

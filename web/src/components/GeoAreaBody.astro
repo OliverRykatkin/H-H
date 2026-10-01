@@ -1,0 +1,33 @@
+---
+/** Gemensam kropp för kommun- och regionsidor: prognoser med intervall och fullmäktigemandat. */
+import type { Area, AreaSeats, AreaShares } from "@contracts/contracts";
+import { BASELINE_YEAR } from "@contracts/constants";
+import GeoShareTable from "./GeoShareTable.astro";
+import GeoSeatTable from "./GeoSeatTable.astro";
+
+interface Props { area: Area }
+const { area } = Astro.props;
+const isKommun = area.kind === "kommun";
+const sections: { title: string; shares: AreaShares; caption: string }[] = [];
+if (isKommun && area.kommunval) sections.push({ title: "Kommunvalet", shares: area.kommunval, caption: `Kommunfullmäktigevalet: valet ${BASELINE_YEAR} och prognos om det vore val i dag. Lokala partier antas få samma resultat som ${BASELINE_YEAR}.` });
+if (!isKommun && area.regionval) sections.push({ title: "Regionvalet", shares: area.regionval, caption: `Regionfullmäktigevalet: valet ${BASELINE_YEAR} och prognos om det vore val i dag. Lokala partier antas få samma resultat som ${BASELINE_YEAR}.` });
+if (area.riksdag) sections.push({ title: "Riksdagsvalet i kommunen", shares: area.riksdag, caption: `Riksdagsvalet: kommunens resultat ${BASELINE_YEAR} och prognos nu.` });
+const seats: AreaSeats | null | undefined = isKommun ? area.kommunSeats : area.regionSeats;
+const body = isKommun ? "kommunfullmäktige" : "regionfullmäktige";
+---
+{seats && (
+  <>
+    <h2>Mandat i {body}</h2>
+    <GeoSeatTable caption={`Mandatuppskattning för ${body} (${seats.totalSeats} mandat, spärr ${String(seats.threshold).replace(".", ",")} %${seats.nAdjustment ? `, ${seats.nAdjustment} utjämningsmandat` : ""}) jämfört med valet ${BASELINE_YEAR}.`}
+      now={seats.now} baseline={seats.baseline} names={seats.names} total={seats.totalSeats} />
+    {seats.stage.includes("preliminar") && (
+      <p class="small muted">Mandatfördelningen {BASELINE_YEAR} är Valmyndighetens preliminära; den slutliga är inte fastställd ännu.</p>
+    )}
+  </>
+)}
+{sections.map((s) => (
+  <>
+    <h2>{s.title}</h2>
+    <GeoShareTable caption={`${s.caption} Intervall = 90 % på valdagen.`} baseline={s.shares.baseline} now={s.shares.now} p5={s.shares.p5} p95={s.shares.p95} others={s.shares.others} />
+  </>
+))}

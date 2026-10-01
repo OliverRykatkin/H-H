@@ -1,0 +1,61 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import Ingress from "../../components/Ingress.astro";
+import EntityBiasTable from "../../components/EntityBiasTable.astro";
+import EntityPollTable from "../../components/EntityPollTable.astro";
+import { BASELINE_YEAR } from "@contracts/constants";
+import * as D from "../../lib/data";
+import { slugify } from "../../lib/format";
+import { formatNumber, genitive } from "../../lib/text/grammar";
+import { instituteIngress } from "../../lib/text/ingress";
+
+export function getStaticPaths() {
+  const inst = D.institutes();
+  const names = new Set<string>([
+    ...D.polls().polls.map((p) => p.institute),
+    ...inst.bias.map((b) => String(b.institute)),
+    ...inst.weights.map((w) => String(w.institute)),
+  ]);
+  return [...names].map((name) => ({ params: { slug: slugify(name) }, props: { name } }));
+}
+const { name } = Astro.props as { name: string };
+const inst = D.institutes();
+const weight = inst.weights.find((w) => w.institute === name);
+const bias = inst.bias.filter((b) => b.institute === name);
+const polls = D.polls().polls.filter((p) => p.institute === name);
+const num = (v: unknown) => (typeof v === "number" && !Number.isNaN(v) ? v : null);
+const nBias = bias.reduce((m, r) => Math.max(m, num(r.n) ?? 0), 0);
+const description = `${name} i Mandatorn: träffsäkerhet mot valet ${BASELINE_YEAR}, husbias per parti och de senaste mätningarna.`;
+const jsonLd = { "@context": "https://schema.org", "@type": "Organization", name, url: new URL(Astro.url.pathname, Astro.site).href };
+---
+<Layout title={name} description={description} jsonLd={jsonLd}>
+  <p class="small"><a href="/institut/">Institut</a> /</p>
+  <h1>{name}</h1>
+  <Ingress text={instituteIngress(name, inst)} live={`institute:${name}`} />
+
+  <section class="grid grid-3" aria-label="Nyckeltal">
+    <div class="card metric">
+      <div class="label">Vikt i aggregeringen</div>
+      <div class="value">{weight && num(weight.weight) != null ? formatNumber(num(weight.weight)!, 2) : "1,00"}</div>
+      <div class="sub">{weight ? `1,00 = genomsnittligt institut` : `Standardvikt — inga mätningar före valet ${BASELINE_YEAR}`}</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Medelfel mot valet {BASELINE_YEAR}</div>
+      <div class="value">{weight && num(weight.mae) != null ? `${formatNumber(num(weight.mae)!, 2)} pe` : "–"}</div>
+      <div class="sub">{weight && num(weight.n) != null ? `${num(weight.n)} mätningar de sista 90 dagarna` : "Inga mätningar att utvärdera"}</div>
+    </div>
+    <div class="card metric">
+      <div class="label">Mätningar i husbiasen</div>
+      <div class="value">{nBias || "–"}</div>
+      <div class="sub">sedan augusti 2022</div>
+    </div>
+  </section>
+
+  <h2>Husbias per parti</h2>
+  <p class="small muted">Hur institutets mätningar avvikit från Mandatorns trend samma dag. Positivt = institutet har mätt partiet högre än trenden. Relativt = avvikelsen i andel av partiets storlek.</p>
+  <EntityBiasTable rows={bias} by="party" caption={`Husbias för ${name} (avvikelse mot Kalman-trenden).`} />
+
+  <h2>Senaste mätningarna</h2>
+  <EntityPollTable polls={polls} showInstitute={false} caption={`${genitive(name)} mätningar i den senaste releasen (procent).`} limit={20} />
+  {polls.length === 0 && <p class="small muted">Den senaste releasen innehåller de 200 senaste mätningarna totalt. {name} har ingen mätning bland dem.</p>}
+</Layout>

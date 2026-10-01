@@ -1,0 +1,39 @@
+---
+/** Sannolikhetsfördelning för fasta valkretsmandat per parti (ur simuleringen). */
+import { PARTIES, PARTY_COLORS } from "@contracts/constants";
+import { partyName } from "../lib/format";
+import { displayPct } from "../lib/text/scale";
+
+interface Props { dist: Record<string, Record<string, number>>; now: Record<string, number> }
+const { dist, now } = Astro.props;
+const maxK = Math.max(...PARTIES.flatMap((p) => Object.keys(dist[p] ?? {}).map(Number)), 1);
+const ks = Array.from({ length: maxK + 1 }, (_, k) => k);
+---
+<div class="table-scroll">
+  <table class="seatdist">
+    <caption>Sannolikhet för antal fasta mandat i valkretsen på valdagen. Ram = punktprognosen.</caption>
+    <thead><tr><th scope="col">Parti</th>{ks.map((k) => <th scope="col" class="r">{k}</th>)}</tr></thead>
+    <tbody>
+      {PARTIES.map((p) => (
+        <tr>
+          <th scope="row"><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span>{partyName(p)}</th>
+          {ks.map((k) => {
+            const v = dist[p]?.[String(k)] ?? 0;
+            return (
+              <td class={`r cell${now[p] === k ? " point" : ""}`} title={v ? displayPct(v) : ""}
+                style={v ? `background:color-mix(in srgb, ${PARTY_COLORS[p]} ${Math.round(Math.sqrt(v) * 85)}%, white)` : ""}>
+                {v >= 0.005 ? <span class="visually-hidden">{displayPct(v)}</span> : ""}
+                <span aria-hidden="true">{v >= 0.05 ? Math.round(v * 100) : ""}</span>
+              </td>
+            );
+          })}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+<style>
+  .seatdist td.cell { font-size: 0.75rem; padding: 0.25rem 0.3rem; min-width: 1.8rem; color: #111; }
+  .seatdist td.point { outline: 2px solid #111; outline-offset: -2px; }
+  .seatdist th, .seatdist td { border-bottom: 1px solid #fff; }
+</style>

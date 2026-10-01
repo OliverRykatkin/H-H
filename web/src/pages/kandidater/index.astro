@@ -1,0 +1,44 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PARTIES, PARTY_COLORS, BASELINE_YEAR, NEXT_ELECTION_YEAR } from "@contracts/constants";
+import * as D from "../../lib/data";
+import { partyName, slugify } from "../../lib/format";
+
+const members = D.elected()?.members ?? [];
+const order = [...PARTIES] as string[];
+const byParty = [...new Set(members.map((m) => m.parti))]
+  .sort((a, b) => (order.indexOf(a) === -1 ? 99 : order.indexOf(a)) - (order.indexOf(b) === -1 ? 99 : order.indexOf(b)))
+  .map((p) => ({ p, list: members.filter((m) => m.parti === p).sort((a, b) => a.namn.localeCompare(b.namn, "sv")) }));
+const vkSlug = new Map(D.constituencies().map((c) => [c.name, c.slug]));
+---
+<Layout title="Kandidater" description={`De ${members.length} riksdagsledamöter som valdes in ${BASELINE_YEAR}, per parti och valkrets.`}>
+  <h1>Riksdagsledamöter {BASELINE_YEAR}</h1>
+  <p class="lede">
+    De {members.length} ledamöter som valdes in i riksdagen i valet {BASELINE_YEAR}. Mandatorns prognos för vilka
+    kandidater som blir invalda i valet {NEXT_ELECTION_YEAR} visas när partiernas kandidatlistor har registrerats.
+  </p>
+  <nav aria-label="Partier" class="small">
+    {byParty.map(({ p, list }) => <a href={`#${p}`} style="margin-right:1em">{partyName(p)} ({list.length})</a>)}
+  </nav>
+  {byParty.map(({ p, list }) => (
+    <section id={p}>
+      <h2><span class="swatch" style={`background:${PARTY_COLORS[p] ?? "#888"}`}></span>{partyName(p)} <span class="muted small">{list.length} ledamöter</span></h2>
+      <div class="table-scroll">
+        <table>
+          <caption>Invalda för {partyName(p)}, A–Ö.</caption>
+          <thead><tr><th scope="col">Namn</th><th scope="col">Valkrets</th><th scope="col">Valgrund</th></tr></thead>
+          <tbody>
+            {list.map((m) => (
+              <tr>
+                <th scope="row"><a href={`/kandidat/${m.slug}/`}>{m.namn}</a></th>
+                <td><a href={`/valkrets/${vkSlug.get(m.valkrets) ?? slugify(m.valkrets)}/`}>{m.valkrets}</a></td>
+                <td class="small">{m.valgrund.replace(/^Ledamoten är vald /, "").replace(/^på /, "")}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  ))}
+  <p class="small muted">Källa: Valmyndigheten, slutligt resultat {BASELINE_YEAR}. Endast namn, parti, valkrets och valgrund visas.</p>
+</Layout>

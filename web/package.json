@@ -4,11 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/postbuild.mjs",
     "preview": "astro preview",
     "check": "astro check && tsc --noEmit",
     "test": "vitest run",
-    "budget": "node scripts/budget.mjs"
+    "budget": "node scripts/postbuild.mjs --no-og"
   },
   "dependencies": {
     "@astrojs/react": "4.4.2",
@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^22.20.4",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

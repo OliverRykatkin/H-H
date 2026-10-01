@@ -1,0 +1,11 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { paths } from "../../lib/release";
+const years = paths("archive/").map((p) => p.slice("archive/".length, -".json".length)).sort().reverse();
+---
+<Layout title="Arkiv" description="Mandatorns prognoser inför tidigare val jämförda med utfallet.">
+  <h1>Arkiv</h1>
+  <p class="lede">Hur prognosen utvecklades fram till valdagen och hur den stod sig mot resultatet.</p>
+  <ul>{years.map((y) => <li><a href={`/arkiv/${y}/`}>Riksdagsvalet {y}</a></li>)}</ul>
+  {years.length === 0 && <p>Arkivet byggs upp från och med nästa val.</p>}
+</Layout>

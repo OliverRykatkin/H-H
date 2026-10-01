@@ -1,0 +1,66 @@
+---
+/** Röstandelar i ett område: baslinjevalet mot prognosen nu, med valfritt 90 %-intervall och stapel. */
+import { PARTIES, PARTY_COLORS, BASELINE_YEAR } from "@contracts/constants";
+import { pct, signed, changeClass, partyName } from "../lib/format";
+
+interface Props {
+  caption: string;
+  baseline: Record<string, number>;
+  now: Record<string, number>;
+  p5?: Record<string, number> | null;
+  p95?: Record<string, number> | null;
+  others?: number;
+}
+const { caption, baseline, now, p5, p95, others = 0 } = Astro.props;
+const max = Math.max(...PARTIES.map((p) => Math.max(baseline[p] ?? 0, now[p] ?? 0, p95?.[p] ?? 0)), 1);
+const w = (v: number) => `${(v / max) * 100}%`;
+---
+<div class="table-scroll">
+  <table class="geo-shares">
+    <caption>{caption}</caption>
+    <thead>
+      <tr>
+        <th scope="col">Parti</th>
+        <th scope="col" class="r">Val {BASELINE_YEAR}</th>
+        <th scope="col" class="r">Prognos nu</th>
+        {p5 && p95 && <th scope="col" class="r">90 % intervall</th>}
+        <th scope="col" class="r">Förändring</th>
+        <th scope="col" class="bar-col"><span class="visually-hidden">Stapel</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {PARTIES.map((p) => (
+        <tr>
+          <th scope="row"><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span>{partyName(p)}</th>
+          <td class="r">{pct(baseline[p])}</td>
+          <td class="r"><strong>{pct(now[p])}</strong></td>
+          {p5 && p95 && <td class="r small">{pct(p5[p])}–{pct(p95[p])}</td>}
+          <td class={`r ${changeClass((now[p] ?? 0) - (baseline[p] ?? 0))}`}>{signed((now[p] ?? 0) - (baseline[p] ?? 0))}</td>
+          <td class="bar-col" aria-hidden="true">
+            <div class="bars">
+              <span class="b0" style={`width:${w(baseline[p] ?? 0)};background:${PARTY_COLORS[p]}`}></span>
+              <span class="b1" style={`width:${w(now[p] ?? 0)};background:${PARTY_COLORS[p]}`}></span>
+            </div>
+          </td>
+        </tr>
+      ))}
+      {others > 0.05 && (
+        <tr>
+          <th scope="row"><span class="swatch" style="background:#9a9a9a"></span>Lokala och övriga partier</th>
+          <td class="r">{pct(others)}</td>
+          <td class="r">{pct(others)}</td>
+          {p5 && p95 && <td class="r small">–</td>}
+          <td class="r small muted">antas oförändrat</td>
+          <td class="bar-col" aria-hidden="true"></td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
+<style>
+  .bar-col { width: 30%; min-width: 6rem; }
+  .bars { display: grid; gap: 2px; }
+  .bars span { display: block; height: 6px; border-radius: 2px; }
+  .bars .b0 { opacity: 0.35; }
+  @media (max-width: 40rem) { .bar-col { display: none; } }
+</style>

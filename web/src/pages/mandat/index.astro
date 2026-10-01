@@ -1,0 +1,113 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import SeatBar from "../../components/SeatBar.astro";
+import SeatIntervals from "../../components/SeatIntervals.astro";
+import ScenarioCalc from "../../islands/ScenarioCalc";
+import { BASELINE_YEAR, BLOC_PARTIES, PARTIES, PARTY_COLORS, TOTAL_SEATS } from "@contracts/constants";
+import * as D from "../../lib/data";
+import { partyName, signedInt, dateSv, changeClass, slugify } from "../../lib/format";
+import { displayPct } from "../../lib/text/scale";
+import { formatNumber, seats as seatsWord } from "../../lib/text/grammar";
+
+const nat = D.national();
+const md = D.mandates();
+const sim = D.simulation();
+const mg = D.margins();
+const bySeats = [...md.parties].sort((a, b) => b.total - a.total);
+const baseline = Object.fromEntries(md.parties.map((p) => [p.party, p.baseline]));
+const initial = Object.fromEntries(nat.estimates.filter((e) => e.party !== "O").map((e) => [e.party, e.share]));
+const totals = md.parties.reduce((a, p) => ({ fixed: a.fixed + p.fixed, adj: a.adj + p.adjustment, tot: a.tot + p.total, base: a.base + p.baseline }), { fixed: 0, adj: 0, tot: 0, base: 0 });
+const lead = [...nat.blocs].sort((a, b) => b.seats - a.seats)[0];
+const description = `Mandatfördelning om det vore val i dag: ${bySeats.map((p) => `${p.party} ${p.total}`).join(", ")}. ${lead.name} ${lead.seats} av ${TOTAL_SEATS} mandat.`;
+const pp = (v: number | null | undefined) => (v == null ? "–" : `${formatNumber(v, 2)} pe`);
+const blocOf = (p: string) => Object.entries(BLOC_PARTIES).find(([, ps]) => (ps as string[]).includes(p))?.[0] ?? "";
+---
+<Layout title="Mandat" description={description}>
+  <h1>Mandatfördelning</h1>
+  <p class="lede">
+    Om det vore val i dag skulle {lead.name} få {seatsWord(lead.seats)} av {TOTAL_SEATS}
+    {lead.seats >= 175 ? " och därmed egen majoritet" : ", vilket inte räcker till egen majoritet"}.
+    Fördelningen följer vallagen: 310 fasta valkretsmandat och 39 utjämningsmandat.
+  </p>
+  <p class="small muted">Punktprognos för {dateSv(nat.referenceDate)}. Intervallen nedan gäller valdagen {nat.nextElection.slice(0, 4)} ({sim.horizonDays} dagar kvar).</p>
+
+  <SeatBar seats={nat.seats} caption={`Om det vore val i dag. Streckad linje = 175 mandat (egen majoritet).`} />
+
+  <section class="grid grid-2" aria-label="Block">
+    {nat.blocs.map((b) => (
+      <div class="card metric">
+        <div class="label">{b.name} ({b.parties.join(" + ")})</div>
+        <div class="value">{b.seats} mandat</div>
+        <div class="sub">{signedInt(b.seats - 175)} mot majoritet · egen majoritet i valet: {displayPct(b.pMajority)}</div>
+      </div>
+    ))}
+  </section>
+
+  <h2>Mandat per parti</h2>
+  <div class="table-scroll">
+    <table>
+      <caption>Fasta valkretsmandat, utjämningsmandat och totalt i dag, jämfört med valet {BASELINE_YEAR}.</caption>
+      <thead><tr><th>Parti</th><th class="r">Fasta</th><th class="r">Utjämning</th><th class="r">Totalt</th><th class="r">Val {BASELINE_YEAR}</th><th class="r">Förändring</th><th>Block</th></tr></thead>
+      <tbody>
+        {bySeats.map((p) => (
+          <tr>
+            <td><span class="swatch" style={`background:${PARTY_COLORS[p.party]}`}></span><a href={`/parti/${slugify(partyName(p.party))}/`}>{partyName(p.party)}</a></td>
+            <td class="r">{p.fixed}</td><td class="r">{p.adjustment}</td><td class="r"><strong>{p.total}</strong></td>
+            <td class="r">{p.baseline}</td><td class={`r ${changeClass(p.total - p.baseline, 0)}`}>{signedInt(p.total - p.baseline)}</td>
+            <td class="small">{blocOf(p.party)}</td>
+          </tr>
+        ))}
+      </tbody>
+      <tfoot><tr><th>Summa</th><th class="r">{totals.fixed}</th><th class="r">{totals.adj}</th><th class="r">{totals.tot}</th><th class="r">{totals.base}</th><th></th><th></th></tr></tfoot>
+    </table>
+  </div>
+
+  <h2>Osäkerhet på valdagen</h2>
+  <SeatIntervals sim={sim} baseline={baseline} />
+
+  <h2>Mandatmarginaler</h2>
+  <p>Hur mycket ett parti behöver öka eller minska i hela landet (procentenheter) för att vinna eller tappa ett mandat. Ökningen tas proportionellt från övriga partier.</p>
+  <div class="table-scroll">
+    <table>
+      <caption>Nationell marginal för ett mandat mer eller mindre (pe = procentenheter).</caption>
+      <thead><tr><th>Parti</th><th class="r">Mandat</th><th class="r">För +1 mandat</th><th class="r">För −1 mandat</th></tr></thead>
+      <tbody>
+        {PARTIES.map((p) => {
+          const m = mg.national[p] ?? {};
+          return (
+            <tr><td>{partyName(p)}</td><td class="r">{m.seats ?? "–"}</td><td class="r">{m.gainPp == null ? "–" : `+${pp(m.gainPp)}`}</td><td class="r">{m.losePp == null ? "–" : `−${pp(m.losePp)}`}</td></tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Landets jämnaste fasta mandat</h3>
+  <div class="table-scroll">
+    <table>
+      <caption>Fasta valkretsmandat där minst lokal förändring krävs för att mandatet ska byta parti.</caption>
+      <thead><tr><th>Valkrets</th><th>Utmanare</th><th>Tappar</th><th class="r">Marginal</th></tr></thead>
+      <tbody>
+        {mg.closest.map((r) => (
+          <tr>
+            <td><a href={`/valkrets/${slugify(String(r.constituency))}/`}>{r.constituency}</a></td>
+            <td>{partyName(String(r.challenger))}</td><td>{partyName(String(r.loser))}</td>
+            <td class="r">{pp(r.marginPp as number | null)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Räkna med egna siffror</h2>
+  <ScenarioCalc client:visible initial={initial} baselineSeats={nat.seats} />
+  <noscript><p class="banner warn">Räknaren kräver JavaScript. Prognosens mandat finns i tabellerna ovan.</p></noscript>
+</Layout>
+
+<style is:global>
+  .scenario-grid { display: grid; gap: 0.35rem; margin: 0.75rem 0; }
+  .scenario-row { display: grid; grid-template-columns: minmax(9rem, 1fr) 2fr auto auto; gap: 0.5rem; align-items: center; }
+  .scenario-row input[type="range"] { width: 100%; }
+  @media (max-width: 36rem) { .scenario-row { grid-template-columns: 1fr auto auto; } .scenario-row input[type="range"] { display: none; } }
+  .scenario button { font: inherit; padding: 0.25rem 0.6rem; border: 1px solid var(--c-border); border-radius: var(--radius); background: var(--c-bg); cursor: pointer; }
+</style>
