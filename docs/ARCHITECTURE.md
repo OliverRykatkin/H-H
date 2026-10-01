@@ -16,7 +16,7 @@ Läget i koden är commit `922dd3e`. Öppna punkter står i `DECISIONS.md`, anta
              mandatorn_model.storage (adapter: put_immutable / put_pointer / …)
                                   ▼
    S3 eu-north-1:  site-bucket            data-bucket
-                   (Astro-bygge)          releases/<id>/…, files/<sha256>…, manifest.json, latest/…, partner/…
+                   (Astro-bygge)          releases/<id>/…, files/<sha256>…, manifest.json, latest/…
                                   ▼ OAC (ingen publik S3)
    CloudFront:     mandatorn.se           data.mandatorn.se   (CORS, cache-policyer per prefix)
                                   ▼
@@ -99,7 +99,6 @@ data-bucket/
   releases/index.json
   manifest.json                 # pekare, skrivs sist
   latest/*.csv, *.schema.json   # alias, skrivs om per release
-  partner/…                     # fas 3, signerade URL:er
 ```
 
 - Filindexet i manifestet pekar på `files/<sha256>`. Det ger avduplicering gratis, och "oförändrade filer återanvänds" blir trivialt.
@@ -113,7 +112,7 @@ data-bucket/
 ## 4. Terraform (`infra/`)
 
 - `s3_site`, `s3_data`: blockerad publik åtkomst, versionering på för `data`, livscykelregel för dragningar.
-- `cloudfront_site`, `cloudfront_data`: OAC, cache-policyer enligt ovan, CORS-svarshuvud på `data.`, en egen beteenderegel för `partner/*` med trusted key group.
+- `cloudfront_site`, `cloudfront_data`: OAC, cache-policyer enligt ovan, CORS-svarshuvud på `data.`. (Inget `partner/`-prefix: nowcasten publiceras utan fördröjning, se DECISIONS D4.)
 - ACM-certifikat i `us-east-1` (krävs för CloudFront).
 - DNS: i dag hos One.com. Antingen CNAME där eller Route 53 (se D2).
 - `iam_github_oidc`: OIDC-provider och roll med trust på `repo:OliverRykatkin/H-H:ref:refs/heads/main` (plus en separat roll med bara läsrätt för PR-förhandsvisning). Rollen får `s3:PutObject` och liknande på de två bucketarna och `cloudfront:CreateInvalidation` på de två distributionerna.
@@ -167,7 +166,7 @@ Varning: GitHub stänger av schemalagda workflows efter 60 dagar utan aktivitet 
 
 ## 8. Nowcast (fas 3, i korthet)
 
-- En liten tjänst på Fly.io (`arn`) i en loop: `val_feed.fetch_index` → ny md5? → `compute_nowcast` → publish med `mode: nowcast` till `partner/`. Efter fördröjningen D4 körs `put_pointer` på det publika manifestet.
+- En liten tjänst på Fly.io (`arn`) i en loop: `val_feed.fetch_index` → ny md5? → `compute_nowcast` → publish med `mode: nowcast` direkt till det publika manifestet. Ingen fördröjning (DECISIONS D4).
 - Simulator: `fetch_valnatt_2026.py` har redan rapporteringsordning och 2022-baslinje för 2026. Den återanvänds som integrationstest. 2022 och EU-valet 2024 kräver ny data.
 
 ## 9. Kostnadsuppskattning

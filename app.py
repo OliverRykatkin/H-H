@@ -2244,7 +2244,7 @@ def make_sweden_map(fixed_seats: dict, geojson: dict, selected_party: str = None
 
 
 def make_constituency_bar(fixed_seats: dict, seats_2022: dict, party: str) -> go.Figure:
-    """Grupperat stapeldiagram: 2022 faktiskt vs prognos per valkrets."""
+    """Grupperat stapeldiagram: baslinjevalets faktiska mandat vs prognos per valkrets."""
     consts = list(fixed_seats.keys())
     vals_pred = [fixed_seats[c].get(party, 0) for c in consts]
     vals_2022 = [seats_2022[c].get(party, 0) for c in consts]
@@ -2252,10 +2252,10 @@ def make_constituency_bar(fixed_seats: dict, seats_2022: dict, party: str) -> go
     color = PARTY_COLORS.get(party, "#888")
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        name="2022 (faktiskt)", x=consts, y=vals_2022,
+        name=f"{BASELINE_YEAR} (faktiskt)", x=consts, y=vals_2022,
         marker_color=color, marker_line_width=0, opacity=0.35,
         text=vals_2022, textposition="outside",
-        hovertemplate="<b>%{x}</b><br>2022: <b>%{y}</b> mandat<extra></extra>",
+        hovertemplate="<b>%{x}</b><br>" + str(BASELINE_YEAR) + ": <b>%{y}</b> mandat<extra></extra>",
     ))
     fig.add_trace(go.Bar(
         name="Prognos", x=consts, y=vals_pred,
@@ -2287,7 +2287,7 @@ def make_economist_mandate_chart(
       – Tunn horisontell linje:  5:e–95:e percentil (90 % CI)
       – Tjock linje / stapel:    25:e–75:e percentil (IQR)
       – Cirkel:                  Median
-      – Diamant (grå):           Faktiskt 2022 mandat
+      – Diamant (grå):           Faktiska mandat i baslinjevalet
     Vertikal streckad linje vid 175 mandat (majoritet).
     """
     # Sortera partier efter median (störst överst)
@@ -2355,13 +2355,13 @@ def make_economist_mandate_chart(
                 f"Median: <b>{med}</b> mandat<br>"
                 f"IQR (25–75): {p25}–{p75}<br>"
                 f"90% CI: {p5}–{p95}<br>"
-                f"2022 faktiskt: {actual_2022}"
+                f"{BASELINE_YEAR} faktiskt: {actual_2022}"
                 "<extra></extra>"
             ),
             showlegend=False,
         ))
 
-        # 2022 faktiskt – grå ruta
+        # Baslinjevalet faktiskt – grå ruta
         if actual_2022 > 0:
             fig.add_trace(go.Scatter(
                 x=[actual_2022], y=[i],
@@ -2369,10 +2369,10 @@ def make_economist_mandate_chart(
                 marker=dict(color="#999999", size=8, symbol="diamond",
                             line=dict(color="white", width=1)),
                 showlegend=(i == 0),
-                name="2022 (faktiskt)",
+                name=f"{BASELINE_YEAR} (faktiskt)",
                 legendgroup="actual",
                 hovertemplate=(
-                    f"<b>{party_label}</b> — 2022 faktiskt: <b>{actual_2022}</b> mandat<extra></extra>"
+                    f"<b>{party_label}</b> — {BASELINE_YEAR} faktiskt: <b>{actual_2022}</b> mandat<extra></extra>"
                 ),
             ))
 
@@ -2385,7 +2385,7 @@ def make_economist_mandate_chart(
     fig.add_trace(go.Scatter(
         x=[None], y=[None], mode="markers",
         marker=dict(color="#999999", size=8, symbol="diamond"),
-        name="2022 (faktiskt)", showlegend=True, legendgroup="actual2",
+        name=f"{BASELINE_YEAR} (faktiskt)", showlegend=True, legendgroup="actual2",
     ))
 
     fig.update_layout(
@@ -3544,7 +3544,7 @@ def main():
             barmode="group",
             hovermode="closest",
             title=dict(
-                text=f"{sel_const_t1} — partistöd 2022 vs prediktion 2026",
+                text=f"{sel_const_t1} — partistöd {BASELINE_YEAR} vs opinionen nu",
                 font=dict(size=13, color="#111213"),
             ),
             xaxis=dict(showgrid=False, showline=True, linecolor="#cccccc", tickfont=dict(size=11)),
@@ -3827,7 +3827,7 @@ def main():
         )
 
         st.divider()
-        st.subheader("Fasta mandat per valkrets – prognos vs 2022")
+        st.subheader(f"Fasta mandat per valkrets – prognos vs {BASELINE_YEAR}")
 
         seats_2022 = compute_2022_mandates()
 
@@ -3847,7 +3847,7 @@ def main():
         # Välj vy
         vy = st.radio(
             "Välj vy",
-            ["Prognos", "2022 (faktiskt)", "Förändring (prognos − 2022)"],
+            ["Prognos", f"{BASELINE_YEAR} (faktiskt)", f"Förändring (prognos − {BASELINE_YEAR})"],
             horizontal=True,
             key="const_vy",
         )
@@ -3855,11 +3855,11 @@ def main():
         if vy == "Prognos":
             st.caption("Beräknade fasta valkretsmandat baserat på aktuell opinion.")
             st.dataframe(fixed_df, use_container_width=True)
-        elif vy == "2022 (faktiskt)":
-            st.caption("Faktiska mandat från riksdagsvalet 11 september 2022.")
+        elif vy == f"{BASELINE_YEAR} (faktiskt)":
+            st.caption(f"Faktiska fasta mandat från riksdagsvalet {BASELINE_ELECTION_DATE.day} september {BASELINE_YEAR}.")
             st.dataframe(df_2022, use_container_width=True)
         else:
-            st.caption("Positivt tal = prognosen ger fler mandat än 2022. Negativt = färre.")
+            st.caption(f"Positivt tal = prognosen ger fler mandat än {BASELINE_YEAR}. Negativt = färre.")
             # Färgkoda med bakgrundsfärger
             def color_diff(val):
                 if isinstance(val, (int, float)):
@@ -3881,7 +3881,7 @@ def main():
             format_func=lambda p: PARTY_NAMES.get(p, p),
             key="bar_party",
         )
-        st.caption("Ljus stapel = 2022 faktiskt, mörk stapel = prognos.")
+        st.caption(f"Ljus stapel = {BASELINE_YEAR} faktiskt, mörk stapel = prognos.")
         st.plotly_chart(
             make_constituency_bar(mandates["fixed"], seats_2022, bar_party),
             use_container_width=True,
@@ -3905,7 +3905,7 @@ som en diskret random walk med oregelbundna tidssteg:
 
 $$x_t = x_{t-1} + w_t, \quad w_t \sim \mathcal{N}\!\left(0,\; \sigma^2_{\mathrm{proc}} \cdot \Delta t\right)$$
 
-Processbruset $\sigma_{\mathrm{proc}} = 0{,}07$ procentenheter per dag (≈ 0,5 pp per
+Processbruset $\sigma_{\mathrm{proc}} = 0{,}10$ procentenheter per dag (≈ 0,7 pp per
 vecka) kalibrerades empiriskt mot historiska opinionsvariationer.
 
 **Observationsmodell.** Varje enskild mätning $y_i$ betraktas som ett brusigt utfall
@@ -3946,7 +3946,7 @@ inte i mandatberäkningen.
         st.subheader("2. Institutsviktning")
         st.markdown(r"""
 Varje opinionsinstut tilldelas en vikt $w_k$ baserad på träffsäkerheten mot
-riksdagsvalet 2022. För varje institut $k$ beräknas medelabsolut fel (MAE) i
+riksdagsvalet """ + str(BASELINE_YEAR) + r""". För varje institut $k$ beräknas medelabsolut fel (MAE) i
 procentenheter över de $P$ riksdagspartierna:
 
 $$\mathrm{MAE}_k = \frac{1}{P} \sum_{p=1}^{P} \bigl| e_{k,p} - r_p \bigr|$$
@@ -3966,8 +3966,8 @@ och för att undvika överanpassning till ett enda val.
         st.subheader("3. Valkretsprognosmodell – uniform swing")
         st.markdown(r"""
 Mandatberäkning per valkrets baseras på en **uniform swing**-modell (Curtice &
-Steed, 1980). Låt $r_{p,c}$ beteckna valresultatet 2022 för parti $p$ i valkrets
-$c$ och $\bar{r}_p$ rikssnittet 2022. Det geografiska bidraget definieras:
+Steed, 1980). Låt $r_{p,c}$ beteckna valresultatet """ + str(BASELINE_YEAR) + r""" för parti $p$ i valkrets
+$c$ och $\bar{r}_p$ rikssnittet samma år. Det geografiska bidraget definieras:
 
 $$\delta_{p,c} = r_{p,c} - \bar{r}_p$$
 
@@ -4027,7 +4027,7 @@ med högt krysspådrag.
 | Källa | Beskrivning | Länk |
 |---|---|---|
 | MansMeg/SwedishPolls | Opinionsundersökningar 1980– | [GitHub](https://github.com/MansMeg/SwedishPolls) |
-| Valmyndigheten | Kandidatlistor 2026 & valresultat 2022 | [val.se](https://www.val.se) |
+| Valmyndigheten | Kandidatlistor 2026 & valresultat 2022 och 2026 (riksdag, kommun, region) | [val.se](https://www.val.se) |
 | okfse/sweden-geojson | GeoJSON-karta över Sveriges 21 län | [GitHub](https://github.com/okfse/sweden-geojson) |
 | Botten Ada (ada_code) | Inspiration för modellstruktur | [GitHub](https://github.com/MansMeg/ada_code) |
 | Curtice & Steed (1980) | Uniform swing-modellen | *The British General Election of 1979* |
@@ -4053,7 +4053,7 @@ noll när valdagen närmar sig.
 Övrigas stöd på enskilda partier utan partispecifik polldata, vilket innebär att
 ett genombrott nära 4 %-gränsen inte modelleras.
 
-**Institutsvikter baserade på ett enda val.** Vikterna kalibreras mot 2022 och
+**Institutsvikter baserade på ett enda val.** Vikterna kalibreras mot """ + str(BASELINE_YEAR) + r""" och
 riskerar att återspegla idiosynkratiska fel snarare än strukturell träffsäkerhet.
 Med fler historiska val (t.ex. 2018, 2014) skulle skattningarna bli mer robusta.
 
@@ -4701,22 +4701,20 @@ beräknat med modifierad Sainte-Laguë på Kalman-smoothade pollsiffror.
 Kandidater får lov att stå på listor i flera valkretsar samtidigt, men kan bara
 bli invald från en. Modellen hanterar detta i två steg:
 
-1. Varje kandidat tilldelas en *hemvalkrets* — den valkrets där de har
-   sitt lägsta ordningsnummer (bäst listplacering). Det speglar var de är
-   starkast förankrade, vilket i praktiken ofta sammanfaller med var de
-   blivit personkryssade tidigare val.
-2. Valkretsar med flest mandat tilldelas kandidater först. Om en
-   kandidats hemvalkrets är en annan fylls platsen istället av nästa
-   tillgängliga kandidat på listan.
+1. Varje kandidat tilldelas en *hemvalkrets* via sin hemkommun: den
+   valkrets där kandidater från kommunen har bäst listplacering (vid lika
+   placering: där flest kandidater från kommunen står).
+2. Valkretsar med flest mandat tilldelas kandidater först. I första hand
+   väljs kandidater vars hemvalkrets är denna valkrets, därefter kandidater
+   utan känd hemkommun och sist övriga på listan, alltid i listordning.
 
 **Utjämningsmandat:**
-Utöver de fasta valkretsmandaten fördelas normalt 39 utjämningsmandat
-nationellt för att göra riksdagen proportionell. Modellen identifierar
-vilka kandidater som är näst på tur per parti — de som har bäst
-listplacering i sin hemvalkrets men inte vunnit ett fast mandat.
-Utjämningsmandat är inte knutna till en specifik valkrets; *hemvalkrets*
-i tabellen visar var kandidaten är starkast listad, inte var mandatet
-formellt tilldelas.
+Utöver de fasta valkretsmandaten fördelas 39 utjämningsmandat för att
+göra riksdagen proportionell. Varje partis utjämningsmandat placeras i den
+valkrets där partiet har högst kvarvarande jämförelsetal (röstandel ×
+valkretsens storlek som approximation, delat med 1,2 / 3 / 5 … efter antalet
+mandat partiet redan fått där). Mandatet går sedan till nästa ej invalda
+kandidat på partiets lista i den valkretsen.
 
 **Begränsningar:**
 Modellen förutsäger invalda enbart baserat på listplacering — personkryss
@@ -4738,10 +4736,10 @@ simuleras inte. Kandidater från partier som inte registrerat sina listor
             hide_index=True, use_container_width=True,
         )
 
-        st.subheader("Institutsvikter – träffsäkerhet mot 2022 års val")
+        st.subheader(f"Institutsvikter – träffsäkerhet mot {BASELINE_YEAR} års val")
         st.caption(
             "MAE = medelabsolut fel i procentenheter mot faktiskt valresultat. "
-            "Lägre MAE → högre vikt. Institut utan 2022-data får standardvikt 1,0."
+            f"Lägre MAE → högre vikt. Institut utan mätningar före valet {BASELINE_YEAR} får standardvikt 1,0."
         )
 
         # Färgkoda vikttabellen
@@ -4765,10 +4763,10 @@ simuleras inte. Kandidater från partier som inte registrerat sina listor
             _ind_mae  = float(_indikator_row["MAE (pp)"].iloc[0])
             st.caption(
                 f"ℹ️ **Indikator** får vikten **{_ind_vikt:.3f}** "
-                f"(MAE mot 2022 års val: {_ind_mae:.3f} pp)."
+                f"(MAE mot {BASELINE_YEAR} års val: {_ind_mae:.3f} pp)."
             )
         else:
-            st.caption("ℹ️ Indikator saknas i 2022-data och får standardvikt 1,0.")
+            st.caption(f"ℹ️ Indikator saknas i {BASELINE_YEAR}-data och får standardvikt 1,0.")
 
         # Litet stapeldiagram för vikterna
         fig_hw = go.Figure(go.Bar(
@@ -4785,7 +4783,7 @@ simuleras inte. Kandidater från partier som inte registrerat sina listor
                          annotation_text="Standardvikt (1,0)")
         fig_hw.update_layout(
             **ECONOMIST_LAYOUT,
-            title=dict(text="Institutsvikter baserade på träffsäkerhet 2022", font=dict(size=13, color="#111213")),
+            title=dict(text=f"Institutsvikter baserade på träffsäkerhet {BASELINE_YEAR}", font=dict(size=13, color="#111213")),
             yaxis_title="Vikt", yaxis_range=[0, house_weights_df["Vikt"].max() * 1.25],
             height=320, showlegend=False,
             margin=dict(t=50, b=10, l=55, r=10),
