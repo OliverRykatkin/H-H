@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "NowcastBloc": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "parties": {
+          "items": {
+            "enum": [
+              "M",
+              "L",
+              "C",
+              "KD",
+              "S",
+              "V",
+              "MP",
+              "SD"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "seats": {
+          "type": "integer"
+        },
+        "share": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "parties",
+        "seats",
+        "share"
+      ],
+      "title": "NowcastBloc",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/NowcastLive.json",
+  "additionalProperties": false,
+  "description": "Live-nowcast under valnatten (mode: nowcast). Andelar = andel av alla giltiga röster.",
+  "properties": {
+    "baselineYear": {
+      "type": "integer"
+    },
+    "blocs": {
+      "items": {
+        "$ref": "#/$defs/NowcastBloc"
+      },
+      "type": "array"
+    },
+    "election": {
+      "description": "Valdatum (YYYY-MM-DD)",
+      "type": "string"
+    },
+    "feedUpdatedAt": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Valmyndighetens senaste uppdateringstid"
+    },
+    "final": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Slutresultat (bara i simulatorn)"
+    },
+    "fixedSeats": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "nComparable": {
+      "description": "Räknade distrikt som kunde jämföras med baslinjevalet",
+      "type": "integer"
+    },
+    "nCounted": {
+      "type": "integer"
+    },
+    "nTotal": {
+      "type": "integer"
+    },
+    "nowcast": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "publishedAt": {
+      "type": "string"
+    },
+    "raw": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seats": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "voteShareCounted": {
+      "description": "Andel av baslinjevalets röster som räknats",
+      "type": "number"
+    }
+  },
+  "required": [
+    "election",
+    "baselineYear",
+    "feedUpdatedAt",
+    "publishedAt",
+    "nCounted",
+    "nTotal",
+    "nComparable",
+    "voteShareCounted",
+    "raw",
+    "nowcast",
+    "seats",
+    "fixedSeats",
+    "blocs"
+  ],
+  "title": "NowcastLive",
+  "type": "object"
+}

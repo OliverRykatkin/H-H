@@ -107,7 +107,7 @@
           "description": "Simuleringens totala σ (pp)"
         },
         "share": {
-          "description": "Skattad röstandel i procent (8 partier normerade till 100; O separat)",
+          "description": "Skattad andel av alla giltiga röster i procent; övriga (O) antas som i baslinjevalet",
           "type": "number"
         }
       },

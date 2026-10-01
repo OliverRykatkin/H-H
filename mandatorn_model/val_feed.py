@@ -59,7 +59,7 @@ class FeedResult:
     def counted(self) -> pd.DataFrame:
         """Endast räknade ordinarie distrikt (redo för compute_nowcast)."""
         df = self.districts
-        return df[df["counted"]].drop(columns=["counted", "rapporteringsTid"])
+        return df[df["counted"]].drop(columns=["counted", "rapporteringsTid", "prev_codes"], errors="ignore")
 
     @property
     def coverage_by_district(self) -> float:
@@ -222,6 +222,8 @@ def parse_rostfordelning(data: dict, parties: list[str] = PARTIES) -> FeedResult
             "total_valid_votes": valid,
             "rapporteringsTid": rapport,
             "counted": valid > 0,
+            # Motsvarande distrikt i förra valet (Valmyndighetens jämförelse), "|"-separerade koder
+            "prev_codes": "|".join(str(c) for c in (vd.get("valdistriktskodForegaendeVal") or [])),
         }
         for p in parties:
             row[f"votes_{p}"] = by_party.get(p, 0)

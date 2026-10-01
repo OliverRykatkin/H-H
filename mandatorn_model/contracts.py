@@ -350,7 +350,34 @@ class Archive(_Model):
     days: list[ArchiveDay]
 
 
+class NowcastBloc(_Model):
+    name: str
+    parties: list[Party]
+    seats: int
+    share: float
+
+
+class NowcastLive(_Model):
+    """Live-nowcast under valnatten (mode: nowcast). Andelar = andel av alla giltiga röster."""
+    schemaVersion: int = SCHEMA_VERSION
+    election: str = Field(description="Valdatum (YYYY-MM-DD)")
+    baselineYear: int
+    feedUpdatedAt: str | None = Field(description="Valmyndighetens senaste uppdateringstid")
+    publishedAt: str
+    nCounted: int
+    nTotal: int
+    nComparable: int = Field(description="Räknade distrikt som kunde jämföras med baslinjevalet")
+    voteShareCounted: float = Field(description="Andel av baslinjevalets röster som räknats")
+    raw: dict[str, float]
+    nowcast: dict[str, float]
+    seats: dict[str, int]
+    fixedSeats: dict[str, dict[str, int]]
+    blocs: list[NowcastBloc]
+    final: dict[str, float] | None = Field(default=None, description="Slutresultat (bara i simulatorn)")
+
+
 ARTIFACT_MODELS: dict[str, type[_Model]] = {
+    "NowcastLive": NowcastLive,
     "Elected": Elected, "Archive": Archive,
     "SeatModel": SeatModel,
     "ValnattState": ValnattState, "ValnattIndex": ValnattIndex,

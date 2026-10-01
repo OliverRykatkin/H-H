@@ -328,7 +328,7 @@ export interface PartyEstimate {
    */
   sd?: number | null;
   /**
-   * Skattad röstandel i procent (8 partier normerade till 100; O separat)
+   * Skattad andel av alla giltiga röster i procent; övriga (O) antas som i baslinjevalet
    */
   share: number;
 }
@@ -346,6 +346,65 @@ export interface TrendRow {
   name: string;
   now: number;
   yearAgo: number | null;
+}
+
+// ── NowcastLive.schema.json ──
+/**
+ * Live-nowcast under valnatten (mode: nowcast). Andelar = andel av alla giltiga röster.
+ */
+export interface NowcastLive {
+  baselineYear: number;
+  blocs: NowcastBloc[];
+  /**
+   * Valdatum (YYYY-MM-DD)
+   */
+  election: string;
+  /**
+   * Valmyndighetens senaste uppdateringstid
+   */
+  feedUpdatedAt: string | null;
+  /**
+   * Slutresultat (bara i simulatorn)
+   */
+  final?: {
+    [k: string]: number;
+  } | null;
+  fixedSeats: {
+    [k: string]: {
+      [k: string]: number;
+    };
+  };
+  /**
+   * Räknade distrikt som kunde jämföras med baslinjevalet
+   */
+  nComparable: number;
+  nCounted: number;
+  nTotal: number;
+  nowcast: {
+    [k: string]: number;
+  };
+  publishedAt: string;
+  raw: {
+    [k: string]: number;
+  };
+  schemaVersion?: number;
+  seats: {
+    [k: string]: number;
+  };
+  /**
+   * Andel av baslinjevalets röster som räknats
+   */
+  voteShareCounted: number;
+}
+/**
+ * This interface was referenced by `NowcastLive`'s JSON-Schema
+ * via the `definition` "NowcastBloc".
+ */
+export interface NowcastBloc {
+  name: string;
+  parties: ("M" | "L" | "C" | "KD" | "S" | "V" | "MP" | "SD")[];
+  seats: number;
+  share: number;
 }
 
 // ── Polls.schema.json ──
