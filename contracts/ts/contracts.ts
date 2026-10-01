@@ -2,6 +2,48 @@
 
 export const SCHEMA_VERSION = 1;
 
+// ── Archive.schema.json ──
+/**
+ * Prognosens utveckling fram till ett val (rekonstruerad, D12).
+ */
+export interface Archive {
+  days: ArchiveDay[];
+  electionDate: string;
+  modelVersion: string;
+  nSims: number;
+  note: string;
+  reconstructed: boolean;
+  result: {
+    [k: string]: {
+      [k: string]: number;
+    };
+  };
+  schemaVersion?: number;
+  seed: number;
+  totalSeats: number;
+  year: number;
+}
+/**
+ * This interface was referenced by `Archive`'s JSON-Schema
+ * via the `definition` "ArchiveDay".
+ */
+export interface ArchiveDay {
+  date: string;
+  daysLeft: number;
+  pMajority: {
+    [k: string]: number;
+  };
+  pThreshold: {
+    [k: string]: number;
+  };
+  seatsMedian: {
+    [k: string]: number;
+  };
+  shares: {
+    [k: string]: number;
+  };
+}
+
 // ── Area.schema.json ──
 export interface Area {
   code: string;
@@ -99,6 +141,28 @@ export interface SeatMargin {
   gainPp: number | null;
   losePp: number | null;
   party: "M" | "L" | "C" | "KD" | "S" | "V" | "MP" | "SD";
+}
+
+// ── Elected.schema.json ──
+/**
+ * De invalda i baslinjevalet (D10). Bara namn, parti, valkrets och valgrund (D8).
+ */
+export interface Elected {
+  members: ElectedMember[];
+  schemaVersion?: number;
+  year: number;
+}
+/**
+ * This interface was referenced by `Elected`'s JSON-Schema
+ * via the `definition` "ElectedMember".
+ */
+export interface ElectedMember {
+  kandidatnummer: number;
+  namn: string;
+  parti: string;
+  slug: string;
+  valgrund: string;
+  valkrets: string;
 }
 
 // ── Institutes.schema.json ──
@@ -335,6 +399,33 @@ export interface ReleaseIndexEntry {
   mode: "forecast" | "nowcast" | "final";
   release: string;
   supersededBy?: string | null;
+}
+
+// ── SeatModel.schema.json ──
+/**
+ * Indata för mandatberäkningen i klienten (seatModel.ts). Skrivs oavrundad.
+ */
+export interface SeatModel {
+  baseline: {
+    [k: string]: number;
+  };
+  baseline_others: number;
+  constituencies: SeatModelConstituency[];
+  parties: string[];
+  total_seats: number;
+  version: number;
+}
+/**
+ * This interface was referenced by `SeatModel`'s JSON-Schema
+ * via the `definition` "SeatModelConstituency".
+ */
+export interface SeatModelConstituency {
+  name: string;
+  seats: number;
+  shares: {
+    [k: string]: number;
+  };
+  valid_votes: number | null;
 }
 
 // ── Simulation.schema.json ──

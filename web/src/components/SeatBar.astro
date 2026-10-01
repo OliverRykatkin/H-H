@@ -1,0 +1,21 @@
+---
+/** Horisontell stapel över riksdagens 349 mandat (vänster → höger), med 175-markering. */
+import { PARTY_COLORS, TOTAL_SEATS } from "@contracts/constants";
+import { partyName } from "../lib/format";
+
+interface Props { seats: Record<string, number>; order?: string[]; caption?: string }
+const { seats, order = ["V", "S", "MP", "C", "L", "KD", "M", "SD"], caption } = Astro.props;
+const parts = order.filter((p) => (seats[p] ?? 0) > 0);
+---
+<figure>
+  <div style="position:relative">
+    <div role="img" aria-label={parts.map((p) => `${partyName(p)} ${seats[p]} mandat`).join(", ")}
+      style="display:flex;height:2.2rem;border-radius:4px;overflow:hidden;border:1px solid var(--c-border)">
+      {parts.map((p) => (
+        <div title={`${partyName(p)}: ${seats[p]}`} style={`flex:${seats[p]} 0 0;background:${PARTY_COLORS[p]};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.8rem;text-shadow:0 0 2px #0008`}>{seats[p] >= 12 ? `${p} ${seats[p]}` : ""}</div>
+      ))}
+    </div>
+    <div aria-hidden="true" style={`position:absolute;top:-4px;bottom:-4px;left:${(175 / TOTAL_SEATS) * 100}%;border-left:2px dashed #111`}></div>
+  </div>
+  {caption && <figcaption class="small muted">{caption}</figcaption>}
+</figure>

@@ -1,0 +1,81 @@
+{
+  "$defs": {
+    "SeatModelConstituency": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "seats": {
+          "type": "integer"
+        },
+        "shares": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "valid_votes": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "seats",
+        "valid_votes",
+        "shares"
+      ],
+      "title": "SeatModelConstituency",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/SeatModel.json",
+  "additionalProperties": false,
+  "description": "Indata för mandatberäkningen i klienten (seatModel.ts). Skrivs oavrundad.",
+  "properties": {
+    "baseline": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "baseline_others": {
+      "type": "number"
+    },
+    "constituencies": {
+      "items": {
+        "$ref": "#/$defs/SeatModelConstituency"
+      },
+      "type": "array"
+    },
+    "parties": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "total_seats": {
+      "type": "integer"
+    },
+    "version": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "parties",
+    "baseline",
+    "baseline_others",
+    "total_seats",
+    "constituencies"
+  ],
+  "title": "SeatModel",
+  "type": "object"
+}

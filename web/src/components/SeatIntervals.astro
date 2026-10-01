@@ -1,0 +1,35 @@
+---
+/** Mandatintervall per parti ur simuleringen: p5–p95 (tunn), p25–p75 (tjock), median, baslinjevalet (romb). */
+import type { Simulation } from "@contracts/contracts";
+import { PARTY_COLORS, BASELINE_YEAR } from "@contracts/constants";
+import { partyName } from "../lib/format";
+
+interface Props { sim: Simulation; baseline: Record<string, number> }
+const { sim, baseline } = Astro.props;
+const rows = [...sim.parties].sort((a, b) => b.median - a.median);
+const max = Math.ceil(Math.max(...rows.map((r) => r.p95), ...Object.values(baseline)) / 10) * 10 + 5;
+const W = 760, L = 150, R = 16, rowH = 30, H = rows.length * rowH + 30;
+const x = (v: number) => L + (v / max) * (W - L - R);
+const ticks = Array.from({ length: Math.floor(max / 25) + 1 }, (_, i) => i * 25);
+---
+<figure>
+  <svg class="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="si-t">
+    <title id="si-t">Mandat per parti med 90 % intervall</title>
+    {ticks.map((t) => <g><line x1={x(t)} x2={x(t)} y1="4" y2={H - 22} stroke="#ebebeb" /><text x={x(t)} y={H - 6} text-anchor="middle" font-size="11" fill="#5c5f63">{t}</text></g>)}
+    {rows.map((r, i) => {
+      const cy = 16 + i * rowH;
+      const c = PARTY_COLORS[r.party];
+      return (
+        <g>
+          <text x={L - 8} y={cy + 4} text-anchor="end" font-size="13">{partyName(r.party)}</text>
+          <line x1={x(r.p5)} x2={x(r.p95)} y1={cy} y2={cy} stroke={c} stroke-width="3" stroke-opacity="0.45" />
+          <line x1={x(r.p25)} x2={x(r.p75)} y1={cy} y2={cy} stroke={c} stroke-width="9" stroke-opacity="0.85" />
+          <line x1={x(r.median)} x2={x(r.median)} y1={cy - 8} y2={cy + 8} stroke="#111" stroke-width="2" />
+          {baseline[r.party] != null && <path d={`M${x(baseline[r.party])},${cy - 6} l6,6 l-6,6 l-6,-6 z`} fill="#fff" stroke="#555" />}
+          <text x={x(r.p95) + 6} y={cy + 4} font-size="11" fill="#5c5f63">{r.p5}–{r.p95}</text>
+        </g>
+      );
+    })}
+  </svg>
+  <figcaption class="small muted">Tunn linje = 90 % intervall, tjock = 50 %, streck = median, romb = mandat {BASELINE_YEAR}.</figcaption>
+</figure>

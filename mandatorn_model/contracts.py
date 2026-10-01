@@ -293,7 +293,66 @@ class ValnattIndex(_Model):
     curve: list[dict[str, str | float | None]]
 
 
+class SeatModelConstituency(_Model):
+    name: str
+    seats: int
+    valid_votes: int | None
+    shares: dict[str, float]
+
+
+class SeatModel(_Model):
+    """Indata för mandatberäkningen i klienten (seatModel.ts). Skrivs oavrundad."""
+    version: int
+    parties: list[str]
+    baseline: dict[str, float]
+    baseline_others: float
+    total_seats: int
+    constituencies: list[SeatModelConstituency]
+
+
+class ElectedMember(_Model):
+    namn: str
+    kandidatnummer: int
+    parti: str
+    valkrets: str
+    valgrund: str
+    slug: str
+
+
+class Elected(_Model):
+    """De invalda i baslinjevalet (D10). Bara namn, parti, valkrets och valgrund (D8)."""
+    schemaVersion: int = SCHEMA_VERSION
+    year: int
+    members: list[ElectedMember]
+
+
+class ArchiveDay(_Model):
+    date: str
+    daysLeft: int
+    shares: dict[str, float]
+    seatsMedian: dict[str, int]
+    pThreshold: dict[str, float]
+    pMajority: dict[str, float]
+
+
+class Archive(_Model):
+    """Prognosens utveckling fram till ett val (rekonstruerad, D12)."""
+    schemaVersion: int = SCHEMA_VERSION
+    year: int
+    electionDate: str
+    reconstructed: bool
+    modelVersion: str
+    nSims: int
+    seed: int
+    totalSeats: int
+    note: str
+    result: dict[str, dict[str, float]]
+    days: list[ArchiveDay]
+
+
 ARTIFACT_MODELS: dict[str, type[_Model]] = {
+    "Elected": Elected, "Archive": Archive,
+    "SeatModel": SeatModel,
     "ValnattState": ValnattState, "ValnattIndex": ValnattIndex,
     "Manifest": Manifest, "ReleaseIndex": ReleaseIndex, "National": National,
     "Timeseries": Timeseries, "Polls": Polls, "Mandates": Mandates, "Simulation": Simulation,

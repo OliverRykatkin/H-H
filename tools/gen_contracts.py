@@ -22,6 +22,7 @@ from mandatorn_model.contracts import ARTIFACT_MODELS, SCHEMA_VERSION  # noqa: E
 
 OUT_SCHEMA = REPO / "contracts" / "schema"
 OUT_TS = REPO / "contracts" / "ts" / "contracts.ts"
+OUT_CONST = REPO / "contracts" / "ts" / "constants.ts"
 
 
 def _strip_field_titles(node, top=True):
@@ -84,17 +85,50 @@ def dedupe(ts: str) -> str:
     return "\n\n".join(out)
 
 
+def constants_ts() -> str:
+    """Partier, färger, block, koalitioner, valkretsar och valdatum ur mandatorn_model.constants."""
+    from mandatorn_model import constants as K
+
+    def js(v):
+        return json.dumps(v, ensure_ascii=False, sort_keys=False)
+
+    consts = {name: {"seats": c["seats"]} for name, c in K.CONSTITUENCIES.items()}
+    scale = json.loads((REPO / "contracts" / "verbal_scale.json").read_text(encoding="utf-8"))
+    lines = [
+        "/* Genererad av tools/gen_contracts.py ur mandatorn_model/constants.py — redigera inte för hand. */",
+        f"export const PARTIES = {js(K.PARTIES)} as const;",
+        "export type Party = (typeof PARTIES)[number];",
+        f"export const PARTY_NAMES: Record<string, string> = {js(K.PARTY_NAMES)};",
+        f"export const PARTY_COLORS: Record<string, string> = {js(K.PARTY_COLORS)};",
+        f"export const BLOC_PARTIES: Record<string, Party[]> = {js(K.BLOC_PARTIES)};",
+        f"export const COALITIONS: Record<string, Party[]> = {js(K.COALITIONS)};",
+        f"export const CONSTITUENCIES: Record<string, {{ seats: number }}> = {js(consts)};",
+        f"export const TOTAL_SEATS = {K.TOTAL_SEATS};",
+        f"export const THRESHOLD = {K.THRESHOLD};",
+        f"export const BASELINE_YEAR = {K.BASELINE_YEAR};",
+        f'export const BASELINE_ELECTION_DATE = "{K.BASELINE_ELECTION_DATE.date().isoformat()}";',
+        f"export const NEXT_ELECTION_YEAR = {K.NEXT_ELECTION_YEAR};",
+        f'export const NEXT_ELECTION_DATE = "{K.NEXT_ELECTION.date().isoformat()}";',
+        f"export const VERBAL_SCALE = {js(scale)};",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
     args = ap.parse_args()
     files = schemas()
     ts = typescript(files)
+    const_ts = constants_ts()
     if args.check:
         stale = [f for f, t in files.items() if (OUT_SCHEMA / f).read_text(encoding="utf-8") != t] \
             if OUT_SCHEMA.exists() else list(files)
         if not OUT_TS.exists() or OUT_TS.read_text(encoding="utf-8") != ts:
             stale.append(str(OUT_TS.relative_to(REPO)))
+        if not OUT_CONST.exists() or OUT_CONST.read_text(encoding="utf-8") != const_ts:
+            stale.append(str(OUT_CONST.relative_to(REPO)))
         if stale:
             print("Inaktuella genererade kontrakt:", ", ".join(stale))
             return 1
@@ -105,6 +139,7 @@ def main() -> int:
         (OUT_SCHEMA / f).write_text(t, encoding="utf-8", newline="\n")
     OUT_TS.parent.mkdir(parents=True, exist_ok=True)
     OUT_TS.write_text(ts, encoding="utf-8", newline="\n")
+    OUT_CONST.write_text(const_ts, encoding="utf-8", newline="\n")
     print(f"Skrev {len(files)} scheman och {OUT_TS.relative_to(REPO)}")
     return 0
 

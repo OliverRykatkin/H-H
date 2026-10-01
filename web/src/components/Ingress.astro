@@ -1,0 +1,9 @@
+---
+/** Datadriven ingress: förrenderad text + uppdatering i klienten vid nyare release. */
+interface Props { text: string; live: string }
+const { text, live } = Astro.props;
+---
+<p class="lede" data-live={live}>{text}</p>
+<script>
+  import "../lib/client/live";
+</script>

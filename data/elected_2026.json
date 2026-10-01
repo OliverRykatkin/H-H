@@ -1,0 +1,2448 @@
+{
+ "source": "./s/rd/Val_2026_slutlig_00_RD.zip",
+ "members": [
+  {
+   "namn": "Åsa Coenraads",
+   "kandidatnummer": 1410,
+   "parti": "M",
+   "valkrets": "Blekinge",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Heléne Björklund",
+   "kandidatnummer": 15651,
+   "parti": "S",
+   "valkrets": "Blekinge",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Magnus Johansson",
+   "kandidatnummer": 15652,
+   "parti": "S",
+   "valkrets": "Blekinge",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Karolina Widerberg",
+   "kandidatnummer": 5148,
+   "parti": "SD",
+   "valkrets": "Blekinge",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Richard Jomshof",
+   "kandidatnummer": 5107,
+   "parti": "SD",
+   "valkrets": "Blekinge",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ulrika Liljeberg",
+   "kandidatnummer": 6992,
+   "parti": "C",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mathias Bengtsson",
+   "kandidatnummer": 970,
+   "parti": "KD",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Carl-Oskar Bohlin",
+   "kandidatnummer": 1135,
+   "parti": "M",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Crister Carlsson",
+   "kandidatnummer": 1136,
+   "parti": "M",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mursal Isa",
+   "kandidatnummer": 2545,
+   "parti": "MP",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Lars Isaksson",
+   "kandidatnummer": 4525,
+   "parti": "S",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Marie Olsson",
+   "kandidatnummer": 4524,
+   "parti": "S",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Peter Hultkvist",
+   "kandidatnummer": 4523,
+   "parti": "S",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Liselotte Forsberg",
+   "kandidatnummer": 5154,
+   "parti": "SD",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Rasmus Giertz",
+   "kandidatnummer": 5127,
+   "parti": "SD",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mohamed Abdukardir Ali",
+   "kandidatnummer": 37353,
+   "parti": "V",
+   "valkrets": "Dalarna",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Jesper Skalberg Karlsson",
+   "kandidatnummer": 34458,
+   "parti": "M",
+   "valkrets": "Gotland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Meit Fohlin",
+   "kandidatnummer": 44199,
+   "parti": "S",
+   "valkrets": "Gotland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Caroline Smidt Johnsson",
+   "kandidatnummer": 6993,
+   "parti": "C",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Lili André",
+   "kandidatnummer": 969,
+   "parti": "KD",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Lars Beckman",
+   "kandidatnummer": 14854,
+   "parti": "M",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Viktor Wärnick",
+   "kandidatnummer": 14853,
+   "parti": "M",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Kristoffer Lindberg",
+   "kandidatnummer": 15750,
+   "parti": "S",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Patrik Lundqvist",
+   "kandidatnummer": 14779,
+   "parti": "S",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Sanna Backeskog",
+   "kandidatnummer": 15749,
+   "parti": "S",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mattias Eriksson Falk",
+   "kandidatnummer": 5125,
+   "parti": "SD",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Roger Hedlund",
+   "kandidatnummer": 5113,
+   "parti": "SD",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Samuel Gonzalez Westling",
+   "kandidatnummer": 43179,
+   "parti": "V",
+   "valkrets": "Gävleborg",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Rickard Nordin",
+   "kandidatnummer": 2089,
+   "parti": "C",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Elisabet Lann",
+   "kandidatnummer": 960,
+   "parti": "KD",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Simona Mohamsson",
+   "kandidatnummer": 1634,
+   "parti": "L",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "David Josefsson",
+   "kandidatnummer": 31667,
+   "parti": "M",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Gustaf Göthberg",
+   "kandidatnummer": 31666,
+   "parti": "M",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Marie-Louise Hänel Sandström",
+   "kandidatnummer": 31665,
+   "parti": "M",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Emma Nohrén",
+   "kandidatnummer": 26857,
+   "parti": "MP",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Leila Ali Elmi",
+   "kandidatnummer": 33556,
+   "parti": "MP",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Amalia Rud Stenlöf",
+   "kandidatnummer": 9091,
+   "parti": "S",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ingrid Andreae",
+   "kandidatnummer": 9093,
+   "parti": "S",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Johan Büser",
+   "kandidatnummer": 9092,
+   "parti": "S",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mattias Jonsson",
+   "kandidatnummer": 9090,
+   "parti": "S",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Robert Andersson Hammarstrand",
+   "kandidatnummer": 9094,
+   "parti": "S",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Dennis Dioukarev",
+   "kandidatnummer": 5111,
+   "parti": "SD",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Emma Ylivallo Altenhammar",
+   "kandidatnummer": 5153,
+   "parti": "SD",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Daniel Bernmar",
+   "kandidatnummer": 37091,
+   "parti": "V",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Frida Tånghag",
+   "kandidatnummer": 37048,
+   "parti": "V",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jennifer Merelaid Hankins",
+   "kandidatnummer": 37092,
+   "parti": "V",
+   "valkrets": "Göteborg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Christofer Bergenblock",
+   "kandidatnummer": 2049,
+   "parti": "C",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Larry Söder",
+   "kandidatnummer": 975,
+   "parti": "KD",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Hanna Schölander",
+   "kandidatnummer": 1024,
+   "parti": "L",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Hanna Netterberg",
+   "kandidatnummer": 24905,
+   "parti": "M",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Helena Storckenfeldt",
+   "kandidatnummer": 32727,
+   "parti": "M",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Lars Püss",
+   "kandidatnummer": 32728,
+   "parti": "M",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jan Riise",
+   "kandidatnummer": 40946,
+   "parti": "MP",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Aida Birinxhiku",
+   "kandidatnummer": 35063,
+   "parti": "S",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Arber Gashi",
+   "kandidatnummer": 35062,
+   "parti": "S",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jennie Nilsson",
+   "kandidatnummer": 35061,
+   "parti": "S",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Andreas Ahlqvist",
+   "kandidatnummer": 5128,
+   "parti": "SD",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Patrik Jönsson",
+   "kandidatnummer": 5147,
+   "parti": "SD",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Agnes Hultén",
+   "kandidatnummer": 16303,
+   "parti": "V",
+   "valkrets": "Halland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Elise Ryder Wikén",
+   "kandidatnummer": 50082,
+   "parti": "M",
+   "valkrets": "Jämtland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Anna-Caren Sätherberg",
+   "kandidatnummer": 4497,
+   "parti": "S",
+   "valkrets": "Jämtland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Kalle Olsson",
+   "kandidatnummer": 4498,
+   "parti": "S",
+   "valkrets": "Jämtland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Peter Eriksson",
+   "kandidatnummer": 16793,
+   "parti": "SD",
+   "valkrets": "Jämtland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Emma Brihall",
+   "kandidatnummer": 6988,
+   "parti": "C",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Camilla Rinaldo Miller",
+   "kandidatnummer": 978,
+   "parti": "KD",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Erik Nygårds",
+   "kandidatnummer": 49976,
+   "parti": "L",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Mats Green",
+   "kandidatnummer": 2589,
+   "parti": "M",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Susanne Wahlström",
+   "kandidatnummer": 3119,
+   "parti": "M",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Rikard Salander",
+   "kandidatnummer": 2864,
+   "parti": "MP",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Azra Muranovic Mujagic",
+   "kandidatnummer": 4711,
+   "parti": "S",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ilan De Basso",
+   "kandidatnummer": 4710,
+   "parti": "S",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Johanna Haraldsson",
+   "kandidatnummer": 4709,
+   "parti": "S",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Eric Westroth",
+   "kandidatnummer": 5146,
+   "parti": "SD",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ida Kors",
+   "kandidatnummer": 5129,
+   "parti": "SD",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Yasmine Eriksson",
+   "kandidatnummer": 5122,
+   "parti": "SD",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Ciczie Weidby",
+   "kandidatnummer": 39217,
+   "parti": "V",
+   "valkrets": "Jönköping",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Emmy Ahlstedt",
+   "kandidatnummer": 1964,
+   "parti": "C",
+   "valkrets": "Kalmar",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Carl-Wiktor Svensson",
+   "kandidatnummer": 986,
+   "parti": "KD",
+   "valkrets": "Kalmar",
+   "valgrund": "Ledamoten är vald på personröster som efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Marie Nicholson",
+   "kandidatnummer": 3624,
+   "parti": "M",
+   "valkrets": "Kalmar",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Olle Olson",
+   "kandidatnummer": 3623,
+   "parti": "M",
+   "valkrets": "Kalmar",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Lena Hallengren",
+   "kandidatnummer": 11679,
+   "parti": "S",
+   "valkrets": "Kalmar",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Marcus Fridlund",
+   "kandidatnummer": 11680,
+   "parti": "S",
+   "valkrets": "Kalmar",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Johnny Svedin",
+   "kandidatnummer": 5102,
+   "parti": "SD",
+   "valkrets": "Kalmar",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Mattias Bäckström Johansson",
+   "kandidatnummer": 1020,
+   "parti": "SD",
+   "valkrets": "Kalmar",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Oliver Rosengren",
+   "kandidatnummer": 2516,
+   "parti": "M",
+   "valkrets": "Kronoberg",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Thomas Ragnarsson",
+   "kandidatnummer": 2517,
+   "parti": "M",
+   "valkrets": "Kronoberg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Monica Haider",
+   "kandidatnummer": 40380,
+   "parti": "S",
+   "valkrets": "Kronoberg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Robert Olesen",
+   "kandidatnummer": 39299,
+   "parti": "S",
+   "valkrets": "Kronoberg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ann-Christine Frohm",
+   "kandidatnummer": 5115,
+   "parti": "SD",
+   "valkrets": "Kronoberg",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Mattias Karlsson Bergman",
+   "kandidatnummer": 5105,
+   "parti": "SD",
+   "valkrets": "Kronoberg",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Niels Paarup-Petersen",
+   "kandidatnummer": 6990,
+   "parti": "C",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Lars Leijonborg",
+   "kandidatnummer": 54715,
+   "parti": "L",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Noria Manouchi",
+   "kandidatnummer": 42277,
+   "parti": "M",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Peter Ollén",
+   "kandidatnummer": 42282,
+   "parti": "M",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Bassem Nasr",
+   "kandidatnummer": 8849,
+   "parti": "MP",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Arwin Sohrabi Nejad",
+   "kandidatnummer": 39817,
+   "parti": "S",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Joakim Sandell",
+   "kandidatnummer": 39815,
+   "parti": "S",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Rose-Marie Carlsson",
+   "kandidatnummer": 39816,
+   "parti": "S",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Patrick Reslow",
+   "kandidatnummer": 1338,
+   "parti": "SD",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Anfal Mahdi",
+   "kandidatnummer": 31718,
+   "parti": "V",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Banesa Martinez Roldan",
+   "kandidatnummer": 31717,
+   "parti": "V",
+   "valkrets": "Malmö",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Linda Frohm",
+   "kandidatnummer": 33679,
+   "parti": "M",
+   "valkrets": "Norrbotten",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mattias Karlsson",
+   "kandidatnummer": 33678,
+   "parti": "M",
+   "valkrets": "Norrbotten",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Fredrik Lundh Sammeli",
+   "kandidatnummer": 5382,
+   "parti": "S",
+   "valkrets": "Norrbotten",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ida Karkiainen",
+   "kandidatnummer": 5383,
+   "parti": "S",
+   "valkrets": "Norrbotten",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Samuel Pettersson Frank",
+   "kandidatnummer": 5384,
+   "parti": "S",
+   "valkrets": "Norrbotten",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Eric Palmqvist",
+   "kandidatnummer": 5131,
+   "parti": "SD",
+   "valkrets": "Norrbotten",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Leonid Yurkovskiy",
+   "kandidatnummer": 5138,
+   "parti": "SD",
+   "valkrets": "Norrbotten",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Birger Lahti",
+   "kandidatnummer": 15344,
+   "parti": "V",
+   "valkrets": "Norrbotten",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Birte Ellenor Kristine Sandberg",
+   "kandidatnummer": 6989,
+   "parti": "C",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Martin Hallander",
+   "kandidatnummer": 997,
+   "parti": "KD",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Marianne Littke",
+   "kandidatnummer": 1587,
+   "parti": "L",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Daniel Lyckestam",
+   "kandidatnummer": 41705,
+   "parti": "M",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Eva Maria Louise Malmer Stenergard",
+   "kandidatnummer": 52155,
+   "parti": "M",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Anna Wallentheim",
+   "kandidatnummer": 21386,
+   "parti": "S",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Eva Birgitta Pihl Krabbe",
+   "kandidatnummer": 21388,
+   "parti": "S",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Per-Arne Håkansson",
+   "kandidatnummer": 21387,
+   "parti": "S",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Björn Söder",
+   "kandidatnummer": 5114,
+   "parti": "SD",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Magnus Persson",
+   "kandidatnummer": 5134,
+   "parti": "SD",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Mikael Eskilandersson",
+   "kandidatnummer": 5126,
+   "parti": "SD",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Linnea Bengtsson",
+   "kandidatnummer": 15598,
+   "parti": "V",
+   "valkrets": "Skåne N/Ö",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Stina Larsson",
+   "kandidatnummer": 6987,
+   "parti": "C",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Cecilia Engström",
+   "kandidatnummer": 981,
+   "parti": "KD",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Camilla Mårtensen",
+   "kandidatnummer": 1392,
+   "parti": "L",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Amanda Thonander",
+   "kandidatnummer": 42487,
+   "parti": "M",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Boriana Åberg",
+   "kandidatnummer": 42397,
+   "parti": "M",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Louise Meijer",
+   "kandidatnummer": 42498,
+   "parti": "M",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Hanna Lindqvist",
+   "kandidatnummer": 8831,
+   "parti": "MP",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Adrian Magnusson",
+   "kandidatnummer": 21191,
+   "parti": "S",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Cilla Dahl Andersson",
+   "kandidatnummer": 21190,
+   "parti": "S",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Morgan Johansson",
+   "kandidatnummer": 21189,
+   "parti": "S",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jessica Stegrud",
+   "kandidatnummer": 3545,
+   "parti": "SD",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Victoria Tiblom",
+   "kandidatnummer": 5109,
+   "parti": "SD",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Hanna Gunnarsson",
+   "kandidatnummer": 9248,
+   "parti": "V",
+   "valkrets": "Skåne S",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Magnus Haara",
+   "kandidatnummer": 6991,
+   "parti": "C",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mauricio Rojas Mullor",
+   "kandidatnummer": 1391,
+   "parti": "L",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Alexander Svensson",
+   "kandidatnummer": 42177,
+   "parti": "M",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mats Sander",
+   "kandidatnummer": 13618,
+   "parti": "M",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Marcus Friberg",
+   "kandidatnummer": 8827,
+   "parti": "MP",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "My Rosell",
+   "kandidatnummer": 21210,
+   "parti": "S",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Niklas Karlsson",
+   "kandidatnummer": 21209,
+   "parti": "S",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Ola Möller",
+   "kandidatnummer": 21211,
+   "parti": "S",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Bo Broman",
+   "kandidatnummer": 1102,
+   "parti": "SD",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Linda Lindberg",
+   "kandidatnummer": 5104,
+   "parti": "SD",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Pontus Andersson Garpvall",
+   "kandidatnummer": 5141,
+   "parti": "SD",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Umihana Rasovic",
+   "kandidatnummer": 31791,
+   "parti": "V",
+   "valkrets": "Skåne V",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Anna Elisabet Lasses",
+   "kandidatnummer": 2123,
+   "parti": "C",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Kerstin Lundgren",
+   "kandidatnummer": 6928,
+   "parti": "C",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Rasmus Elfström",
+   "kandidatnummer": 1915,
+   "parti": "C",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Christian Carlsson",
+   "kandidatnummer": 980,
+   "parti": "KD",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Jakob Forssmed",
+   "kandidatnummer": 958,
+   "parti": "KD",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Johan Britz",
+   "kandidatnummer": 54712,
+   "parti": "L",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Karin Karlsbro",
+   "kandidatnummer": 54713,
+   "parti": "L",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Nina Larsson",
+   "kandidatnummer": 10655,
+   "parti": "L",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Adam Reuterskiöld",
+   "kandidatnummer": 5242,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Alexandra Anstrell",
+   "kandidatnummer": 5240,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Erik Ottoson",
+   "kandidatnummer": 5235,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Fredrik Kärrholm",
+   "kandidatnummer": 5237,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ida Drougge",
+   "kandidatnummer": 5238,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Joanna Lewerentz Lundgren",
+   "kandidatnummer": 5241,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Josefin Malmqvist",
+   "kandidatnummer": 5236,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Karin Enström",
+   "kandidatnummer": 5234,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Niklas Wykman",
+   "kandidatnummer": 5233,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Parisa Molagholi Liljestrand",
+   "kandidatnummer": 5232,
+   "parti": "M",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ajda Asgari",
+   "kandidatnummer": 32911,
+   "parti": "MP",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Amanda Lind",
+   "kandidatnummer": 13131,
+   "parti": "MP",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Annika Hirvonen",
+   "kandidatnummer": 33918,
+   "parti": "MP",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Alexandra Völker",
+   "kandidatnummer": 13325,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Andrine Winther",
+   "kandidatnummer": 13331,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Azadeh Rojhan",
+   "kandidatnummer": 13327,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Emil Högberg",
+   "kandidatnummer": 13332,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Katarina Berggren",
+   "kandidatnummer": 13329,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Leif Nysmed",
+   "kandidatnummer": 13326,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Magdalena Andersson",
+   "kandidatnummer": 13321,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Markus Selin",
+   "kandidatnummer": 13330,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mathias Tegnér",
+   "kandidatnummer": 13328,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mikael Damberg",
+   "kandidatnummer": 13322,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Sarkis Johannes Khatchadourian",
+   "kandidatnummer": 13324,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Åsa Westlund",
+   "kandidatnummer": 13323,
+   "parti": "S",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Andrea Kronvall",
+   "kandidatnummer": 5135,
+   "parti": "SD",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Fredrik Lindahl",
+   "kandidatnummer": 1097,
+   "parti": "SD",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Julia Kronlid",
+   "kandidatnummer": 5123,
+   "parti": "SD",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ludvig Aspling",
+   "kandidatnummer": 5121,
+   "parti": "SD",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Martin Kälveskog Kinnunen",
+   "kandidatnummer": 5124,
+   "parti": "SD",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Martin Westmont",
+   "kandidatnummer": 5149,
+   "parti": "SD",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Andrea Andersson-Tay",
+   "kandidatnummer": 55577,
+   "parti": "V",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jonas Lindberg",
+   "kandidatnummer": 53196,
+   "parti": "V",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Mehrnoosh Dadgostar",
+   "kandidatnummer": 55575,
+   "parti": "V",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Sandra Sönnergren",
+   "kandidatnummer": 55579,
+   "parti": "V",
+   "valkrets": "Stockholms län",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Elisabeth Thand Ringqvist",
+   "kandidatnummer": 6983,
+   "parti": "C",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Eva Birgitta Ohlsson Klamberg",
+   "kandidatnummer": 47494,
+   "parti": "C",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Martin Ådahl",
+   "kandidatnummer": 6984,
+   "parti": "C",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Camilla Brodin",
+   "kandidatnummer": 964,
+   "parti": "KD",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Charlotta Edholm",
+   "kandidatnummer": 5742,
+   "parti": "L",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Joar Karlsson Forssell",
+   "kandidatnummer": 15596,
+   "parti": "L",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Romina Pourmokhtari Holwaster",
+   "kandidatnummer": 15595,
+   "parti": "L",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Anna Kristina Axén Olin",
+   "kandidatnummer": 4248,
+   "parti": "M",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Benjamin Dousa",
+   "kandidatnummer": 4247,
+   "parti": "M",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Carl Nordblom",
+   "kandidatnummer": 4249,
+   "parti": "M",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Gunnar Strömmer",
+   "kandidatnummer": 4244,
+   "parti": "M",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jessica Rosencrantz",
+   "kandidatnummer": 4245,
+   "parti": "M",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Johan Forssell",
+   "kandidatnummer": 4246,
+   "parti": "M",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Daniel Helldén",
+   "kandidatnummer": 19566,
+   "parti": "MP",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Gurgin Bakircioglu",
+   "kandidatnummer": 33924,
+   "parti": "MP",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Nila Vikhe Patil",
+   "kandidatnummer": 33925,
+   "parti": "MP",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ulrika Westerlund",
+   "kandidatnummer": 33923,
+   "parti": "MP",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Åsa Lindhagen",
+   "kandidatnummer": 33922,
+   "parti": "MP",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Abdulkadir Kasirga",
+   "kandidatnummer": 3795,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Anders Ygeman",
+   "kandidatnummer": 3791,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Daniel Vencu Velasquez Castro",
+   "kandidatnummer": 3799,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jytte Bengtsson Guteland",
+   "kandidatnummer": 3796,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Lawen Redar",
+   "kandidatnummer": 3792,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Markus Kallifatides",
+   "kandidatnummer": 3797,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mattias Vepsä",
+   "kandidatnummer": 3793,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mirja Räihä",
+   "kandidatnummer": 3798,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Talla Alkurdi",
+   "kandidatnummer": 3794,
+   "parti": "S",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Henrik Vinge",
+   "kandidatnummer": 5103,
+   "parti": "SD",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Johan Tireland",
+   "kandidatnummer": 16918,
+   "parti": "SD",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Linus Bylund",
+   "kandidatnummer": 16917,
+   "parti": "SD",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Andreas Lennkvist Manriquez",
+   "kandidatnummer": 55576,
+   "parti": "V",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ida Gabrielsson",
+   "kandidatnummer": 53365,
+   "parti": "V",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ilyas Hassan",
+   "kandidatnummer": 55580,
+   "parti": "V",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Malin Björk",
+   "kandidatnummer": 55578,
+   "parti": "V",
+   "valkrets": "Stockholms stad",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Martina Johansson",
+   "kandidatnummer": 1874,
+   "parti": "C",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Paul Sabo",
+   "kandidatnummer": 1002,
+   "parti": "KD",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Anna af Sillén",
+   "kandidatnummer": 40346,
+   "parti": "M",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ulf Kristersson",
+   "kandidatnummer": 5231,
+   "parti": "M",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Mohamed Mohamed",
+   "kandidatnummer": 12876,
+   "parti": "MP",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Jan Fredrik Olovsson",
+   "kandidatnummer": 15114,
+   "parti": "S",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jimmy Jansson",
+   "kandidatnummer": 29772,
+   "parti": "S",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Sofia Amloh",
+   "kandidatnummer": 30694,
+   "parti": "S",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Adam Marttinen",
+   "kandidatnummer": 5116,
+   "parti": "SD",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mikael Strömberg",
+   "kandidatnummer": 5137,
+   "parti": "SD",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Maria Forsberg",
+   "kandidatnummer": 8390,
+   "parti": "V",
+   "valkrets": "Södermanland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Catarina Deremar",
+   "kandidatnummer": 1822,
+   "parti": "C",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Mikael Oscarsson",
+   "kandidatnummer": 967,
+   "parti": "KD",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på personröster som efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Lina Palm Nordquist",
+   "kandidatnummer": 17124,
+   "parti": "L",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Fredrik Ahlstedt",
+   "kandidatnummer": 2833,
+   "parti": "M",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Stefan Olsson",
+   "kandidatnummer": 2832,
+   "parti": "M",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jacob Risberg",
+   "kandidatnummer": 37988,
+   "parti": "MP",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ardalan Shekarabi",
+   "kandidatnummer": 4513,
+   "parti": "S",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Gustaf Lantz",
+   "kandidatnummer": 4515,
+   "parti": "S",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ylva Stadell",
+   "kandidatnummer": 4514,
+   "parti": "S",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Åsa Andersson",
+   "kandidatnummer": 4516,
+   "parti": "S",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "David Perez",
+   "kandidatnummer": 5130,
+   "parti": "SD",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Emil Eneblad",
+   "kandidatnummer": 16948,
+   "parti": "SD",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Tobias Smedberg",
+   "kandidatnummer": 55759,
+   "parti": "V",
+   "valkrets": "Uppsala",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Magnus Jakobsson",
+   "kandidatnummer": 973,
+   "parti": "KD",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Cecilia Prins",
+   "kandidatnummer": 1664,
+   "parti": "L",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ann-Sofie Alm",
+   "kandidatnummer": 19688,
+   "parti": "M",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jennie Bergius Eriksson",
+   "kandidatnummer": 19254,
+   "parti": "M",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jonathan Svensson",
+   "kandidatnummer": 23622,
+   "parti": "S",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Louise Charlotte Elahe Thunström",
+   "kandidatnummer": 23476,
+   "parti": "S",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Michael Melby",
+   "kandidatnummer": 14995,
+   "parti": "S",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Matheus Enholm",
+   "kandidatnummer": 5119,
+   "parti": "SD",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Terje Skaarnes",
+   "kandidatnummer": 5151,
+   "parti": "SD",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "David Höglund Velasquez",
+   "kandidatnummer": 45751,
+   "parti": "V",
+   "valkrets": "VG Norra",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Ingemar Kihlström",
+   "kandidatnummer": 979,
+   "parti": "KD",
+   "valkrets": "VG Södra",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Annelie Hastig Olsson",
+   "kandidatnummer": 18901,
+   "parti": "M",
+   "valkrets": "VG Södra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ulrik Nilsson",
+   "kandidatnummer": 31646,
+   "parti": "M",
+   "valkrets": "VG Södra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jessica Rodén",
+   "kandidatnummer": 12186,
+   "parti": "S",
+   "valkrets": "VG Södra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Petter Löberg",
+   "kandidatnummer": 12185,
+   "parti": "S",
+   "valkrets": "VG Södra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Anders Alftberg",
+   "kandidatnummer": 5120,
+   "parti": "SD",
+   "valkrets": "VG Södra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Denice Westerberg",
+   "kandidatnummer": 5144,
+   "parti": "SD",
+   "valkrets": "VG Södra",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Anders Ådahl",
+   "kandidatnummer": 4846,
+   "parti": "C",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Magnus Berntsson",
+   "kandidatnummer": 985,
+   "parti": "KD",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Elin Andersson",
+   "kandidatnummer": 1648,
+   "parti": "L",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Anna Vedin",
+   "kandidatnummer": 1070,
+   "parti": "M",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Camilla Valtersson Grönvall",
+   "kandidatnummer": 1068,
+   "parti": "M",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Johanna Rantsi",
+   "kandidatnummer": 1069,
+   "parti": "M",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Janine Alm Ericson",
+   "kandidatnummer": 23625,
+   "parti": "MP",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Aylin Nouri",
+   "kandidatnummer": 42255,
+   "parti": "S",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Joakim Järrebring",
+   "kandidatnummer": 42256,
+   "parti": "S",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Katarina Bosetti-Kristoffersson",
+   "kandidatnummer": 42257,
+   "parti": "S",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Alexander Christiansson",
+   "kandidatnummer": 5117,
+   "parti": "SD",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Gunilla Gomér",
+   "kandidatnummer": 17031,
+   "parti": "SD",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Carina Örgård",
+   "kandidatnummer": 39513,
+   "parti": "V",
+   "valkrets": "VG Västra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Ulrika Heie",
+   "kandidatnummer": 4856,
+   "parti": "C",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Dan Hovskär",
+   "kandidatnummer": 988,
+   "parti": "KD",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Charlotte Nordström",
+   "kandidatnummer": 31634,
+   "parti": "M",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Sten Ingvar Bergheden",
+   "kandidatnummer": 31331,
+   "parti": "M",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Erik Ezelius",
+   "kandidatnummer": 48916,
+   "parti": "S",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Marcus Andersson",
+   "kandidatnummer": 49080,
+   "parti": "S",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Therese Kristiansson",
+   "kandidatnummer": 49291,
+   "parti": "S",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Josef Fransson",
+   "kandidatnummer": 5150,
+   "parti": "SD",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Tobias Andersson",
+   "kandidatnummer": 5110,
+   "parti": "SD",
+   "valkrets": "VG Östra",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Daniel Bäckström",
+   "kandidatnummer": 6994,
+   "parti": "C",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Kjell-Arne Ottosson",
+   "kandidatnummer": 971,
+   "parti": "KD",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på personröster som efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Magnus Resare",
+   "kandidatnummer": 7274,
+   "parti": "M",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Pål Henning Jonson",
+   "kandidatnummer": 7273,
+   "parti": "M",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Mikael Dahlkvist",
+   "kandidatnummer": 28781,
+   "parti": "S",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Peter Söderström",
+   "kandidatnummer": 29443,
+   "parti": "S",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Sofia Skönnbrink",
+   "kandidatnummer": 29775,
+   "parti": "S",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Robin Lennartsson",
+   "kandidatnummer": 5152,
+   "parti": "SD",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Runar Filper",
+   "kandidatnummer": 5132,
+   "parti": "SD",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Håkan Erik Matz Svenneling",
+   "kandidatnummer": 6032,
+   "parti": "V",
+   "valkrets": "Värmland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Julia Algotsson",
+   "kandidatnummer": 6191,
+   "parti": "C",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Veronica Kerr",
+   "kandidatnummer": 984,
+   "parti": "KD",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Edward Riedl",
+   "kandidatnummer": 3106,
+   "parti": "M",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Nils Larsen",
+   "kandidatnummer": 30114,
+   "parti": "MP",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Björn Wiechel",
+   "kandidatnummer": 13481,
+   "parti": "S",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Isak From",
+   "kandidatnummer": 13479,
+   "parti": "S",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Malin Malm",
+   "kandidatnummer": 13480,
+   "parti": "S",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Sara Gille",
+   "kandidatnummer": 5140,
+   "parti": "SD",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Caroline Täljeblad",
+   "kandidatnummer": 29451,
+   "parti": "V",
+   "valkrets": "Västerbotten",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Anne-Li Sjölund",
+   "kandidatnummer": 2411,
+   "parti": "C",
+   "valkrets": "Västernorrland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Liza-Maria Norlin",
+   "kandidatnummer": 962,
+   "parti": "KD",
+   "valkrets": "Västernorrland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Jörgen Berglund",
+   "kandidatnummer": 51122,
+   "parti": "M",
+   "valkrets": "Västernorrland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Anna-Belle Strömberg",
+   "kandidatnummer": 6008,
+   "parti": "S",
+   "valkrets": "Västernorrland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Malin Kristina Larsson",
+   "kandidatnummer": 6006,
+   "parti": "S",
+   "valkrets": "Västernorrland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Peter Hedberg",
+   "kandidatnummer": 6007,
+   "parti": "S",
+   "valkrets": "Västernorrland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Angelika Bengtsson",
+   "kandidatnummer": 5118,
+   "parti": "SD",
+   "valkrets": "Västernorrland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Kevin Sahlin",
+   "kandidatnummer": 5139,
+   "parti": "SD",
+   "valkrets": "Västernorrland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Roger Haddad",
+   "kandidatnummer": 5491,
+   "parti": "L",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Caroline Högström",
+   "kandidatnummer": 9860,
+   "parti": "M",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Mikael Damsgaard",
+   "kandidatnummer": 9861,
+   "parti": "M",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Amanda Lindblad",
+   "kandidatnummer": 3673,
+   "parti": "S",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jonas Cronert",
+   "kandidatnummer": 3672,
+   "parti": "S",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Åsa Eriksson",
+   "kandidatnummer": 3671,
+   "parti": "S",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Per Oscar Evert Sjöstedt",
+   "kandidatnummer": 5112,
+   "parti": "SD",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Tomas Brandberg",
+   "kandidatnummer": 5136,
+   "parti": "SD",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Hawar Asaiesh",
+   "kandidatnummer": 3193,
+   "parti": "V",
+   "valkrets": "Västmanland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Helena Vilhelmsson",
+   "kandidatnummer": 4913,
+   "parti": "C",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Ebba-Elisabeth Busch",
+   "kandidatnummer": 957,
+   "parti": "KD",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Willhelm Sundman",
+   "kandidatnummer": 50962,
+   "parti": "L",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Elisabeth Svantesson",
+   "kandidatnummer": 5922,
+   "parti": "M",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Oskar Svärd",
+   "kandidatnummer": 5923,
+   "parti": "M",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Camilla Hansén",
+   "kandidatnummer": 32631,
+   "parti": "MP",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Denis Begic",
+   "kandidatnummer": 9250,
+   "parti": "S",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Karin Sundin",
+   "kandidatnummer": 9251,
+   "parti": "S",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Matilda Ernkrans",
+   "kandidatnummer": 9249,
+   "parti": "S",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jimmie Åkesson",
+   "kandidatnummer": 5101,
+   "parti": "SD",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Per Söderlund",
+   "kandidatnummer": 5133,
+   "parti": "SD",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Nadja Awad",
+   "kandidatnummer": 11772,
+   "parti": "V",
+   "valkrets": "Örebro",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Muharrem Daniel Demirok",
+   "kandidatnummer": 6986,
+   "parti": "C",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Magnus Oscarsson",
+   "kandidatnummer": 977,
+   "parti": "KD",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Patrik Karlson",
+   "kandidatnummer": 14719,
+   "parti": "L",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Andreas Norlén",
+   "kandidatnummer": 1198,
+   "parti": "M",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "John Eriksson Weinerhall",
+   "kandidatnummer": 1200,
+   "parti": "M",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Matilda Ekeblad",
+   "kandidatnummer": 1199,
+   "parti": "M",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Rebecka Le Moine",
+   "kandidatnummer": 15876,
+   "parti": "MP",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på personröster"
+  },
+  {
+   "namn": "Elias Hammarlund Aguirre",
+   "kandidatnummer": 6726,
+   "parti": "S",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Eva Lindh",
+   "kandidatnummer": 6725,
+   "parti": "S",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Johan Andersson",
+   "kandidatnummer": 6724,
+   "parti": "S",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Teresa Carvalho",
+   "kandidatnummer": 6723,
+   "parti": "S",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Aron Emilsson",
+   "kandidatnummer": 5108,
+   "parti": "SD",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Clara Aranda",
+   "kandidatnummer": 5106,
+   "parti": "SD",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  },
+  {
+   "namn": "Jonas Andersson",
+   "kandidatnummer": 5143,
+   "parti": "SD",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald som listtrogen efterträdare till dubbelvalsavvecklad"
+  },
+  {
+   "namn": "Malin Kristina Östh",
+   "kandidatnummer": 2418,
+   "parti": "V",
+   "valkrets": "Östergötland",
+   "valgrund": "Ledamoten är vald på jämförelsetal"
+  }
+ ]
+}

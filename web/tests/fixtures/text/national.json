@@ -1,0 +1,221 @@
+{
+ "baselineYear": 2026,
+ "belowThreshold": [],
+ "blocs": [
+  {
+   "name": "Högerblocket",
+   "pMajority": 0.4207,
+   "parties": [
+    "M",
+    "L",
+    "KD",
+    "SD"
+   ],
+   "seats": 173,
+   "share": 49.6107
+  },
+  {
+   "name": "Vänsterblocket",
+   "pMajority": 0.5793,
+   "parties": [
+    "S",
+    "V",
+    "MP",
+    "C"
+   ],
+   "seats": 176,
+   "share": 50.3893
+  }
+ ],
+ "daysLeft": 1438,
+ "estimates": [
+  {
+   "baseline": 19.85,
+   "change": 1.0139,
+   "name": "Moderaterna",
+   "pAboveThreshold": 1.0,
+   "party": "M",
+   "sd": 2.957,
+   "share": 20.8639
+  },
+  {
+   "baseline": 5.34,
+   "change": -0.6548,
+   "name": "Liberalerna",
+   "pAboveThreshold": 0.6361,
+   "party": "L",
+   "sd": 1.8908,
+   "share": 4.6852
+  },
+  {
+   "baseline": 7.03,
+   "change": 0.0209,
+   "name": "Centerpartiet",
+   "pAboveThreshold": 0.9234,
+   "party": "C",
+   "sd": 2.1639,
+   "share": 7.0509
+  },
+  {
+   "baseline": 6.17,
+   "change": 0.0335,
+   "name": "Kristdemokraterna",
+   "pAboveThreshold": 0.8573,
+   "party": "KD",
+   "sd": 2.0102,
+   "share": 6.2035
+  },
+  {
+   "baseline": 28.02,
+   "change": 0.5949,
+   "name": "Socialdemokraterna",
+   "pAboveThreshold": 1.0,
+   "party": "S",
+   "sd": 4.1079,
+   "share": 28.6149
+  },
+  {
+   "baseline": 8.4,
+   "change": 0.1383,
+   "name": "Vänsterpartiet",
+   "pAboveThreshold": 0.9855,
+   "party": "V",
+   "sd": 2.0875,
+   "share": 8.5383
+  },
+  {
+   "baseline": 6.12,
+   "change": 0.0652,
+   "name": "Miljöpartiet",
+   "pAboveThreshold": 0.8633,
+   "party": "MP",
+   "sd": 1.9882,
+   "share": 6.1852
+  },
+  {
+   "baseline": 17.48,
+   "change": 0.3781,
+   "name": "Sverigedemokraterna",
+   "pAboveThreshold": 1.0,
+   "party": "SD",
+   "sd": 2.9975,
+   "share": 17.8581
+  },
+  {
+   "baseline": 1.59,
+   "change": 0.1978,
+   "name": "Övriga",
+   "pAboveThreshold": null,
+   "party": "O",
+   "sd": null,
+   "share": 1.7878
+  }
+ ],
+ "largestParty": "S",
+ "latestPoll": "2026-09-29",
+ "nextElection": "2030-09-08",
+ "referenceDate": "2026-10-01",
+ "schemaVersion": 1,
+ "seats": {
+  "C": 25,
+  "KD": 22,
+  "L": 16,
+  "M": 73,
+  "MP": 22,
+  "S": 99,
+  "SD": 62,
+  "V": 30
+ },
+ "swing": {
+  "C": -0.0927,
+  "KD": -0.0662,
+  "L": -0.741,
+  "M": 0.6932,
+  "MP": -0.0337,
+  "S": 0.1422,
+  "SD": 0.0957,
+  "V": 0.0026
+ },
+ "trend": [
+  {
+   "key": "M",
+   "lastElection": 19.85,
+   "monthAgo": 17.5023,
+   "name": "Moderaterna",
+   "now": 20.8639,
+   "yearAgo": 17.8888
+  },
+  {
+   "key": "L",
+   "lastElection": 5.34,
+   "monthAgo": 3.0836,
+   "name": "Liberalerna",
+   "now": 4.6852,
+   "yearAgo": 2.6311
+  },
+  {
+   "key": "C",
+   "lastElection": 7.03,
+   "monthAgo": 7.6438,
+   "name": "Centerpartiet",
+   "now": 7.0509,
+   "yearAgo": 5.163
+  },
+  {
+   "key": "KD",
+   "lastElection": 6.17,
+   "monthAgo": 6.3751,
+   "name": "Kristdemokraterna",
+   "now": 6.2035,
+   "yearAgo": 3.987
+  },
+  {
+   "key": "S",
+   "lastElection": 28.02,
+   "monthAgo": 28.3711,
+   "name": "Socialdemokraterna",
+   "now": 28.6149,
+   "yearAgo": 34.451
+  },
+  {
+   "key": "V",
+   "lastElection": 8.4,
+   "monthAgo": 8.0855,
+   "name": "Vänsterpartiet",
+   "now": 8.5383,
+   "yearAgo": 7.099
+  },
+  {
+   "key": "MP",
+   "lastElection": 6.12,
+   "monthAgo": 7.4122,
+   "name": "Miljöpartiet",
+   "now": 6.1852,
+   "yearAgo": 5.2761
+  },
+  {
+   "key": "SD",
+   "lastElection": 17.48,
+   "monthAgo": 19.1447,
+   "name": "Sverigedemokraterna",
+   "now": 17.8581,
+   "yearAgo": 21.2812
+  },
+  {
+   "key": "Högerblocket",
+   "lastElection": 48.84,
+   "monthAgo": 46.1057,
+   "name": "Högerblocket",
+   "now": 49.6107,
+   "yearAgo": 45.7881
+  },
+  {
+   "key": "Vänsterblocket",
+   "lastElection": 49.57,
+   "monthAgo": 51.5126,
+   "name": "Vänsterblocket",
+   "now": 50.3893,
+   "yearAgo": 51.9892
+  }
+ ]
+}

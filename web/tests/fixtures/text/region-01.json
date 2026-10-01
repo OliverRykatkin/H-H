@@ -1,0 +1,89 @@
+{
+ "code": "01",
+ "kind": "region",
+ "kommunSeats": null,
+ "kommunval": null,
+ "name": "Stockholm",
+ "regionSeats": {
+  "baseline": {
+   "C": 10,
+   "KD": 11,
+   "L": 6,
+   "M": 36,
+   "MP": 11,
+   "S": 42,
+   "SD": 15,
+   "V": 18
+  },
+  "nAdjustment": 15,
+  "names": {
+   "C": "Centerpartiet",
+   "KD": "Kristdemokraterna",
+   "L": "Liberalerna (tidigare Folkpartiet)",
+   "M": "Moderaterna",
+   "MP": "Miljöpartiet de gröna",
+   "S": "Arbetarepartiet-Socialdemokraterna",
+   "SD": "Sverigedemokraterna",
+   "V": "Vänsterpartiet"
+  },
+  "now": {
+   "C": 10,
+   "KD": 10,
+   "L": 5,
+   "M": 37,
+   "MP": 11,
+   "S": 43,
+   "SD": 15,
+   "V": 18
+  },
+  "stage": "preliminar",
+  "threshold": 3.0,
+  "totalSeats": 149
+ },
+ "regionval": {
+  "baseline": {
+   "C": 6.9152,
+   "KD": 7.0344,
+   "L": 4.0737,
+   "M": 23.8431,
+   "MP": 7.2942,
+   "S": 28.0732,
+   "SD": 10.0034,
+   "V": 11.8578
+  },
+  "now": {
+   "C": 6.8225,
+   "KD": 6.9682,
+   "L": 3.3327,
+   "M": 24.5362,
+   "MP": 7.2605,
+   "S": 28.2154,
+   "SD": 10.0991,
+   "V": 11.8604
+  },
+  "others": 0.9051,
+  "p5": {
+   "C": 3.3694,
+   "KD": 3.7028,
+   "L": 0.2992,
+   "M": 19.9527,
+   "MP": 4.0394,
+   "S": 22.513,
+   "SD": 5.5502,
+   "V": 8.5252
+  },
+  "p95": {
+   "C": 10.27,
+   "KD": 10.1453,
+   "L": 6.3909,
+   "M": 29.1474,
+   "MP": 10.4817,
+   "S": 33.7347,
+   "SD": 14.6713,
+   "V": 15.2775
+  }
+ },
+ "riksdag": null,
+ "schemaVersion": 1,
+ "slug": "stockholm"
+}

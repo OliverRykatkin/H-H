@@ -1,0 +1,10 @@
+---
+import type { Probability } from "@contracts/contracts";
+interface Props { q: Probability }
+const { q } = Astro.props;
+---
+<article class="card prob-card">
+  <div class="q">{q.text}</div>
+  <div class="p">{q.display} <span class="small muted">· {q.label}</span></div>
+  <div class="prob-bar" aria-hidden="true"><span style={`width:${Math.max(1, Math.min(99, q.p * 100))}%`}></span></div>
+</article>

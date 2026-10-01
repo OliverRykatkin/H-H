@@ -1,0 +1,89 @@
+{
+ "baseline": {
+  "C": 9.79,
+  "KD": 3.9,
+  "L": 7.1,
+  "M": 19.1,
+  "MP": 11.14,
+  "S": 26.34,
+  "SD": 8.35,
+  "V": 13.04
+ },
+ "fixedBaseline": {
+  "C": 3,
+  "KD": 1,
+  "L": 2,
+  "M": 6,
+  "MP": 3,
+  "S": 8,
+  "SD": 2,
+  "V": 4
+ },
+ "fixedNow": {
+  "C": 3,
+  "KD": 1,
+  "L": 2,
+  "M": 6,
+  "MP": 3,
+  "S": 8,
+  "SD": 2,
+  "V": 4
+ },
+ "margins": [
+  {
+   "gainPp": 2.3687,
+   "losePp": 1.1625,
+   "party": "C"
+  },
+  {
+   "gainPp": 1.4062,
+   "losePp": 1.7938,
+   "party": "KD"
+  },
+  {
+   "gainPp": 2.2875,
+   "losePp": 1.2437,
+   "party": "L"
+  },
+  {
+   "gainPp": 2.4813,
+   "losePp": 1.0,
+   "party": "M"
+  },
+  {
+   "gainPp": 1.1125,
+   "losePp": 2.4625,
+   "party": "MP"
+  },
+  {
+   "gainPp": 2.925,
+   "losePp": 0.8625,
+   "party": "S"
+  },
+  {
+   "gainPp": 0.3562,
+   "losePp": 3.55,
+   "party": "SD"
+  },
+  {
+   "gainPp": 2.4375,
+   "losePp": 1.0875,
+   "party": "V"
+  }
+ ],
+ "name": "Stockholms stad",
+ "now": {
+  "C": 9.8191,
+  "KD": 3.8819,
+  "L": 6.4388,
+  "M": 20.0417,
+  "MP": 11.2457,
+  "S": 26.8147,
+  "SD": 8.5517,
+  "V": 13.2064
+ },
+ "schemaVersion": 1,
+ "seatDistribution": null,
+ "seats": 29,
+ "slug": "stockholms-stad"
+}

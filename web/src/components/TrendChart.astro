@@ -1,0 +1,84 @@
+---
+/**
+ * Statisk SVG-trendgraf (förrenderad, ingen JS): p50-linje och p5–p95-band per serie,
+ * streck vid valen. Serien glesas till var `step`:e dag för att hålla HTML-vikten nere.
+ */
+import type { Timeseries } from "@contracts/contracts";
+import { PARTY_COLORS } from "@contracts/constants";
+import { partyName } from "../lib/format";
+
+interface Props {
+  ts: Timeseries;
+  keys: string[];
+  title: string;
+  colors?: Record<string, string>;
+  names?: Record<string, string>;
+  step?: number;
+  yMax?: number;
+  yMin?: number;
+  threshold?: number | null;
+  from?: string;
+}
+const { ts, keys, title, colors = PARTY_COLORS, names = {}, step = 7, threshold = 4, from } = Astro.props;
+const W = 760, H = 340, L = 36, R = 12, T = 14, B = 26;
+const start = from ? ts.dates.findIndex((d) => d >= from) : 0;
+// Segmentet efter senaste valet startar i valresultatet: linjen bryts där.
+const split = ts.elections[ts.elections.length - 1]?.date ?? "9999";
+const splitIdx = ts.dates.findIndex((d) => d >= split);
+const idxSet = new Set<number>();
+for (let i = Math.max(0, start); i < ts.dates.length; i += step) idxSet.add(i);
+idxSet.add(ts.dates.length - 1);
+if (splitIdx > 0) { idxSet.add(splitIdx - 1); idxSet.add(splitIdx); }
+const idx = [...idxSet].filter((i) => i >= Math.max(0, start)).sort((a, b) => a - b);
+const t0 = Date.parse(ts.dates[idx[0]]), t1 = Date.parse(ts.dates[ts.dates.length - 1]);
+const all = keys.flatMap((k) => idx.map((i) => ts.series[k]?.p95[i]).filter((v): v is number => v != null));
+const yMax = Astro.props.yMax ?? Math.ceil((Math.max(...all) + 2) / 5) * 5;
+const yMin = Astro.props.yMin ?? 0;
+const x = (d: string) => L + ((Date.parse(d) - t0) / (t1 - t0)) * (W - L - R);
+const y = (v: number) => T + (1 - (v - yMin) / (yMax - yMin)) * (H - T - B);
+const f = (n: number) => n.toFixed(1);
+function segments(k: string) {
+  const s = ts.series[k];
+  const out: number[][] = [];
+  let cur: number[] = [];
+  for (const i of idx) {
+    if (s.p50[i] == null) { if (cur.length) out.push(cur); cur = []; continue; }
+    if (cur.length && ts.dates[i] >= split && ts.dates[cur[cur.length - 1]] < split) { out.push(cur); cur = []; }
+    cur.push(i);
+  }
+  if (cur.length) out.push(cur);
+  return out.map((seg) => ({
+    line: seg.map((i) => `${f(x(ts.dates[i]))},${f(y(s.p50[i]))}`).join(" "),
+    band: seg.map((i) => `${f(x(ts.dates[i]))},${f(y(s.p95[i]))}`).join(" ") + " " +
+      [...seg].reverse().map((i) => `${f(x(ts.dates[i]))},${f(y(s.p5[i]))}`).join(" "),
+  }));
+}
+const ticks = Array.from({ length: Math.floor((yMax - yMin) / 5) + 1 }, (_, i) => yMin + i * 5);
+const years: string[] = [];
+for (let yr = new Date(t0).getFullYear() + 1; yr <= new Date(t1).getFullYear(); yr++) years.push(`${yr}-01-01`);
+const last = ts.dates.length - 1;
+---
+<figure>
+  <svg class="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="tc-title tc-desc">
+    <title id="tc-title">{title}</title>
+    <desc id="tc-desc">{keys.map((k) => `${names[k] ?? partyName(k)} ${ts.series[k]?.p50[last]?.toFixed(1)} %`).join(", ")}</desc>
+    {ticks.map((v) => <g><line x1={L} x2={W - R} y1={y(v)} y2={y(v)} stroke="#ebebeb" /><text x={L - 6} y={y(v) + 4} text-anchor="end" font-size="11" fill="#5c5f63">{v}</text></g>)}
+    {years.map((d) => <text x={x(d)} y={H - 8} text-anchor="middle" font-size="11" fill="#5c5f63">{d.slice(0, 4)}</text>)}
+    {ts.elections.filter((e) => Date.parse(e.date) >= t0).map((e) => (
+      <g><line x1={x(e.date)} x2={x(e.date)} y1={T} y2={H - B} stroke="#555" stroke-dasharray="4 3" />
+        {x(e.date) > W - R - 70
+          ? <text x={x(e.date) - 4} y={T + 10} font-size="11" fill="#333" text-anchor="end">{e.label}</text>
+          : <text x={x(e.date) + 4} y={T + 10} font-size="11" fill="#333">{e.label}</text>}</g>
+    ))}
+    {threshold != null && <line x1={L} x2={W - R} y1={y(threshold)} y2={y(threshold)} stroke="#999" stroke-dasharray="2 3" />}
+    {keys.filter((k) => ts.series[k]).map((k) => segments(k).map((sg) => (
+      <g><polygon points={sg.band} fill={colors[k] ?? "#888"} fill-opacity="0.13" /><polyline points={sg.line} fill="none" stroke={colors[k] ?? "#888"} stroke-width="2" /></g>
+    )))}
+  </svg>
+  <figcaption class="small muted">
+    {keys.filter((k) => ts.series[k]).map((k) => (
+      <span style="margin-right:0.9em;white-space:nowrap"><span class="swatch" style={`background:${colors[k] ?? "#888"}`}></span>{names[k] ?? partyName(k)} {ts.series[k].p50[last]?.toFixed(1).replace(".", ",")} %</span>
+    ))}
+    <br />Linje = skattat stöd, skuggat = 90 % osäkerhetsintervall. Streckade linjer = val.
+  </figcaption>
+</figure>

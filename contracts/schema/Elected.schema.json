@@ -1,0 +1,61 @@
+{
+  "$defs": {
+    "ElectedMember": {
+      "additionalProperties": false,
+      "properties": {
+        "kandidatnummer": {
+          "type": "integer"
+        },
+        "namn": {
+          "type": "string"
+        },
+        "parti": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "valgrund": {
+          "type": "string"
+        },
+        "valkrets": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "namn",
+        "kandidatnummer",
+        "parti",
+        "valkrets",
+        "valgrund",
+        "slug"
+      ],
+      "title": "ElectedMember",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Elected.json",
+  "additionalProperties": false,
+  "description": "De invalda i baslinjevalet (D10). Bara namn, parti, valkrets och valgrund (D8).",
+  "properties": {
+    "members": {
+      "items": {
+        "$ref": "#/$defs/ElectedMember"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "year": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "year",
+    "members"
+  ],
+  "title": "Elected",
+  "type": "object"
+}

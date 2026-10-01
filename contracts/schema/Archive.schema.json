@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "ArchiveDay": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "type": "string"
+        },
+        "daysLeft": {
+          "type": "integer"
+        },
+        "pMajority": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "pThreshold": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "seatsMedian": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "shares": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "date",
+        "daysLeft",
+        "shares",
+        "seatsMedian",
+        "pThreshold",
+        "pMajority"
+      ],
+      "title": "ArchiveDay",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Archive.json",
+  "additionalProperties": false,
+  "description": "Prognosens utveckling fram till ett val (rekonstruerad, D12).",
+  "properties": {
+    "days": {
+      "items": {
+        "$ref": "#/$defs/ArchiveDay"
+      },
+      "type": "array"
+    },
+    "electionDate": {
+      "type": "string"
+    },
+    "modelVersion": {
+      "type": "string"
+    },
+    "nSims": {
+      "type": "integer"
+    },
+    "note": {
+      "type": "string"
+    },
+    "reconstructed": {
+      "type": "boolean"
+    },
+    "result": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "totalSeats": {
+      "type": "integer"
+    },
+    "year": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "year",
+    "electionDate",
+    "reconstructed",
+    "modelVersion",
+    "nSims",
+    "seed",
+    "totalSeats",
+    "note",
+    "result",
+    "days"
+  ],
+  "title": "Archive",
+  "type": "object"
+}

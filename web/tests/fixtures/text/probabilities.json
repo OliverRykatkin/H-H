@@ -1,0 +1,82 @@
+{
+ "questions": [
+  {
+   "display": "54 %",
+   "id": "vansterunderlaget-storre",
+   "label": "Jämnt",
+   "p": 0.5437,
+   "text": "Magdalena Anderssons regeringsunderlag har större stöd än Ulf Kristerssons?"
+  },
+  {
+   "display": "46 %",
+   "id": "hogerunderlaget-storre",
+   "label": "Jämnt",
+   "p": 0.4563,
+   "text": "Ulf Kristerssons regeringsunderlag har större stöd än Magdalena Anderssons?"
+  },
+  {
+   "display": "3 %",
+   "id": "s-v-mp-majoritet-roster",
+   "label": "Väldigt osannolikt",
+   "p": 0.0344,
+   "text": "S, V och MP har en majoritet av väljarna (utan C)?"
+  },
+  {
+   "display": "1 %",
+   "id": "s-c-mp-majoritet-roster",
+   "label": "Väldigt osannolikt",
+   "p": 0.0134,
+   "text": "S, C och MP har en majoritet av väljarna (utan V)?"
+  },
+  {
+   "display": "<1 %",
+   "id": "sd-storre-an-m-l-kd",
+   "label": "Väldigt osannolikt",
+   "p": 0.0023,
+   "text": "Är SD större än regeringspartierna (M+L+KD) tillsammans?"
+  },
+  {
+   "display": "86 %",
+   "id": "mp-over-sparren",
+   "label": "Troligt",
+   "p": 0.8633,
+   "text": "MP ligger över spärren?"
+  },
+  {
+   "display": "64 %",
+   "id": "l-over-sparren",
+   "label": "Jämnt",
+   "p": 0.6361,
+   "text": "L ligger över spärren?"
+  },
+  {
+   "display": "86 %",
+   "id": "kd-over-sparren",
+   "label": "Troligt",
+   "p": 0.8573,
+   "text": "KD ligger över spärren?"
+  },
+  {
+   "display": "92 %",
+   "id": "c-over-sparren",
+   "label": "Väldigt troligt",
+   "p": 0.9234,
+   "text": "C ligger över spärren?"
+  },
+  {
+   "display": "41 %",
+   "id": "alla-over-sparren",
+   "label": "Jämnt",
+   "p": 0.4092,
+   "text": "Samtliga riksdagspartier ligger över spärren?"
+  },
+  {
+   "display": "76 %",
+   "id": "m-storre-an-sd",
+   "label": "Troligt",
+   "p": 0.759,
+   "text": "M är större än SD?"
+  }
+ ],
+ "schemaVersion": 1
+}

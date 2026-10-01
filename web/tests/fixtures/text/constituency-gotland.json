@@ -1,0 +1,89 @@
+{
+ "baseline": {
+  "C": 10.73,
+  "KD": 5.24,
+  "L": 5.28,
+  "M": 18.3,
+  "MP": 7.88,
+  "S": 31.11,
+  "SD": 13.49,
+  "V": 6.74
+ },
+ "fixedBaseline": {
+  "C": 0,
+  "KD": 0,
+  "L": 0,
+  "M": 1,
+  "MP": 0,
+  "S": 1,
+  "SD": 0,
+  "V": 0
+ },
+ "fixedNow": {
+  "C": 0,
+  "KD": 0,
+  "L": 0,
+  "M": 1,
+  "MP": 0,
+  "S": 1,
+  "SD": 0,
+  "V": 0
+ },
+ "margins": [
+  {
+   "gainPp": 6.9625,
+   "losePp": null,
+   "party": "C"
+  },
+  {
+   "gainPp": 11.6312,
+   "losePp": null,
+   "party": "KD"
+  },
+  {
+   "gainPp": 12.1812,
+   "losePp": null,
+   "party": "L"
+  },
+  {
+   "gainPp": null,
+   "losePp": 4.6813,
+   "party": "M"
+  },
+  {
+   "gainPp": 9.3375,
+   "losePp": null,
+   "party": "MP"
+  },
+  {
+   "gainPp": 9.65,
+   "losePp": 14.8938,
+   "party": "S"
+  },
+  {
+   "gainPp": 4.4812,
+   "losePp": null,
+   "party": "SD"
+  },
+  {
+   "gainPp": 10.2812,
+   "losePp": null,
+   "party": "V"
+  }
+ ],
+ "name": "Gotland",
+ "now": {
+  "C": 10.7698,
+  "KD": 5.2382,
+  "L": 4.5955,
+  "M": 19.2297,
+  "MP": 7.944,
+  "S": 31.6414,
+  "SD": 13.7549,
+  "V": 6.8266
+ },
+ "schemaVersion": 1,
+ "seatDistribution": null,
+ "seats": 2,
+ "slug": "gotland"
+}

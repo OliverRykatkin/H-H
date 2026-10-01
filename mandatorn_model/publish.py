@@ -45,6 +45,7 @@ from mandatorn_model.polls import parse_polls
 from mandatorn_model.probabilities import coalition_summary, evaluate_questions
 from mandatorn_model.regional import apply_uniform_swing, compute_national_swing, load_area_results
 from mandatorn_model.seats import estimate_constituency_votes
+from mandatorn_model.seat_model_export import export_seat_model
 from mandatorn_model.storage import ALIAS, Storage, storage_from_uri
 from mandatorn_model.text import display_pct, verbal
 from mandatorn_model.valnatt import _load_valnatt_2026, _valnatt_state, _valnatt_times
@@ -64,6 +65,7 @@ ELECTION_DAYS = {d.isoformat() for e in (NEXT_ELECTION, BASELINE_ELECTION_DATE)
 INPUT_FILES = [
     "data/election_2026.json", "data/muni_structure_2026.json", "data/muni_structure_2022.json",
     "data/valnatt_2026.csv.gz", "mandatorn_model/questions.toml", "mandatorn_model/publish.toml",
+    "data/elected_2026.json", "data/archive_2026.json",
 ]
 
 
@@ -376,6 +378,26 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
     if od.get("regioner"):
         R.csv("open/regioner.csv", pd.DataFrame(r_rows), {"lankod": "Länskod", "region": "Region", **area_cols},
               "Mandatorn — prognos per region")
+
+    # seat_model.json — oavrundad, så att klientens mandatberäkning blir bitidentisk med Python
+    sm = C.SeatModel.model_validate(export_seat_model())
+    R.raw("seat_model.json", json.dumps(sm.model_dump(mode="json"), ensure_ascii=False, sort_keys=True,
+                                         separators=(",", ":")).encode("utf-8"), "application/json")
+
+    # elected/2026.json (D10) och archive/<år>.json (D12) ur committade datafiler
+    elected_path = REPO / "data" / "elected_2026.json"
+    if elected_path.exists():
+        raw = json.loads(elected_path.read_text(encoding="utf-8"))
+        seen: dict[str, int] = {}
+        members = []
+        for m in raw["members"]:
+            slug = slugify(m["namn"])
+            seen[slug] = seen.get(slug, 0) + 1
+            members.append(C.ElectedMember(**m, slug=slug if seen[slug] == 1 else f"{slug}-{seen[slug]}"))
+        R.json("elected/2026.json", C.Elected(year=2026, members=members))
+    for arch in sorted((REPO / "data").glob("archive_*.json")):
+        archive = C.Archive.model_validate_json(arch.read_text(encoding="utf-8"))
+        R.json(f"archive/{archive.year}.json", archive)
 
     # margins.json
     nat = compute_national_margins(raw_est)

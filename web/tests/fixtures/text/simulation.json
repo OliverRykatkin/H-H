@@ -1,0 +1,233 @@
+{
+ "blocHistogram": {},
+ "blocs": {
+  "Högerblocket": {
+   "pMajority": 0.4207
+  },
+  "Inget block": {
+   "pMajority": 0.0
+  },
+  "Vänsterblocket": {
+   "pMajority": 0.5793
+  }
+ },
+ "coalitions": [
+  {
+   "mean": 171.7807,
+   "med": 172,
+   "name": "Nuv. regering (M + L + KD + SD)",
+   "p25": 161,
+   "p5": 147,
+   "p75": 182,
+   "p95": 197,
+   "parties": [
+    "M",
+    "L",
+    "KD",
+    "SD"
+   ],
+   "prob": 0.4207
+  },
+  {
+   "mean": 177.2193,
+   "med": 177,
+   "name": "Opposition (S + V + MP + C)",
+   "p25": 167,
+   "p5": 152,
+   "p75": 188,
+   "p95": 202,
+   "parties": [
+    "S",
+    "V",
+    "MP",
+    "C"
+   ],
+   "prob": 0.5793
+  },
+  {
+   "mean": 152.8366,
+   "med": 153,
+   "name": "Rödgröna (S + V + MP)",
+   "p25": 143,
+   "p5": 128,
+   "p75": 163,
+   "p95": 177,
+   "parties": [
+    "S",
+    "V",
+    "MP"
+   ],
+   "prob": 0.0734
+  },
+  {
+   "mean": 158.7102,
+   "med": 159,
+   "name": "M + KD + SD (utan L)",
+   "p25": 149,
+   "p5": 135,
+   "p75": 168,
+   "p95": 183,
+   "parties": [
+    "M",
+    "KD",
+    "SD"
+   ],
+   "prob": 0.1376
+  },
+  {
+   "mean": 139.4088,
+   "med": 140,
+   "name": "Mittenblock (S + C + L)",
+   "p25": 129,
+   "p5": 114,
+   "p75": 150,
+   "p95": 164,
+   "parties": [
+    "S",
+    "C",
+    "L"
+   ],
+   "prob": 0.0107
+  },
+  {
+   "mean": 176.5115,
+   "med": 176,
+   "name": "Storkoalition (S + M)",
+   "p25": 166,
+   "p5": 152,
+   "p75": 186,
+   "p95": 202,
+   "parties": [
+    "S",
+    "M"
+   ],
+   "prob": 0.5373
+  },
+  {
+   "mean": 159.9709,
+   "med": 160,
+   "name": "S + MP + C + L",
+   "p25": 150,
+   "p5": 134,
+   "p75": 170,
+   "p95": 184,
+   "parties": [
+    "S",
+    "MP",
+    "C",
+    "L"
+   ],
+   "prob": 0.171
+  }
+ ],
+ "horizonDays": 1438,
+ "nSims": 10000,
+ "parties": [
+  {
+   "mean": 74.5559,
+   "median": 74,
+   "p25": 68,
+   "p5": 58,
+   "p75": 81,
+   "p95": 92,
+   "pAboveThreshold": 1.0,
+   "party": "M",
+   "sdHorizon": 2.5693,
+   "sdPolls": 1.0688,
+   "sdTotal": 2.957
+  },
+  {
+   "mean": 13.0705,
+   "median": 17,
+   "p25": 0,
+   "p5": 0,
+   "p75": 21,
+   "p95": 27,
+   "pAboveThreshold": 0.6361,
+   "party": "L",
+   "sdHorizon": 1.2175,
+   "sdPolls": 1.0454,
+   "sdTotal": 1.8908
+  },
+  {
+   "mean": 24.3827,
+   "median": 25,
+   "p25": 20,
+   "p5": 0,
+   "p75": 30,
+   "p95": 38,
+   "pAboveThreshold": 0.9234,
+   "party": "C",
+   "sdHorizon": 1.4936,
+   "sdPolls": 1.2049,
+   "sdTotal": 2.1639
+  },
+  {
+   "mean": 20.4443,
+   "median": 22,
+   "p25": 17,
+   "p5": 0,
+   "p75": 27,
+   "p95": 34,
+   "pAboveThreshold": 0.8573,
+   "party": "KD",
+   "sdHorizon": 1.401,
+   "sdPolls": 1.0384,
+   "sdTotal": 2.0102
+  },
+  {
+   "mean": 101.9556,
+   "median": 102,
+   "p25": 93,
+   "p5": 81,
+   "p75": 111,
+   "p95": 124,
+   "pAboveThreshold": 1.0,
+   "party": "S",
+   "sdHorizon": 3.0089,
+   "sdPolls": 2.6118,
+   "sdTotal": 4.1079
+  },
+  {
+   "mean": 30.3189,
+   "median": 30,
+   "p25": 26,
+   "p5": 19,
+   "p75": 35,
+   "p95": 43,
+   "pAboveThreshold": 0.9855,
+   "party": "V",
+   "sdHorizon": 1.6436,
+   "sdPolls": 0.81,
+   "sdTotal": 2.0875
+  },
+  {
+   "mean": 20.5621,
+   "median": 22,
+   "p25": 17,
+   "p5": 0,
+   "p75": 27,
+   "p95": 34,
+   "pAboveThreshold": 0.8633,
+   "party": "MP",
+   "sdHorizon": 1.3989,
+   "sdPolls": 0.9979,
+   "sdTotal": 1.9882
+  },
+  {
+   "mean": 63.71,
+   "median": 64,
+   "p25": 57,
+   "p5": 47,
+   "p75": 70,
+   "p95": 81,
+   "pAboveThreshold": 1.0,
+   "party": "SD",
+   "sdHorizon": 2.377,
+   "sdPolls": 1.528,
+   "sdTotal": 2.9975
+  }
+ ],
+ "schemaVersion": 1,
+ "seed": 42
+}

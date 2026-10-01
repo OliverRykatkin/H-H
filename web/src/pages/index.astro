@@ -1,0 +1,122 @@
+---
+import Layout from "../layouts/Layout.astro";
+import TrendChart from "../components/TrendChart.astro";
+import SeatBar from "../components/SeatBar.astro";
+import ProbCard from "../components/ProbCard.astro";
+import Ingress from "../components/Ingress.astro";
+import { nationalIngress } from "../lib/text/ingress";
+import { displayPct } from "../lib/text/scale";
+import { BLOC_PARTIES, PARTIES, PARTY_COLORS, BASELINE_YEAR, TOTAL_SEATS } from "@contracts/constants";
+import * as D from "../lib/data";
+import { pct, signed, signedInt, partyName, dateSv, changeClass, slugify } from "../lib/format";
+
+const nat = D.national();
+const sim = D.simulation();
+const probs = D.probabilities();
+const ts = D.timeseries();
+const md = D.mandates();
+const pollRows = D.polls().polls.slice(0, 10);
+const est = Object.fromEntries(nat.estimates.map((e) => [e.party, e]));
+const seatsByParty = Object.fromEntries(md.parties.map((p) => [p.party, p]));
+const blocColors = { "Högerblocket": "var(--c-bloc-right)", "Vänsterblocket": "var(--c-bloc-left)" };
+const blocSeries = { "Högerblocket": "#1f8f78", "Vänsterblocket": "#c2405f" };
+const description = `Mandatorns prognos för riksdagen: ${nat.blocs.map((b) => `${b.name} ${b.seats} mandat`).join(", ")}. Uppdaterad ${dateSv(nat.referenceDate)}.`;
+const jsonLd = {
+  "@context": "https://schema.org", "@type": "Dataset", name: "Mandatorn – opinionsläge och mandatprognos",
+  description, url: "https://mandatorn.se/", license: "https://creativecommons.org/licenses/by-nc/4.0/",
+  dateModified: nat.referenceDate, creator: { "@type": "Person", name: "Oliver Rykatkin" },
+  distribution: [{ "@type": "DataDownload", encodingFormat: "text/csv", contentUrl: "https://data.mandatorn.se/latest/mandat.csv" }],
+};
+---
+<Layout title="Mandatorn" description={description} jsonLd={jsonLd}>
+  <h1>Opinionsläget och mandatprognosen</h1>
+  <Ingress text={nationalIngress(nat, sim, nat.referenceDate)} live="national" />
+  <p class="small muted">Prognosen visar läget om det vore val i dag. Uppdaterad {dateSv(nat.referenceDate)}, senaste mätning {dateSv(nat.latestPoll)}.</p>
+
+  <section class="grid grid-4" aria-label="Nyckeltal">
+    {nat.blocs.map((b) => (
+      <div class="card metric">
+        <div class="label">{b.name}</div>
+        <div class="value" style={`color:${blocColors[b.name as keyof typeof blocColors]}`} data-live-metric={`bloc-seats:${b.name}`}>{b.seats} mandat</div>
+        <div class="sub">{signedInt(b.seats - 175)} mot majoritet · egen majoritet i valet: {displayPct(b.pMajority)}</div>
+      </div>
+    ))}
+    <div class="card metric"><div class="label">Största parti</div><div class="value">{partyName(nat.largestParty)}</div><div class="sub">{pct(est[nat.largestParty].share)}</div></div>
+    <div class="card metric"><div class="label">Under 4 %-spärren</div><div class="value">{nat.belowThreshold.length ? nat.belowThreshold.join(", ") : "Inga"}</div><div class="sub">i punktprognosen</div></div>
+  </section>
+
+  <h2>Opinionstrender</h2>
+  <TrendChart ts={ts} keys={[...PARTIES]} title="Skattat partistöd sedan augusti 2022" />
+
+  <h2>Partistöd i dag</h2>
+  <div class="table-scroll">
+    <table>
+      <caption>Andel bland de åtta riksdagspartierna. Intervall = 90 %. P(spärr) = sannolikhet att klara 4 %-spärren på valdagen.</caption>
+      <thead><tr><th>Parti</th><th class="r">Stöd</th><th class="r">90 % intervall</th><th class="r">Val {BASELINE_YEAR}</th><th class="r">Förändring</th><th class="r">P(spärr)</th><th class="r">Mandat</th></tr></thead>
+      <tbody>
+        {PARTIES.map((p) => {
+          const b = D.todayBand(p);
+          const e = est[p];
+          return (
+            <tr>
+              <td><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span><a href={`/parti/${slugify(partyName(p))}/`}>{partyName(p)}</a></td>
+              <td class="r">{pct(e.share)}</td>
+              <td class="r small">{b ? `${pct(b.p5)}–${pct(b.p95)}` : "–"}</td>
+              <td class="r">{pct(e.baseline)}</td>
+              <td class={`r ${changeClass(e.change)}`}>{signed(e.change)}</td>
+              <td class="r">{e.pAboveThreshold != null ? displayPct(e.pAboveThreshold) : "–"}</td>
+              <td class="r">{seatsByParty[p]?.total ?? 0}</td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Förändring över tid</h2>
+  <div class="table-scroll">
+    <table>
+      <caption>Skattat stöd i dag jämfört med för en månad sedan, ett år sedan och valresultatet {BASELINE_YEAR} (procentenheter). Jämförelser bakåt i tiden före valet {BASELINE_YEAR} avser modellens skattning då, innan den startade om i valresultatet.</caption>
+      <thead><tr><th></th><th class="r">I dag</th><th class="r">Mot en månad</th><th class="r">Mot ett år</th><th class="r">Mot valet</th></tr></thead>
+      <tbody>
+        {nat.trend.map((r) => (
+          <tr>
+            <td>{r.name}</td>
+            <td class="r">{pct(r.now)}</td>
+            <td class={`r ${changeClass(r.monthAgo == null ? null : r.now - r.monthAgo)}`}>{r.monthAgo == null ? "–" : signed(r.now - r.monthAgo)}</td>
+            <td class={`r ${changeClass(r.yearAgo == null ? null : r.now - r.yearAgo)}`}>{r.yearAgo == null ? "–" : signed(r.now - r.yearAgo)}</td>
+            <td class={`r ${changeClass(r.lastElection == null ? null : r.now - r.lastElection)}`}>{r.lastElection == null ? "–" : signed(r.now - r.lastElection)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Mandatprognos</h2>
+  <SeatBar seats={nat.seats} caption={`Om det vore val i dag. ${TOTAL_SEATS} mandat, streckad linje = 175 (egen majoritet).`} />
+  <TrendChart ts={ts} keys={Object.keys(BLOC_PARTIES)} colors={blocSeries} title="Blockens samlade stöd" threshold={50} yMin={35} yMax={60} />
+  <p><a href="/mandat/">Hela mandatfördelningen, intervall och mandatmarginaler →</a></p>
+
+  <h2>Hur sannolikt är det att …</h2>
+  <div class="grid grid-3">
+    {probs.questions.slice(0, 6).map((q) => <ProbCard q={q} />)}
+  </div>
+  <p><a href="/sannolikheter/">Alla sannolikheter och koalitioner →</a> <span class="small muted">({sim.nSims.toLocaleString("sv-SE")} simuleringar fram till valet, {sim.horizonDays} dagar kvar)</span></p>
+
+  <h2>Senaste mätningarna</h2>
+  <div class="table-scroll">
+    <table>
+      <thead><tr><th>Institut</th><th>Fältperiod</th><th class="r">n</th>{PARTIES.map((p) => <th class="r">{p}</th>)}</tr></thead>
+      <tbody>
+        {pollRows.map((r) => (
+          <tr>
+            <td><a href={`/institut/${slugify(r.institute)}/`}>{r.institute}</a></td>
+            <td class="small">{r.fieldFrom && r.fieldTo ? `${r.fieldFrom.slice(5)}–${r.fieldTo.slice(5)}` : r.published}</td>
+            <td class="r small">{r.n ?? "–"}</td>
+            {PARTIES.map((p) => <td class="r">{r.shares[p] == null ? "–" : String(r.shares[p]).replace(".", ",")}</td>)}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Layout>

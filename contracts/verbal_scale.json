@@ -1,0 +1,11 @@
+{
+  "_doc": "Verbal sannolikhetsskala (DECISIONS D3). Enda källan — läses av mandatorn_model/text.py och web/. Gränser: p < below → etikett; sista steget gäller resten. Mittbandet är slutet på båda sidor (0,35 och 0,65 ger 'Jämnt').",
+  "steps": [
+    {"below": 0.10, "label": "Väldigt osannolikt"},
+    {"below": 0.35, "label": "Osannolikt"},
+    {"atMost": 0.65, "label": "Jämnt"},
+    {"atMost": 0.90, "label": "Troligt"},
+    {"label": "Väldigt troligt"}
+  ],
+  "display": {"min": 0.01, "max": 0.99, "belowMin": "<1 %", "aboveMax": ">99 %"}
+}

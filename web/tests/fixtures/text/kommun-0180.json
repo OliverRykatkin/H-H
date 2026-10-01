@@ -1,0 +1,131 @@
+{
+ "code": "0180",
+ "kind": "kommun",
+ "kommunSeats": {
+  "baseline": {
+   "C": 8,
+   "KD": 4,
+   "L": 5,
+   "M": 23,
+   "MP": 11,
+   "S": 27,
+   "SD": 8,
+   "V": 15
+  },
+  "nAdjustment": 11,
+  "names": {
+   "C": "Centerpartiet",
+   "KD": "Kristdemokraterna",
+   "L": "Liberalerna (tidigare Folkpartiet)",
+   "M": "Moderaterna",
+   "MP": "Miljöpartiet de gröna",
+   "S": "Arbetarepartiet-Socialdemokraterna",
+   "SD": "Sverigedemokraterna",
+   "V": "Vänsterpartiet"
+  },
+  "now": {
+   "C": 8,
+   "KD": 4,
+   "L": 4,
+   "M": 24,
+   "MP": 11,
+   "S": 27,
+   "SD": 8,
+   "V": 15
+  },
+  "stage": "slutlig",
+  "threshold": 3.0,
+  "totalSeats": 101
+ },
+ "kommunval": {
+  "baseline": {
+   "C": 7.6268,
+   "KD": 4.161,
+   "L": 5.0017,
+   "M": 22.2913,
+   "MP": 10.9972,
+   "S": 26.4904,
+   "SD": 7.4002,
+   "V": 14.5354
+  },
+  "now": {
+   "C": 7.5342,
+   "KD": 4.0948,
+   "L": 4.2606,
+   "M": 22.9845,
+   "MP": 10.9635,
+   "S": 26.6326,
+   "SD": 7.4959,
+   "V": 14.538
+  },
+  "others": 1.4958,
+  "p5": {
+   "C": 4.081,
+   "KD": 0.8297,
+   "L": 1.2271,
+   "M": 18.401,
+   "MP": 7.7469,
+   "S": 20.9415,
+   "SD": 2.9435,
+   "V": 11.2041
+  },
+  "p95": {
+   "C": 10.9814,
+   "KD": 7.2693,
+   "L": 7.3189,
+   "M": 27.5917,
+   "MP": 14.1827,
+   "S": 32.132,
+   "SD": 12.0719,
+   "V": 17.9592
+  }
+ },
+ "name": "Stockholm",
+ "regionSeats": null,
+ "regionval": null,
+ "riksdag": {
+  "baseline": {
+   "C": 9.79,
+   "KD": 3.9,
+   "L": 7.1,
+   "M": 19.1,
+   "MP": 11.14,
+   "S": 26.34,
+   "SD": 8.35,
+   "V": 13.04
+  },
+  "now": {
+   "C": 9.8191,
+   "KD": 3.8819,
+   "L": 6.4388,
+   "M": 20.0417,
+   "MP": 11.2457,
+   "S": 26.8147,
+   "SD": 8.5517,
+   "V": 13.2064
+  },
+  "others": 0.0,
+  "p5": {
+   "C": 6.322,
+   "KD": 0.5758,
+   "L": 3.3672,
+   "M": 15.4006,
+   "MP": 7.9887,
+   "S": 21.0437,
+   "SD": 3.9422,
+   "V": 9.8306
+  },
+  "p95": {
+   "C": 13.3096,
+   "KD": 7.0962,
+   "L": 9.5349,
+   "M": 24.7067,
+   "MP": 14.5054,
+   "S": 32.3927,
+   "SD": 13.1871,
+   "V": 16.6705
+  }
+ },
+ "schemaVersion": 1,
+ "slug": "stockholm"
+}

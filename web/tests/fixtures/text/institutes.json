@@ -1,0 +1,225 @@
+{
+ "bias": [
+  {
+   "institute": "Demoskop",
+   "mean_dev_pp": 0.4922,
+   "mean_dev_rel": 0.0255,
+   "median_dev_pp": 0.4608,
+   "median_dev_rel": 0.0241,
+   "n": 52,
+   "party": "M",
+   "share_over": 0.6731,
+   "share_under": 0.3269
+  },
+  {
+   "institute": "Novus",
+   "mean_dev_pp": 0.147,
+   "mean_dev_rel": 0.0076,
+   "median_dev_pp": 0.1838,
+   "median_dev_rel": 0.0102,
+   "n": 70,
+   "party": "M",
+   "share_over": 0.6286,
+   "share_under": 0.3714
+  },
+  {
+   "institute": "Demoskop",
+   "mean_dev_pp": -0.0571,
+   "mean_dev_rel": 0.0016,
+   "median_dev_pp": -0.1295,
+   "median_dev_rel": -0.0461,
+   "n": 52,
+   "party": "L",
+   "share_over": 0.3654,
+   "share_under": 0.6346
+  },
+  {
+   "institute": "Novus",
+   "mean_dev_pp": -0.0203,
+   "mean_dev_rel": 0.0044,
+   "median_dev_pp": 0.0413,
+   "median_dev_rel": 0.0147,
+   "n": 70,
+   "party": "L",
+   "share_over": 0.5429,
+   "share_under": 0.4571
+  },
+  {
+   "institute": "Demoskop",
+   "mean_dev_pp": 0.0955,
+   "mean_dev_rel": 0.0143,
+   "median_dev_pp": 0.021,
+   "median_dev_rel": 0.0048,
+   "n": 52,
+   "party": "C",
+   "share_over": 0.5385,
+   "share_under": 0.4615
+  },
+  {
+   "institute": "Novus",
+   "mean_dev_pp": 0.189,
+   "mean_dev_rel": 0.0321,
+   "median_dev_pp": 0.0701,
+   "median_dev_rel": 0.0153,
+   "n": 70,
+   "party": "C",
+   "share_over": 0.6143,
+   "share_under": 0.3857
+  },
+  {
+   "institute": "Demoskop",
+   "mean_dev_pp": 0.3209,
+   "mean_dev_rel": 0.0745,
+   "median_dev_pp": 0.2519,
+   "median_dev_rel": 0.0718,
+   "n": 52,
+   "party": "KD",
+   "share_over": 0.6731,
+   "share_under": 0.3269
+  },
+  {
+   "institute": "Novus",
+   "mean_dev_pp": -0.0133,
+   "mean_dev_rel": -0.0098,
+   "median_dev_pp": -0.0575,
+   "median_dev_rel": -0.0139,
+   "n": 70,
+   "party": "KD",
+   "share_over": 0.4,
+   "share_under": 0.6
+  },
+  {
+   "institute": "Demoskop",
+   "mean_dev_pp": -0.5864,
+   "mean_dev_rel": -0.0165,
+   "median_dev_pp": -0.6067,
+   "median_dev_rel": -0.0186,
+   "n": 52,
+   "party": "S",
+   "share_over": 0.3269,
+   "share_under": 0.6731
+  },
+  {
+   "institute": "Novus",
+   "mean_dev_pp": -0.0837,
+   "mean_dev_rel": -0.0041,
+   "median_dev_pp": 0.0378,
+   "median_dev_rel": 0.0011,
+   "n": 70,
+   "party": "S",
+   "share_over": 0.5286,
+   "share_under": 0.4714
+  },
+  {
+   "institute": "Demoskop",
+   "mean_dev_pp": -0.1289,
+   "mean_dev_rel": -0.017,
+   "median_dev_pp": -0.2137,
+   "median_dev_rel": -0.027,
+   "n": 52,
+   "party": "V",
+   "share_over": 0.3654,
+   "share_under": 0.6346
+  },
+  {
+   "institute": "Novus",
+   "mean_dev_pp": 0.0219,
+   "mean_dev_rel": 0.0017,
+   "median_dev_pp": -0.1135,
+   "median_dev_rel": -0.0143,
+   "n": 70,
+   "party": "V",
+   "share_over": 0.4429,
+   "share_under": 0.5571
+  },
+  {
+   "institute": "Demoskop",
+   "mean_dev_pp": -0.1079,
+   "mean_dev_rel": -0.0369,
+   "median_dev_pp": -0.2291,
+   "median_dev_rel": -0.0501,
+   "n": 52,
+   "party": "MP",
+   "share_over": 0.4231,
+   "share_under": 0.5769
+  },
+  {
+   "institute": "Novus",
+   "mean_dev_pp": -0.0729,
+   "mean_dev_rel": -0.0117,
+   "median_dev_pp": -0.0789,
+   "median_dev_rel": -0.0133,
+   "n": 70,
+   "party": "MP",
+   "share_over": 0.4714,
+   "share_under": 0.5286
+  },
+  {
+   "institute": "Demoskop",
+   "mean_dev_pp": 0.1316,
+   "mean_dev_rel": 0.0071,
+   "median_dev_pp": 0.1692,
+   "median_dev_rel": 0.0081,
+   "n": 52,
+   "party": "SD",
+   "share_over": 0.6346,
+   "share_under": 0.3654
+  },
+  {
+   "institute": "Novus",
+   "mean_dev_pp": 0.4059,
+   "mean_dev_rel": 0.0203,
+   "median_dev_pp": 0.4243,
+   "median_dev_rel": 0.0208,
+   "n": 70,
+   "party": "SD",
+   "share_over": 0.6,
+   "share_under": 0.4
+  }
+ ],
+ "schemaVersion": 1,
+ "weights": [
+  {
+   "institute": "Ipsos",
+   "mae": 1.054,
+   "n": 4,
+   "weight": 1.241
+  },
+  {
+   "institute": "Indikator",
+   "mae": 1.147,
+   "n": 4,
+   "weight": 1.14
+  },
+  {
+   "institute": "Infostat",
+   "mae": 1.229,
+   "n": 4,
+   "weight": 1.064
+  },
+  {
+   "institute": "Novus",
+   "mae": 1.273,
+   "n": 7,
+   "weight": 1.027
+  },
+  {
+   "institute": "Sifo",
+   "mae": 1.334,
+   "n": 3,
+   "weight": 0.98
+  },
+  {
+   "institute": "Demoskop",
+   "mae": 1.596,
+   "n": 5,
+   "weight": 0.819
+  },
+  {
+   "institute": "Sentio",
+   "mae": 1.793,
+   "n": 4,
+   "weight": 0.729
+  }
+ ]
+}

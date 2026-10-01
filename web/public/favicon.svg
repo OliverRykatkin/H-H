@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="8" fill="white"/>
+  <!-- Grid-linjer, subtila -->
+  <line x1="4" y1="48" x2="60" y2="48" stroke="#e8e8e8" stroke-width="0.8"/>
+  <line x1="4" y1="36" x2="60" y2="36" stroke="#e8e8e8" stroke-width="0.8"/>
+  <line x1="4" y1="24" x2="60" y2="24" stroke="#e8e8e8" stroke-width="0.8"/>
+  <!-- S: Socialdemokraterna (röd) – hög, lätt sjunkande -->
+  <polyline points="6,14 18,15 30,16 42,18 58,20"
+            fill="none" stroke="#E8112d" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- M: Moderaterna (blå) – mitten, lätt stigande -->
+  <polyline points="6,32 18,31 30,30 42,29 58,27"
+            fill="none" stroke="#52BDEC" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- SD: Sverigedemokraterna (gul) – lägre, lätt stigande -->
+  <polyline points="6,40 18,39 30,38 42,36 58,34"
+            fill="none" stroke="#DDB800" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Slutpunkt-prickar -->
+  <circle cx="58" cy="20" r="2.8" fill="#E8112d"/>
+  <circle cx="58" cy="27" r="2.8" fill="#52BDEC"/>
+  <circle cx="58" cy="34" r="2.8" fill="#DDB800"/>
+</svg>

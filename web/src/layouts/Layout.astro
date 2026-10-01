@@ -1,0 +1,104 @@
+---
+import "@fontsource/dm-sans/latin-400.css";
+import "@fontsource/dm-sans/latin-700.css";
+import "../styles/global.css";
+import { PARTY_COLORS } from "@contracts/constants";
+import { manifest, dataUrl } from "../lib/release";
+
+interface Props {
+  title: string;
+  description: string;
+  /** Sökväg för OG-bild (genereras vid bygget), t.ex. /og/parti/m.png */
+  ogImage?: string;
+  jsonLd?: Record<string, unknown> | Record<string, unknown>[];
+  noindex?: boolean;
+}
+const { title, description, jsonLd, noindex = false } = Astro.props;
+// OG-bilden genereras vid bygget per sida (scripts/og.mjs): /og/<sökväg>.png
+const ogImage = Astro.props.ogImage ?? `/og${Astro.url.pathname === "/" ? "/index" : Astro.url.pathname.replace(/\/$/, "")}.png`;
+const m = manifest();
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+const fullTitle = title === "Mandatorn" ? title : `${title} – Mandatorn`;
+const partyVars = Object.entries(PARTY_COLORS).map(([p, c]) => `--party-${p}:${c}`).join(";");
+const plausible = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
+const nav = [
+  ["/", "Översikt"], ["/mandat/", "Mandat"], ["/sannolikheter/", "Sannolikheter"],
+  ["/valkretsar/", "Valkretsar"], ["/kommuner/", "Kommuner"], ["/regioner/", "Regioner"],
+  ["/partier/", "Partier"], ["/institut/", "Institut"], ["/valnatt/", "Valnatt"],
+  ["/data/", "Öppen data"], ["/om/", "Metod"],
+];
+const path = Astro.url.pathname;
+---
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="sv_SE" />
+    <meta property="og:site_name" content="Mandatorn" />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL(ogImage, Astro.site).href} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="mandatorn:release" content={m.release} />
+    <meta name="mandatorn:data" content={dataUrl()} />
+    <style set:html={`:root{${partyVars}}`}></style>
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    {plausible && <script defer data-domain={plausible} src="https://plausible.io/js/script.js"></script>}
+  </head>
+  <body>
+    <a class="skip" href="#main">Hoppa till innehållet</a>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">Mandatorn</a>
+        <nav class="nav" aria-label="Huvudmeny">
+          {nav.map(([href, label]) => (
+            <a href={href} aria-current={(href === "/" ? path === "/" : path.startsWith(href)) ? "page" : undefined}>{label}</a>
+          ))}
+        </nav>
+      </div>
+    </header>
+    <div class="wrap" id="release-banner" aria-live="polite"></div>
+    <main id="main" class="wrap">
+      <slot />
+    </main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          Mandatorn är en oberoende statistisk modell, inte ett officiellt valresultat.
+          Data: opinionsmätningar via <a href="https://github.com/MansMeg/SwedishPolls">SwedishPolls</a> (CC0),
+          valresultat från <a href="https://www.val.se">Valmyndigheten</a>.
+        </p>
+        <p>
+          <a href="/data/">Öppen data</a> (CC BY-NC 4.0) · <a href="/licens/">Licens</a> ·
+          <a href="/om/">Metod</a> · <a href="/status/">Status</a> · <a href="/integritet/">Integritet</a> ·
+          Release <span class="num">{m.release.slice(0, 12)}</span> ({m.generatedAt.slice(0, 10)})
+        </p>
+      </div>
+    </footer>
+    <script>
+      import { releaseStatus, ReleaseError } from "../lib/client/release";
+      const banner = document.getElementById("release-banner");
+      releaseStatus()
+        .then((s) => {
+          if (!banner) return;
+          if (s.supersededBy) {
+            banner.innerHTML = `<p class="banner warn">Siffrorna på sidan har rättats i en senare release. <a href="">Ladda om sidan</a> för de rättade värdena.</p>`;
+          } else if (s.isNewer) {
+            document.dispatchEvent(new CustomEvent("mandatorn:newer-release", { detail: s.latest }));
+            banner.innerHTML = `<p class="banner warn">Det finns nyare data (${s.latest.generatedAt.slice(0, 10)}). Siffrorna uppdateras — <a href="">ladda om</a> för hela sidan.</p>`;
+          }
+        })
+        .catch((e) => {
+          if (banner && e instanceof ReleaseError) banner.innerHTML = `<p class="banner error">${e.message}</p>`;
+        });
+    </script>
+  </body>
+</html>
