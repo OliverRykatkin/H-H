@@ -1,0 +1,280 @@
+{
+  "$defs": {
+    "Bloc": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "pMajority": {
+          "type": "number"
+        },
+        "parties": {
+          "items": {
+            "enum": [
+              "M",
+              "L",
+              "C",
+              "KD",
+              "S",
+              "V",
+              "MP",
+              "SD"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "seats": {
+          "type": "integer"
+        },
+        "share": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "parties",
+        "seats",
+        "share",
+        "pMajority"
+      ],
+      "title": "Bloc",
+      "type": "object"
+    },
+    "PartyEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Valresultat i baslinjevalet (procent)"
+        },
+        "change": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "pAboveThreshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "party": {
+          "enum": [
+            "M",
+            "L",
+            "C",
+            "KD",
+            "S",
+            "V",
+            "MP",
+            "SD",
+            "O"
+          ],
+          "type": "string"
+        },
+        "sd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Simuleringens totala σ (pp)"
+        },
+        "share": {
+          "description": "Skattad röstandel i procent (8 partier normerade till 100; O separat)",
+          "type": "number"
+        }
+      },
+      "required": [
+        "party",
+        "name",
+        "share",
+        "baseline",
+        "change"
+      ],
+      "title": "PartyEstimate",
+      "type": "object"
+    },
+    "TrendRow": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "description": "Parti- eller blocknyckel",
+          "type": "string"
+        },
+        "lastElection": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "monthAgo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "now": {
+          "type": "number"
+        },
+        "yearAgo": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "key",
+        "name",
+        "now",
+        "monthAgo",
+        "yearAgo",
+        "lastElection"
+      ],
+      "title": "TrendRow",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/National.json",
+  "additionalProperties": false,
+  "properties": {
+    "baselineYear": {
+      "type": "integer"
+    },
+    "belowThreshold": {
+      "items": {
+        "enum": [
+          "M",
+          "L",
+          "C",
+          "KD",
+          "S",
+          "V",
+          "MP",
+          "SD"
+        ],
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "blocs": {
+      "items": {
+        "$ref": "#/$defs/Bloc"
+      },
+      "type": "array"
+    },
+    "daysLeft": {
+      "type": "integer"
+    },
+    "estimates": {
+      "items": {
+        "$ref": "#/$defs/PartyEstimate"
+      },
+      "type": "array"
+    },
+    "largestParty": {
+      "enum": [
+        "M",
+        "L",
+        "C",
+        "KD",
+        "S",
+        "V",
+        "MP",
+        "SD"
+      ],
+      "type": "string"
+    },
+    "latestPoll": {
+      "type": "string"
+    },
+    "nextElection": {
+      "type": "string"
+    },
+    "referenceDate": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seats": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "Punktprognos, totala mandat per parti",
+      "type": "object"
+    },
+    "swing": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "Nollsummerad nationell sving sedan baslinjevalet (pp)",
+      "type": "object"
+    },
+    "trend": {
+      "items": {
+        "$ref": "#/$defs/TrendRow"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "referenceDate",
+    "baselineYear",
+    "nextElection",
+    "daysLeft",
+    "latestPoll",
+    "estimates",
+    "seats",
+    "blocs",
+    "largestParty",
+    "belowThreshold",
+    "swing",
+    "trend"
+  ],
+  "title": "National",
+  "type": "object"
+}

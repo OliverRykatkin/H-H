@@ -1,0 +1,9 @@
+# Publiceringspipelinen (python -m mandatorn_model.publish). Versionerna är låsta:
+# releasens bytes — och därmed release-id — beror på pandas/numpy/polars.
+pandas==3.0.3
+numpy==2.4.6
+requests==2.32.4
+openpyxl==3.1.5
+pydantic==2.13.5
+polars==1.44.2
+boto3==1.43.106

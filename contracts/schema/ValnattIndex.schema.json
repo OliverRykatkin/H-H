@@ -1,0 +1,45 @@
+{
+  "$id": "https://data.mandatorn.se/schema/v1/ValnattIndex.json",
+  "additionalProperties": false,
+  "properties": {
+    "curve": {
+      "items": {
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "times": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "year": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "year",
+    "times",
+    "curve"
+  ],
+  "title": "ValnattIndex",
+  "type": "object"
+}

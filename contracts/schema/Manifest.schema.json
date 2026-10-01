@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "FileEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "object": {
+          "description": "Innehållsadresserad nyckel i datalagret, t.ex. 'files/<sha256>.json'",
+          "type": "string"
+        },
+        "path": {
+          "description": "Logisk sökväg i releasen, t.ex. 'national.json'",
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "size": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "object",
+        "size",
+        "sha256"
+      ],
+      "title": "FileEntry",
+      "type": "object"
+    },
+    "PollsIncluded": {
+      "additionalProperties": false,
+      "properties": {
+        "count": {
+          "type": "integer"
+        },
+        "latestFieldEnd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Senaste fältperiodens slutdatum (YYYY-MM-DD)"
+        },
+        "latestPublished": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "count",
+        "latestFieldEnd",
+        "latestPublished"
+      ],
+      "title": "PollsIncluded",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Manifest.json",
+  "additionalProperties": false,
+  "properties": {
+    "files": {
+      "items": {
+        "$ref": "#/$defs/FileEntry"
+      },
+      "type": "array"
+    },
+    "generatedAt": {
+      "description": "Referensdatum för körningen (ISO 8601, Europe/Stockholm-dygn)",
+      "type": "string"
+    },
+    "inputHash": {
+      "description": "SHA-256 över all indata (mätningar, baslinjefiler, konfiguration)",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "forecast",
+        "nowcast",
+        "final"
+      ],
+      "type": "string"
+    },
+    "modelVersion": {
+      "description": "Git-commit för modellkoden",
+      "type": "string"
+    },
+    "pollsIncluded": {
+      "$ref": "#/$defs/PollsIncluded"
+    },
+    "release": {
+      "description": "SHA-256 över det kanoniska filindexet",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seed": {
+      "type": "integer"
+    },
+    "supersededBy": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "release",
+    "generatedAt",
+    "modelVersion",
+    "seed",
+    "inputHash",
+    "mode",
+    "pollsIncluded",
+    "files"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

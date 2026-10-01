@@ -1,0 +1,87 @@
+{
+  "$defs": {
+    "Poll": {
+      "additionalProperties": false,
+      "properties": {
+        "fieldFrom": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fieldTo": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "institute": {
+          "type": "string"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "published": {
+          "type": "string"
+        },
+        "shares": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "published",
+        "fieldFrom",
+        "fieldTo",
+        "institute",
+        "n",
+        "shares"
+      ],
+      "title": "Poll",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Polls.json",
+  "additionalProperties": false,
+  "properties": {
+    "polls": {
+      "items": {
+        "$ref": "#/$defs/Poll"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "polls"
+  ],
+  "title": "Polls",
+  "type": "object"
+}

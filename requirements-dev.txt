@@ -1,2 +1,4 @@
 -r requirements.txt
+-r requirements-pipeline.txt
 pytest>=8.0.0
+ruff>=0.6

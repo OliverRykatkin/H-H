@@ -1,0 +1,54 @@
+{
+  "$id": "https://data.mandatorn.se/schema/v1/Margins.json",
+  "additionalProperties": false,
+  "properties": {
+    "closest": {
+      "items": {
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "national": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "national",
+    "closest"
+  ],
+  "title": "Margins",
+  "type": "object"
+}

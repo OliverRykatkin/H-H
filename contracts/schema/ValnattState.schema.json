@@ -1,0 +1,84 @@
+{
+  "$id": "https://data.mandatorn.se/schema/v1/ValnattState.json",
+  "additionalProperties": false,
+  "properties": {
+    "final": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "maeNowcast": {
+      "type": "number"
+    },
+    "maeRaw": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nCounted": {
+      "type": "integer"
+    },
+    "nTotal": {
+      "type": "integer"
+    },
+    "nowcast": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "raw": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seats": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "time": {
+      "type": "string"
+    },
+    "voteShareCounted": {
+      "type": "number"
+    },
+    "year": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "year",
+    "time",
+    "nCounted",
+    "nTotal",
+    "voteShareCounted",
+    "raw",
+    "nowcast",
+    "final",
+    "maeRaw",
+    "maeNowcast",
+    "seats"
+  ],
+  "title": "ValnattState",
+  "type": "object"
+}

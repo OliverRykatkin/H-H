@@ -1,0 +1,192 @@
+{
+  "$defs": {
+    "AreaSeats": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "nAdjustment": {
+          "type": "integer"
+        },
+        "names": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "now": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "stage": {
+          "type": "string"
+        },
+        "threshold": {
+          "type": "number"
+        },
+        "totalSeats": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "totalSeats",
+        "threshold",
+        "nAdjustment",
+        "now",
+        "baseline",
+        "names",
+        "stage"
+      ],
+      "title": "AreaSeats",
+      "type": "object"
+    },
+    "AreaShares": {
+      "additionalProperties": false,
+      "properties": {
+        "baseline": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "now": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "others": {
+          "default": 0.0,
+          "type": "number"
+        },
+        "p5": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "p95": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "type": "number"
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "baseline",
+        "now"
+      ],
+      "title": "AreaShares",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Area.json",
+  "additionalProperties": false,
+  "properties": {
+    "code": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "kommun",
+        "region"
+      ],
+      "type": "string"
+    },
+    "kommunSeats": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AreaSeats"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "kommunval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AreaShares"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "name": {
+      "type": "string"
+    },
+    "regionSeats": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AreaSeats"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "regionval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AreaShares"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "riksdag": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AreaShares"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "slug": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "kind",
+    "code",
+    "name",
+    "slug"
+  ],
+  "title": "Area",
+  "type": "object"
+}

@@ -1,0 +1,50 @@
+name: Heartbeat
+
+# Kontrollerar dagligen att en lyckad publicering skett inom 30 timmar och att
+# schemalagda workflows inte stängts av (GitHub gör det efter 60 dagar utan aktivitet
+# i publika repon). Primärt larm är extern: publiceringen pingar HEALTHCHECK_URL (D15).
+on:
+  schedule:
+    - cron: "07 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kontrollera senaste publicering
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          STATUS_URL: ${{ vars.STATUS_URL }}
+        run: |
+          problems=()
+          for wf in publish.yml sync-polls.yml; do
+            state=$(gh api "repos/$REPO/actions/workflows/$wf" -q .state || echo saknas)
+            [ "$state" = "active" ] || problems+=("Workflow $wf har status '$state'.")
+          done
+          last=$(gh api "repos/$REPO/actions/workflows/publish.yml/runs?status=success&per_page=1" \
+                 -q '.workflow_runs[0].updated_at' || true)
+          if [ -z "$last" ]; then
+            problems+=("Ingen lyckad publiceringskörning hittades.")
+          else
+            age_h=$(( ( $(date -u +%s) - $(date -u -d "$last" +%s) ) / 3600 ))
+            [ "$age_h" -le 30 ] || problems+=("Senaste lyckade publicering var för $age_h timmar sedan ($last).")
+          fi
+          if [ -n "$STATUS_URL" ]; then
+            gen=$(curl -fsS -m 10 "$STATUS_URL" | python3 -c 'import json,sys;print(json.load(sys.stdin)["runAt"])' || echo "")
+            [ -n "$gen" ] || problems+=("Kunde inte läsa $STATUS_URL.")
+          fi
+          if [ ${#problems[@]} -gt 0 ]; then
+            printf -- '- %s\n' "${problems[@]}" > body.md
+            cat body.md
+            if ! gh issue list -R "$REPO" --state open --search 'in:title "Heartbeat"' --json number -q '.[0].number' | grep -q .; then
+              gh issue create -R "$REPO" --title "Heartbeat: publiceringen behöver tillsyn" --body-file body.md
+            fi
+            exit 1
+          fi
+          echo "Allt ser bra ut (senaste publicering $last)."

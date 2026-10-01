@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "PartySeats": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustment": {
+          "type": "integer"
+        },
+        "baseline": {
+          "type": "integer"
+        },
+        "fixed": {
+          "type": "integer"
+        },
+        "party": {
+          "enum": [
+            "M",
+            "L",
+            "C",
+            "KD",
+            "S",
+            "V",
+            "MP",
+            "SD"
+          ],
+          "type": "string"
+        },
+        "total": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "party",
+        "fixed",
+        "adjustment",
+        "total",
+        "baseline"
+      ],
+      "title": "PartySeats",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Mandates.json",
+  "additionalProperties": false,
+  "properties": {
+    "baselineConstituencies": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "constituencies": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "description": "Fasta mandat per valkrets och parti",
+      "type": "object"
+    },
+    "parties": {
+      "items": {
+        "$ref": "#/$defs/PartySeats"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "parties",
+    "constituencies",
+    "baselineConstituencies"
+  ],
+  "title": "Mandates",
+  "type": "object"
+}

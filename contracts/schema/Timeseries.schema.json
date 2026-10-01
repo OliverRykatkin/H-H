@@ -1,0 +1,71 @@
+{
+  "$defs": {
+    "SeriesBand": {
+      "additionalProperties": false,
+      "properties": {
+        "p5": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "p50": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        },
+        "p95": {
+          "items": {
+            "type": "number"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "p5",
+        "p50",
+        "p95"
+      ],
+      "title": "SeriesBand",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Timeseries.json",
+  "additionalProperties": false,
+  "properties": {
+    "dates": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "elections": {
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "series": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SeriesBand"
+      },
+      "description": "Per parti (inkl. O) och block",
+      "type": "object"
+    }
+  },
+  "required": [
+    "dates",
+    "series",
+    "elections"
+  ],
+  "title": "Timeseries",
+  "type": "object"
+}

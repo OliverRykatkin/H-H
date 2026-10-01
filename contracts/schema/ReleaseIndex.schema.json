@@ -1,0 +1,60 @@
+{
+  "$defs": {
+    "ReleaseIndexEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "generatedAt": {
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "forecast",
+            "nowcast",
+            "final"
+          ],
+          "type": "string"
+        },
+        "release": {
+          "type": "string"
+        },
+        "supersededBy": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "release",
+        "generatedAt",
+        "mode"
+      ],
+      "title": "ReleaseIndexEntry",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/ReleaseIndex.json",
+  "additionalProperties": false,
+  "properties": {
+    "releases": {
+      "items": {
+        "$ref": "#/$defs/ReleaseIndexEntry"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "releases"
+  ],
+  "title": "ReleaseIndex",
+  "type": "object"
+}

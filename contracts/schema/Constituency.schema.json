@@ -1,0 +1,126 @@
+{
+  "$defs": {
+    "SeatMargin": {
+      "additionalProperties": false,
+      "properties": {
+        "gainPp": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "losePp": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "party": {
+          "enum": [
+            "M",
+            "L",
+            "C",
+            "KD",
+            "S",
+            "V",
+            "MP",
+            "SD"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "party",
+        "gainPp",
+        "losePp"
+      ],
+      "title": "SeatMargin",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Constituency.json",
+  "additionalProperties": false,
+  "properties": {
+    "baseline": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "fixedBaseline": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "fixedNow": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "margins": {
+      "items": {
+        "$ref": "#/$defs/SeatMargin"
+      },
+      "type": "array"
+    },
+    "name": {
+      "type": "string"
+    },
+    "now": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seatDistribution": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "P(k fasta mandat) per parti ur simuleringen (D11/N1)"
+    },
+    "seats": {
+      "type": "integer"
+    },
+    "slug": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "slug",
+    "seats",
+    "baseline",
+    "now",
+    "fixedNow",
+    "fixedBaseline",
+    "margins"
+  ],
+  "title": "Constituency",
+  "type": "object"
+}

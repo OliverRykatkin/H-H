@@ -460,12 +460,17 @@ def _open_readme(od: dict) -> str:
 
 # ── Publicering ─────────────────────────────────────────────────────────────
 
+def _normalized(data: bytes, rel: str) -> bytes:
+    """Radslut normaliseras för textfiler, så att hashen är densamma på Windows och Linux."""
+    return data if rel.endswith(".gz") else data.replace(b"\r\n", b"\n")
+
+
 def input_hash(polls_bytes: bytes, reference_date: datetime, seed: int, n_sims: int) -> str:
     h = hashlib.sha256()
-    h.update(b"polls\0" + polls_bytes)
+    h.update(b"polls\0" + _normalized(polls_bytes, "polls.csv"))
     for rel in INPUT_FILES:
         p = REPO / rel
-        h.update(rel.encode() + b"\0" + (p.read_bytes() if p.exists() else b""))
+        h.update(rel.encode() + b"\0" + (_normalized(p.read_bytes(), rel) if p.exists() else b""))
     h.update(f"{reference_date.isoformat()}|{seed}|{n_sims}".encode())
     return h.hexdigest()
 

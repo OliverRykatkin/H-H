@@ -1,0 +1,53 @@
+name: Synka mätningar från SwedishPolls
+
+# Jämför den committade kopian (data/polls/Polls.csv) med SwedishPolls och öppnar en PR
+# vid förändring. Sammanslagning av PR:en triggar publiceringen. (DECISIONS D16)
+on:
+  schedule:
+    - cron: "43 */3 * * *"   # var tredje timme, på udda minut
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hämta SwedishPolls
+        run: |
+          curl -fsSL -m 60 --retry 3 \
+            https://raw.githubusercontent.com/MansMeg/SwedishPolls/master/Data/Polls.csv \
+            -o data/polls/Polls.csv
+      - name: Sammanfatta ändringen
+        id: diff
+        run: |
+          if git diff --quiet -- data/polls/Polls.csv; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            {
+              echo 'summary<<EOF'
+              git diff --unified=0 -- data/polls/Polls.csv | grep '^+[^+]' | cut -c2- | cut -d, -f2,13,14 | head -30
+              echo 'EOF'
+            } >> "$GITHUB_OUTPUT"
+          fi
+      - name: Öppna PR
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          branch: sync/swedishpolls
+          delete-branch: true
+          commit-message: "Nya mätningar från SwedishPolls"
+          title: "Nya mätningar från SwedishPolls"
+          body: |
+            Automatisk synk av `data/polls/Polls.csv` från MansMeg/SwedishPolls.
+
+            Nya/ändrade rader (institut, urval, publiceringsdatum):
+            ```
+            ${{ steps.diff.outputs.summary }}
+            ```
+            Sammanslagning startar publiceringen (kvalitetsgrinden körs först).
+          add-paths: data/polls/Polls.csv

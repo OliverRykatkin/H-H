@@ -88,7 +88,7 @@ def _fake_sim(n=2000, seed=1):
 
 def test_fragorna_ger_samma_svar_som_tidigare_inline_kod():
     sim = _fake_sim()
-    d, n, at = sim["draws"], sim["n_sims"], sim["above_threshold"]
+    d, at = sim["draws"], sim["above_threshold"]
     v = sum(d[p] for p in ["S", "V", "MP", "C"]); h = sum(d[p] for p in ["M", "L", "KD", "SD"])
     expected = [
         float((v > h).mean()), float((h > v).mean()),

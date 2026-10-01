@@ -1,0 +1,184 @@
+{
+  "$defs": {
+    "Coalition": {
+      "additionalProperties": false,
+      "properties": {
+        "mean": {
+          "type": "number"
+        },
+        "med": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "p25": {
+          "type": "integer"
+        },
+        "p5": {
+          "type": "integer"
+        },
+        "p75": {
+          "type": "integer"
+        },
+        "p95": {
+          "type": "integer"
+        },
+        "parties": {
+          "items": {
+            "enum": [
+              "M",
+              "L",
+              "C",
+              "KD",
+              "S",
+              "V",
+              "MP",
+              "SD"
+            ],
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "prob": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "name",
+        "parties",
+        "prob",
+        "mean",
+        "p5",
+        "p25",
+        "med",
+        "p75",
+        "p95"
+      ],
+      "title": "Coalition",
+      "type": "object"
+    },
+    "SeatDistribution": {
+      "additionalProperties": false,
+      "properties": {
+        "mean": {
+          "type": "number"
+        },
+        "median": {
+          "type": "integer"
+        },
+        "p25": {
+          "type": "integer"
+        },
+        "p5": {
+          "type": "integer"
+        },
+        "p75": {
+          "type": "integer"
+        },
+        "p95": {
+          "type": "integer"
+        },
+        "pAboveThreshold": {
+          "type": "number"
+        },
+        "party": {
+          "enum": [
+            "M",
+            "L",
+            "C",
+            "KD",
+            "S",
+            "V",
+            "MP",
+            "SD"
+          ],
+          "type": "string"
+        },
+        "sdHorizon": {
+          "type": "number"
+        },
+        "sdPolls": {
+          "type": "number"
+        },
+        "sdTotal": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "party",
+        "mean",
+        "p5",
+        "p25",
+        "median",
+        "p75",
+        "p95",
+        "sdPolls",
+        "sdHorizon",
+        "sdTotal",
+        "pAboveThreshold"
+      ],
+      "title": "SeatDistribution",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Simulation.json",
+  "additionalProperties": false,
+  "properties": {
+    "blocHistogram": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "type": "object"
+    },
+    "blocs": {
+      "additionalProperties": {
+        "additionalProperties": {
+          "type": "number"
+        },
+        "type": "object"
+      },
+      "description": "P(≥175), P(inget block) och mandathistogram per block",
+      "type": "object"
+    },
+    "coalitions": {
+      "items": {
+        "$ref": "#/$defs/Coalition"
+      },
+      "type": "array"
+    },
+    "horizonDays": {
+      "type": "integer"
+    },
+    "nSims": {
+      "type": "integer"
+    },
+    "parties": {
+      "items": {
+        "$ref": "#/$defs/SeatDistribution"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seed": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "nSims",
+    "seed",
+    "horizonDays",
+    "parties",
+    "blocs",
+    "blocHistogram",
+    "coalitions"
+  ],
+  "title": "Simulation",
+  "type": "object"
+}
