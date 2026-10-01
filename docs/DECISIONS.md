@@ -146,3 +146,12 @@ Estimaten visas som andel bland de 8 riksdagspartierna (summerar till 100). Valr
 Synk-jobbet mot SwedishPolls (D16) behöver inställningen *Allow GitHub Actions to create and approve pull requests* (Settings → Actions → General). Den är avstängd i dag.
 **Förslag:** slå på den.
 **Beslut:** ☐
+
+### D23. Kartdata: Lantmäteriet kräver konto och är CC BY 4.0 (rättelse av D9)
+D9 utgick från att Lantmäteriets gränser är CC0. Den öppna datan *Administrativ indelning* är licensierad **CC BY 4.0**: källan ska anges, men det krockar inte med CC BY-NC. Datan kan bara hämtas efter registrering på Geotorget.
+**Förslag:** registrera ett konto och beställ *Administrativ indelning* (kommuner och län) som nedladdning. Jag förenklar den sedan till GeoJSON i releasen med attribution. Kartan (MapLibre-ön) är klar och aktiveras via `PUBLIC_GEO_KOMMUNER_URL`, `PUBLIC_GEO_REGIONER_URL` och `PUBLIC_GEO_ATTRIBUTION`.
+**Beslut:** ☐
+
+### D24. Kontaktadresser
+`/licens` och `/integritet` hänvisar till GitHub tills e-postadresser finns (`PUBLIC_LICENSE_EMAIL`, `PUBLIC_PRIVACY_EMAIL`). Vilka adresser ska användas?
+**Beslut:** ☐

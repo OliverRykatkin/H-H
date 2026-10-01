@@ -86,6 +86,16 @@ Den gamla releasens manifest får då `supersededBy` satt, och klienten visar en
 `python -m mandatorn_model.publish --out s3://<data-bucket> --distribution-id <id> --rollback <release-id>`
 pekar om `manifest.json` (och `latest/`) till en tidigare release. Inget raderas.
 
+### Sajten (`web/`)
+```bash
+python -m mandatorn_model.publish --out dist-data   # en release att rendera mot
+cd web && npm ci
+npm run dev        # http://localhost:4321 — releasen serveras under /_data
+npx vitest run     # golden tests (mandat Python↔TS), mallmotorn, öar
+npm run build      # 725 sidor + sitemap, OG-bilder och prestandabudget (dist/)
+```
+I produktion pekar `PUBLIC_DATA_URL` på `https://data.mandatorn.se`. Klienten verifierar varje fil mot manifestet och uppdaterar ingress och nyckeltal när en nyare release finns.
+
 ### Infrastruktur
 AWS (S3 + CloudFront i `eu-north-1`) beskrivs som kod i `infra/`; se `infra/README.md`.
 

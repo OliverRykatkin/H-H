@@ -34,6 +34,13 @@ riksdagsprediction/
 │   ├── val_feed.py           # Valmyndighetens resultatfeed: RD-röster + KF/RF-mandat + valkretsstruktur
 │   ├── muni_mandates.py      # Kommunal/regional mandatmodell (full Sainte-Laguë)
 │   └── data_loader.py        # 2018+2022 valdistriktsdata (XLSX) för validate_nowcast
+├── web/                      # Publika sajten: Astro 7 (statisk) + React-öar, läser releaser
+│   ├── src/lib/release.ts    # Byggtid: läser + verifierar releasen (MANDATORN_RELEASE_DIR)
+│   ├── src/lib/client/       # Klient: manifest, SHA-256-verifiering, live-uppdatering
+│   ├── src/lib/seats.ts      # TS-port av vallag.py (bitidentisk, golden tests)
+│   ├── src/lib/text/         # Mallmotor för ingresser (svensk grammatik, tid)
+│   └── scripts/postbuild.mjs # sitemap, OG-bilder, unika titlar, prestandabudget
+├── contracts/                # Genererat: JSON Schema + TS-typer + constants.ts (tools/gen_contracts.py)
 ├── tools/parity_capture.py   # Fångar allt app.main() ritar (fryst klocka, lokala nätverkssvar)
 ├── tools/parity_compare.py   # Jämför två fångster — paritetsgrind vid refaktorering
 ├── validate_nowcast.py       # Offline-validering mot 2022 års val
@@ -347,3 +354,10 @@ efter Cloud Run-cutover bekräftats stabil.
 - **Logo:** Inline base64-SVG i `app.py` – om `logo.svg` saknas faller den tillbaka på `st.title("Mandatorn")`
 - **Sainte-Laguë** finns i två varianter: `mandatorn_model/seats.py:modified_sainte_lague()` (riksdagen, divisor 1,2) och `mandatorn_model/nowcast.py:modified_sainte_lague()` (OBS standard `first_divisor=1.4`, se docs/PARITY.md A9). Samordnas i D6-steget.
 - **Valnatt-fliken** läggs in i `app.py` via `_tab_labels.insert(8, ...)` — om tab-strukturen ändras, kontrollera att unpacking-raderna (`tab1, tab2, ...`) fortsatt matchar.
+
+## Webben (fas 2) — viktigt vid ändringar
+- **Talformat i React-öar:** använd `lib/text/grammar` (formatNumber/formatInteger), inte `Intl`/`toLocaleString` — tecknen skiljer mellan Node och webbläsare och ger hydreringsfel.
+- **Ingen `<title>` i SVG inuti React-öar** (React 19 tömmer den vid SSR) — använd `aria-label`.
+- **Sannolikheter visas alltid med `displayPct`/`verbal`** (aldrig 0 %/100 %); skalan definieras i `contracts/verbal_scale.json`.
+- Konstanter (partier, färger, valdatum) genereras ur Python: kör `python tools/gen_contracts.py` efter ändring i `mandatorn_model/constants.py` eller `contracts.py`.
+- Tomma miljövariabler ska behandlas som osatta (`||`, inte `??`).

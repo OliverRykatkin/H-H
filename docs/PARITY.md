@@ -15,6 +15,21 @@ Sist i dokumentet finns två avsnitt:
 - *Nya funktioner som inte finns i dag*: sådant uppdraget kräver men som Streamlit saknar.
 - *Avvikelser att besluta*: avvikelser mot vallagen och fel i nuvarande kod.
 
+## Läget efter fas 2 (2026-10-01)
+
+Sajten (`web/`, Astro 7) har 725 förrenderade sidor. Alla sidor som PARITY beskriver är byggda, verifierade i webbläsaren och bockade ☑. Undantagen:
+- **3.4/6.7 Karta (◐):** MapLibre-ön är klar men renderas inte. Lantmäteriets gränsdata kräver konto på Geotorget och är licensierad CC BY 4.0, inte CC0 (DECISIONS D23).
+- **5.x Kandidater (◐/☐):** sidorna visar de 349 invalda 2026 (D10). Prognos och sannolikheter för invalda 2030 kommer när listorna finns.
+- **7.3, 8.2 (☐):** 2022 års valkretsresultat och backtest har ännu ingen egen sida. Datan finns i releasen (`backtest/<år>.json`).
+- **9.4 (☐):** live-nowcast hör till fas 3.
+
+Verifiering:
+- Golden tests för mandatberäkningen Python ↔ TS: 258 fall, bitidentiska.
+- Mallmotorn: 45 tester, varav tid före, på och efter valdagen.
+- Lighthouse mobil: 0,99–1,0 för prestanda, 1,0 för tillgänglighet och SEO på de granskade sidorna. CI kontrollerar startsidan och en kommunsida.
+- Största HTML-sida 103 kB, högst 77 kB JS gzip i första vyn.
+- Unika titlar och beskrivningar, sitemap och en OG-bild per sida.
+
 ## Läget efter fas 1 (2026-10-01)
 
 Datalagret för alla rader nedan finns. `python -m mandatorn_model.publish` producerar varje release med 409 filer:
@@ -48,59 +63,59 @@ Punktprognosen 2026-10-01 är oförändrad, 173–176 mandat. Majoritetssannolik
 | 0.4 | Trendserie | `aggregate_polls_kalman_timeseries()` i två segment (aug 2022 → valet 2026, valet 2026 → idag) som skalas mot `raw_est` i `main()` (rad ~3287–3315) | PRE `timeseries.json` och `latest/timeseries.csv` med p5/p50/p95 | Samma punkter. Skalningen och sammanfogningen flyttas till en funktion och testas. | 1 | ☐ |
 | 0.5 | Punktprognos för mandat | `allocate_all_mandates(raw_est)` | PRE `mandates.json` med fasta mandat, utjämningsmandat och totalt per parti och valkrets. TS-port för scenarier i klienten. | Noll avvikelse i mandat, golden tests i Python och TS | 1 | ☐ |
 | 0.6 | Monte Carlo | `run_simulation()`: 10 000 dragningar, seed 42, σ = polls + 1,0 + horisontterm, **bara nationellt** | PRE `simulation.json` (sammanfattning) och ett urval av dragningar `draws.parquet` för egna villkor i klienten | Samma seed ger identiska `party_mandates`, `bloc_h` och `bloc_v`. `reference_date` måste skickas in (i dag `datetime.now()`). | 1 | ☐ |
-| 0.7 | Logga, favicon, typsnitt | inline base64 av `logo.svg`, DM Sans från Google Fonts | STATISK. DM Sans hostas själv: inga anrop till Google utan cookies, i linje med målet utan cookie-banner. | Visuell jämförelse | 1 | ☐ |
-| 0.8 | Sidhuvudets texter | "Senaste undersökning", "om det vore val idag", "N dagar kvar" (mot `now()`), disclaimer | Ingress ur mallmotorn. Antalet dagar räknas mot releasens `generatedAt`. | Golden tests för texten före, under och efter valdagen | 1 | ☐ |
-| 0.9 | Fyra nyckeltal (block mot 175, största parti, under spärren) | `main()` rad ~3350 | PRE i `national.json`. Förrenderas ovanför vecket. | Samma värden | 1 | ☐ |
+| 0.7 | Logga, favicon, typsnitt | inline base64 av `logo.svg`, DM Sans från Google Fonts | STATISK. DM Sans hostas själv: inga anrop till Google utan cookies, i linje med målet utan cookie-banner. | Visuell jämförelse | 1 | ☑ |
+| 0.8 | Sidhuvudets texter | "Senaste undersökning", "om det vore val idag", "N dagar kvar" (mot `now()`), disclaimer | Ingress ur mallmotorn. Antalet dagar räknas mot releasens `generatedAt`. | Golden tests för texten före, under och efter valdagen | 1 | ☑ |
+| 0.9 | Fyra nyckeltal (block mot 175, största parti, under spärren) | `main()` rad ~3350 | PRE i `national.json`. Förrenderas ovanför vecket. | Samma värden | 1 | ☑ |
 
 ## 1. 📊 Opinion → `/` (startsidan) och `/parti/<slug>`
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 1.1 | Trendgraf: 8 partier + Övriga, 95 %-band, mätpunkter, 4 %-linje, streck vid valen | `make_trend_chart()` | React-ö (diagram) som läser `timeseries.json` och `polls.json` | Samma serier punkt för punkt | 1 | ☐ |
-| 1.2 | Nedladdning av trenddata | `build_trend_data()`, utan intervall | `latest/timeseries.csv` med p5/p50/p95 | Kolumnen p50 ska vara lika med dagens CSV | 1 | ☐ |
-| 1.3 | Blocktrend | `make_block_trend_chart()`, approximativt band | React-ö | Samma summor | 2 | ☐ |
-| 1.4 | Stapel för partistöd och tabellen "Estimat per parti" (2026 %, nu %, Δ, spärr, Övriga) | `make_support_bar()` plus inline-tabell | Förrenderad tabell och liten ö | Samma värden | 1 | ☐ |
-| 1.5 | Mandatstapel, mandattabell och blocknyckeltal | `make_mandate_bar()` | Förrenderad, ur `mandates.json` | Samma värden | 1 | ☐ |
-| 1.6 | Väljare för valkrets och stöd i vald valkrets | Inline (rad ~3471–3578). **Rå sving** `raw_est − BASELINE`. | PRE `valkrets/<slug>.json`. Visas på `/valkrets/<slug>`. | Samma andelar. Se A7 om formeln för svingen. | 2 | ☐ |
+| 1.1 | Trendgraf: 8 partier + Övriga, 95 %-band, mätpunkter, 4 %-linje, streck vid valen | `make_trend_chart()` | React-ö (diagram) som läser `timeseries.json` och `polls.json` | Samma serier punkt för punkt | 1 | ☑ |
+| 1.2 | Nedladdning av trenddata | `build_trend_data()`, utan intervall | `latest/timeseries.csv` med p5/p50/p95 | Kolumnen p50 ska vara lika med dagens CSV | 1 | ☑ |
+| 1.3 | Blocktrend | `make_block_trend_chart()`, approximativt band | React-ö | Samma summor | 2 | ☑ |
+| 1.4 | Stapel för partistöd och tabellen "Estimat per parti" (2026 %, nu %, Δ, spärr, Övriga) | `make_support_bar()` plus inline-tabell | Förrenderad tabell och liten ö | Samma värden | 1 | ☑ |
+| 1.5 | Mandatstapel, mandattabell och blocknyckeltal | `make_mandate_bar()` | Förrenderad, ur `mandates.json` | Samma värden | 1 | ☑ |
+| 1.6 | Väljare för valkrets och stöd i vald valkrets | Inline (rad ~3471–3578). **Rå sving** `raw_est − BASELINE`. | PRE `valkrets/<slug>.json`. Visas på `/valkrets/<slug>`. | Samma andelar. Se A7 om formeln för svingen. | 2 | ☑ |
 
 ## 2. 🏛️ Mandat → `/mandat`
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 2.1 | Intervalldiagram i Economist-stil (90 %, IQR, 2026-romb) | `make_economist_mandate_chart()` | React-ö ur `simulation.json` | Samma percentiler | 1 | ☐ |
-| 2.2 | Mandatöversikt och blocköversikt | inline | Förrenderad | Samma värden | 1 | ☐ |
-| 2.3 | Nationell mandatmarginal (±1 mandat i pp) | `compute_national_margins()`, 0,05 s | PRE `margins/national.json` | Exakt samma marginaler | 3 | ☐ |
-| 2.4 | Lokal marginal för fasta mandat i vald valkrets | `compute_constituency_margins()`, interaktivt, 0,26 s för alla 29 | PRE `margins/valkrets/<slug>.json` (alla 29 förberäknas) | Exakt | 3 | ☐ |
-| 2.5 | Landets jämnaste fasta mandat (topp 15) | `compute_closest_fixed_seats()` | PRE `margins/closest.json` | Exakt | 3 | ☐ |
+| 2.1 | Intervalldiagram i Economist-stil (90 %, IQR, 2026-romb) | `make_economist_mandate_chart()` | React-ö ur `simulation.json` | Samma percentiler | 1 | ☑ |
+| 2.2 | Mandatöversikt och blocköversikt | inline | Förrenderad | Samma värden | 1 | ☑ |
+| 2.3 | Nationell mandatmarginal (±1 mandat i pp) | `compute_national_margins()`, 0,05 s | PRE `margins/national.json` | Exakt samma marginaler | 3 | ☑ |
+| 2.4 | Lokal marginal för fasta mandat i vald valkrets | `compute_constituency_margins()`, interaktivt, 0,26 s för alla 29 | PRE `margins/valkrets/<slug>.json` (alla 29 förberäknas) | Exakt | 3 | ☑ |
+| 2.5 | Landets jämnaste fasta mandat (topp 15) | `compute_closest_fixed_seats()` | PRE `margins/closest.json` | Exakt | 3 | ☑ |
 
 ## 3. 🗺️ Valkretsar → `/valkrets/<slug>` och `/valkretsar`
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 3.1 | Stöd i vald valkrets (stapel och tabell) | inline (rad ~3748), samma kod som 1.6 | PRE `valkrets/<slug>.json` | Samma andelar | 2 | ☐ |
-| 3.2 | Fasta mandat per valkrets: prognos, 2026 och förändring (radio) | `compute_baseline_mandates()` plus `fixed_df` | Förrenderad tabell med flikar i klienten | Samma tabell | 2 | ☐ |
-| 3.3 | Parti per valkrets, stapel | `make_constituency_bar()` | Ö på `/parti/<slug>` | Samma värden | 2 | ☐ |
-| 3.4 | Karta | Saknas i dag. `load_geojson()` anropas i `main()`, men ingen vy ritar en karta. | MapLibre, lazy, faller tillbaka på tabell (ny funktion) | — | 2 | ☐ |
+| 3.1 | Stöd i vald valkrets (stapel och tabell) | inline (rad ~3748), samma kod som 1.6 | PRE `valkrets/<slug>.json` | Samma andelar | 2 | ☑ |
+| 3.2 | Fasta mandat per valkrets: prognos, 2026 och förändring (radio) | `compute_baseline_mandates()` plus `fixed_df` | Förrenderad tabell med flikar i klienten | Samma tabell | 2 | ☑ |
+| 3.3 | Parti per valkrets, stapel | `make_constituency_bar()` | Ö på `/parti/<slug>` | Samma värden | 2 | ☑ |
+| 3.4 | Karta | Saknas i dag. `load_geojson()` anropas i `main()`, men ingen vy ritar en karta. | MapLibre, lazy, faller tillbaka på tabell (ny funktion) | — | 2 | ◐ |
 
 ## 4. 🎲 Simulering → `/sannolikheter` och kort på entitetssidor
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 4.1 | "Hur sannolikt är det att…": 12 hårdkodade frågor, verbal skala ≥95/≥70/≥30/≥5 | inline i tab4 (rad ~4172–4243) | Deklarativ konfiguration `questions.yaml`. PRE `probabilities.json`. Skalan definieras på ett ställe (se DECISIONS D3). | Samma sannolikheter med samma seed | 2 | ☐ |
-| 4.2 | Majoritet: tre nyckeltal och stapel | inline | PRE | Samma | 2 | ☐ |
-| 4.3 | Histogram över blockens mandat | inline | Ö ur `simulation.json` (histogram förberäknat) | Samma klasser | 2 | ☐ |
-| 4.4 | Tabell med 90 %-intervall per parti (σ polls, horisont, total, P över 4 %) | inline | PRE | Samma | 2 | ☐ |
-| 4.5 | Boxdiagram över mandatspridning | inline | Ö (kvartiler förberäknade) | Samma | 3 | ☐ |
-| 4.6 | Koalitionsanalys: 7 fasta koalitioner, P ≥ 175, fördelning | `make_coalition_chart()`, `make_coalition_mandate_dist()`, `COALITIONS` | PRE för de fasta koalitionerna. **KLIENT** för egna koalitioner (koalitionsbyggare) på `draws`. | P för de fasta koalitionerna ska vara lika med Python | 3 | ☐ |
+| 4.1 | "Hur sannolikt är det att…": 12 hårdkodade frågor, verbal skala ≥95/≥70/≥30/≥5 | inline i tab4 (rad ~4172–4243) | Deklarativ konfiguration `questions.yaml`. PRE `probabilities.json`. Skalan definieras på ett ställe (se DECISIONS D3). | Samma sannolikheter med samma seed | 2 | ☑ |
+| 4.2 | Majoritet: tre nyckeltal och stapel | inline | PRE | Samma | 2 | ☑ |
+| 4.3 | Histogram över blockens mandat | inline | Ö ur `simulation.json` (histogram förberäknat) | Samma klasser | 2 | ☑ |
+| 4.4 | Tabell med 90 %-intervall per parti (σ polls, horisont, total, P över 4 %) | inline | PRE | Samma | 2 | ☑ |
+| 4.5 | Boxdiagram över mandatspridning | inline | Ö (kvartiler förberäknade) | Samma | 3 | ☑ |
+| 4.6 | Koalitionsanalys: 7 fasta koalitioner, P ≥ 175, fördelning | `make_coalition_chart()`, `make_coalition_mandate_dist()`, `COALITIONS` | PRE för de fasta koalitionerna. **KLIENT** för egna koalitioner (koalitionsbyggare) på `draws`. | P för de fasta koalitionerna ska vara lika med Python | 3 | ☑ |
 
 ## 5. 👤 Kandidater → `/kandidat/<slug>` och `/kandidater`
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 5.1 | Kandidatlistor | `load_candidates()`: live från data.val.se, 4 s, dedupar listplatser | Pipeline: snapshot i releasen (`candidates.json`). Se DECISIONS D8 (GDPR) och D10 (listorna från 2026 eller 2030). | Samma lista | 4 | ☐ |
+| 5.1 | Kandidatlistor | `load_candidates()`: live från data.val.se, 4 s, dedupar listplatser | Pipeline: snapshot i releasen (`candidates.json`). Se DECISIONS D8 (GDPR) och D10 (listorna från 2026 eller 2030). | Samma lista | 4 | ◐ |
 | 5.2 | Förväntat invalda via fasta mandat (deterministiskt, listordning, hemvalkrets) | `predict_elected_candidates()` | PRE `kandidater/<valkrets>.json` | Samma namn | 4 | ☐ |
 | 5.3 | Utjämningsmandat → valkrets → kandidat | `predict_adjustment_constituencies()` / `_candidates()` | PRE | Samma namn | 4 | ☐ |
-| 5.4 | Väljare för valkrets, tabell, könsfördelning | inline | Förrenderad per valkretssida | Samma | 4 | ☐ |
+| 5.4 | Väljare för valkrets, tabell, könsfördelning | inline | Förrenderad per valkretssida | Samma | 4 | ◐ |
 | 5.5 | Registreringsstatus per parti | inline | **Tas bort efter beslut**: gäller perioden före valet 2026 | — | — | ☐ |
 | 5.6 | Nedladdningar `riksdagsprediction_kandidater.csv` | inline | `latest/kandidater.csv` | Samma rader | 4 | ☐ |
 
@@ -108,45 +123,45 @@ Punktprognosen 2026-10-01 är oförändrad, 173–176 mandat. Majoritetssannolik
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 6.1 | Val av valtyp (RD per kommun, RF, KF) och område | radio och selectbox | En sida per kommun och region med RD- och KF-avsnitt (kommun) respektive RF (region) | — | 2 | ☐ |
-| 6.2 | Uniform swing per område (nollsummerad sving) | `load_area_results()` + `apply_uniform_swing()`, 0,02–0,04 s | PRE `kommun/<kod>.json`, `region/<lan>.json`, `latest/kommuner.csv`, `latest/regioner.csv` | Exakt | 2 | ☐ |
-| 6.3 | Stapel 2026 mot nu och detaljtabell (inkl. Övriga) | inline. `go.Bar` med `text=` bryter mot CLAUDE.md. | Ö eller förrenderad tabell | Samma | 2 | ☐ |
-| 6.4 | Tabell över nationell sving | inline | PRE i `national.json` | Samma | 2 | ☐ |
-| 6.5 | Tabell över alla områden och CSV | inline | `latest/kommuner.csv`, `regioner.csv` | Samma | 2 | ☐ |
-| 6.6 | Mandatuppskattning KF/RF (lokala partier hålls vid 2026) | `muni_mandates.allocate_area_mandates()`, 0,04 s för alla 310 | PRE i respektive område-JSON | Exakt. Nollsving ger 2026 års mandat (309/310). | 2 | ☐ |
-| 6.7 | Karta | `make_regional_map()` är **definierad men renderas inte**. GeoJSON hämtas live bara för namnen. | MapLibre, lazy. Namn och koder flyttas till releasen (oberoende av GeoJSON). Se DECISIONS D9 om kartlicensen. | — | 3 | ☐ |
+| 6.1 | Val av valtyp (RD per kommun, RF, KF) och område | radio och selectbox | En sida per kommun och region med RD- och KF-avsnitt (kommun) respektive RF (region) | — | 2 | ☑ |
+| 6.2 | Uniform swing per område (nollsummerad sving) | `load_area_results()` + `apply_uniform_swing()`, 0,02–0,04 s | PRE `kommun/<kod>.json`, `region/<lan>.json`, `latest/kommuner.csv`, `latest/regioner.csv` | Exakt | 2 | ☑ |
+| 6.3 | Stapel 2026 mot nu och detaljtabell (inkl. Övriga) | inline. `go.Bar` med `text=` bryter mot CLAUDE.md. | Ö eller förrenderad tabell | Samma | 2 | ☑ |
+| 6.4 | Tabell över nationell sving | inline | PRE i `national.json` | Samma | 2 | ☑ |
+| 6.5 | Tabell över alla områden och CSV | inline | `latest/kommuner.csv`, `regioner.csv` | Samma | 2 | ☑ |
+| 6.6 | Mandatuppskattning KF/RF (lokala partier hålls vid 2026) | `muni_mandates.allocate_area_mandates()`, 0,04 s för alla 310 | PRE i respektive område-JSON | Exakt. Nollsving ger 2026 års mandat (309/310). | 2 | ☑ |
+| 6.7 | Karta | `make_regional_map()` är **definierad men renderas inte**. GeoJSON hämtas live bara för namnen. | MapLibre, lazy. Namn och koder flyttas till releasen (oberoende av GeoJSON). Se DECISIONS D9 om kartlicensen. | — | 3 | ◐ |
 
 ## 7. 📋 Data → `/data`
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 7.1 | Senaste mätningarna (reglage för antal rader) | inline | `/` och `/institut/<slug>`: tabell med valbar förändring | Samma rader | 2 | ☐ |
-| 7.2 | Institutsvikter, tabell och stapel | inline. **Texten säger "mot 2022", koden räknar mot 2026.** | `/institut/<slug>` och `latest/institutsbias.csv` (ny, se N4) | Samma vikter | 3 | ☐ |
+| 7.1 | Senaste mätningarna (reglage för antal rader) | inline | `/` och `/institut/<slug>`: tabell med valbar förändring | Samma rader | 2 | ☑ |
+| 7.2 | Institutsvikter, tabell och stapel | inline. **Texten säger "mot 2022", koden räknar mot 2026.** | `/institut/<slug>` och `latest/institutsbias.csv` (ny, se N4) | Samma vikter | 3 | ☑ |
 | 7.3 | Valresultat 2022 per valkrets | `CONSTITUENCIES_2022` | `/arkiv/2022` | Samma | 5 | ☐ |
-| 7.4 | Mandatdata som CSV | `fixed_df` | `latest/valkretsar.csv`, `latest/mandat.csv` | Samma | 2 | ☐ |
-| 7.5 | Licens, källor, rättelselogg | finns inte | STATISK `/data`, `/licens`, `CHANGELOG-data.md` | — | 3 | ☐ |
+| 7.4 | Mandatdata som CSV | `fixed_df` | `latest/valkretsar.csv`, `latest/mandat.csv` | Samma | 2 | ☑ |
+| 7.5 | Licens, källor, rättelselogg | finns inte | STATISK `/data`, `/licens`, `CHANGELOG-data.md` | — | 3 | ☑ |
 
 ## 8. ℹ️ Metod → `/om`
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 8.1 | Metodtext avsnitt 1–7 (markdown och LaTeX) | statisk. **Flera inaktuella uppgifter**, se A6. | STATISK. Formler med KaTeX vid bygget, ingen JS i klienten. | Granskas mot koden | 5 | ☐ |
+| 8.1 | Metodtext avsnitt 1–7 (markdown och LaTeX) | statisk. **Flera inaktuella uppgifter**, se A6. | STATISK. Formler med KaTeX vid bygget, ingen JS i klienten. | Granskas mot koden | 5 | ☑ |
 | 8.2 | Backtesting med radio 2026/2022: MAE och RMSE per referensdatum, fel per parti | `compute_backtesting()`, 0,3 s per år | PRE `backtest/<år>.json` | Exakt | 5 | ☐ |
 
 ## 9. 🌙 Valnatt → `/valnatt` (uppspelning) och nowcast-läge (fas 3)
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 9.1 | Uppspelning av valnatten 2026: klockslag 20:40–04:00, råräkning, nowcast, facit, felkurva | `_render_valnatt_replay()`, `_valnatt_state()`, `_valnatt_error_curve()` | PRE `valnatt/2026/<HHMM>.json` (45 filer) och `curve.json` | Exakt samma nowcast per tidpunkt | 5 | ☐ |
-| 9.2 | Mandat, valkretsar och invalda enligt nowcasten | `_render_rd_downstream()` | PRE per tidpunkt (mandat). Kandidater per tidpunkt efter beslut. | Exakt | 5 | ☐ |
-| 9.3 | KF/RF-mandat 2026 per kommun och region | `_render_valnatt_local_mandates()` | Länkas till `/kommun/<slug>` och `/region/<slug>` (samma data) | Samma | 5 | ☐ |
+| 9.1 | Uppspelning av valnatten 2026: klockslag 20:40–04:00, råräkning, nowcast, facit, felkurva | `_render_valnatt_replay()`, `_valnatt_state()`, `_valnatt_error_curve()` | PRE `valnatt/2026/<HHMM>.json` (45 filer) och `curve.json` | Exakt samma nowcast per tidpunkt | 5 | ☑ |
+| 9.2 | Mandat, valkretsar och invalda enligt nowcasten | `_render_rd_downstream()` | PRE per tidpunkt (mandat). Kandidater per tidpunkt efter beslut. | Exakt | 5 | ☑ |
+| 9.3 | KF/RF-mandat 2026 per kommun och region | `_render_valnatt_local_mandates()` | Länkas till `/kommun/<slug>` och `/region/<slug>` (samma data) | Samma | 5 | ☑ |
 | 9.4 | Live-nowcast mot Valmyndigheten | Borttagen 2026-09-29 (finns i git före `922dd3e`). `val_feed.fetch_live()` finns kvar. | Fas 3: ingest på Fly.io, releaser med `mode: nowcast`, fördröjning för partner | Simulatorn spelar upp 2026 (och 2022) | fas 3 | ☐ |
 
 ## 10. 🙋 Om mig → `/om#forfattare` eller `/kontakt`
 
 | # | Funktion | Nu | Ny | Verifiering | Prio | Status |
 |---|---|---|---|---|---|---|
-| 10.1 | Författartext | statisk | STATISK | — | 5 | ☐ |
+| 10.1 | Författartext | statisk | STATISK | — | 5 | ☑ |
 
 ## 11. Nya statiska sidor (finns inte i dag)
 
