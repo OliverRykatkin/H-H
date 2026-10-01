@@ -20,6 +20,8 @@ def run_simulation(
     window_days: int,
     n_sims: int = 10_000,
     horizon_days: int = 0,
+    reference_date: datetime | None = None,
+    seed: int = 42,
 ) -> dict:
     """
     Monte Carlo-simulering av mandatutfall.
@@ -40,7 +42,7 @@ def run_simulation(
       3. Fördela 349 mandat med MSL nationellt (ej per valkrets – snabbt)
       4. Samla statistik
     """
-    cutoff = datetime.now() - timedelta(days=window_days)
+    cutoff = (reference_date or datetime.now()) - timedelta(days=window_days)
     recent = polls_df[polls_df["PublDate"] >= cutoff].copy()
 
     # Skatta σ per parti från spridningen i senaste mätningarna
@@ -61,7 +63,7 @@ def run_simulation(
     }
 
     # Simulera
-    rng = np.random.default_rng(seed=42)
+    rng = np.random.default_rng(seed=seed)
     draws = {
         p: np.maximum(0, rng.normal(raw_est[p], total_std[p], n_sims))
         for p in PARTIES

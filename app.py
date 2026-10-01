@@ -50,21 +50,13 @@ from mandatorn_model.constants import (
 )
 from mandatorn_model import polls as _m_polls
 from mandatorn_model import candidates as _m_candidates
-from mandatorn_model.polls import (
-    compute_house_weights,
-)
 from mandatorn_model.kalman import (
-    aggregate_polls_kalman,
-    aggregate_polls_kalman_timeseries,
     kalman_smooth,
     build_trend_data,
 )
 from mandatorn_model.seats import (
     compute_baseline_mandates,
     allocate_all_mandates,
-)
-from mandatorn_model.simulation import (
-    run_simulation,
 )
 from mandatorn_model.margins import (
     compute_national_margins,
@@ -91,7 +83,10 @@ from mandatorn_model.valnatt import (
     _valnatt_error_curve,
 )
 
+from mandatorn_model.forecast import WINDOW_DAYS, build_forecast, reference_day
+
 # Streamlit-cache runt modellfunktionerna (paketet är fritt från streamlit)
+build_forecast_cached = st.cache_data(show_spinner=False)(build_forecast)
 
 
 @st.cache_data(ttl=3600)
@@ -117,10 +112,6 @@ def load_candidates() -> pd.DataFrame:
     return _m_candidates.parse_candidates(text)
 
 
-compute_house_weights = st.cache_data(compute_house_weights)
-aggregate_polls_kalman = st.cache_data(show_spinner=False)(aggregate_polls_kalman)
-aggregate_polls_kalman_timeseries = st.cache_data(show_spinner=False)(aggregate_polls_kalman_timeseries)
-run_simulation = st.cache_data(run_simulation)
 compute_baseline_mandates = st.cache_data(compute_baseline_mandates)
 compute_national_margins = st.cache_data(show_spinner=False)(compute_national_margins)
 compute_constituency_margins = st.cache_data(show_spinner=False)(compute_constituency_margins)
@@ -1772,11 +1763,8 @@ def main():
     </style>
     """, unsafe_allow_html=True)
 
-    _days_left = max(0, (NEXT_ELECTION - datetime.now()).days)
-
     # Fasta inställningar (ej justerbara av användaren)
-    window_days = 365
-    decay_half = 30
+    window_days = WINDOW_DAYS
 
     with st.spinner("Hämtar data..."):
         polls_df = load_polls()
@@ -1791,68 +1779,16 @@ def main():
         )
         st.stop()
 
-    house_weights_df = compute_house_weights(polls_df)
-
-    latest_date = polls_df["PublDate"].max().strftime("%Y-%m-%d")
-    # Kalman-fönstret täcker alltid hela tiden sedan baslinjevalet, så att
-    # filtret startar i valresultatet utan lucka mot första mätningen.
-    _trend_days = (datetime.now() - BASELINE_ELECTION_DATE).days + 1
-    raw_est = aggregate_polls_kalman(
-        polls_df,
-        house_weights=house_weights_df,
-        window_days=max(window_days, _trend_days),
-    )
-
-    # Tidsserie med samma Kalman-modell (husvikter) — används i trendgrafen;
-    # slutpunkten skalas sedan till raw_est nedan.
-    _raw_timeseries = aggregate_polls_kalman_timeseries(
-        polls_df,
-        house_weights=house_weights_df,
-        window_days=_trend_days,
-    )
-
-    # Övriga-estimat: hämtas direkt från Kalman-tidsseriens slutpunkt
-    # (raw_est summerar till 100 % efter normalisering, så residualen är alltid 0)
-    _o_ts = _raw_timeseries.get("O", {})
-    raw_est_other = max(0.0, float(_o_ts["smooth_y"][-1]) if _o_ts.get("smooth_y") else 0.0)
-    raw_est_with_other = {**raw_est, "O": raw_est_other}
-
-    # Skala tidsserien så att slutpunkten (idag) matchar estimaten exakt.
-    # aggregate_polls_kalman normaliserar slutvärdet till 100 %, men
-    # aggregate_polls_kalman_timeseries returnerar onormaliserade värden —
-    # därför skalas varje partis tidsserie med faktorn est[p] / endpoint.
-    trend_timeseries = {}
-    for p in PARTIES_WITH_OTHER:
-        if p not in _raw_timeseries:
-            continue
-        ts = _raw_timeseries[p]
-        endpoint = ts["smooth_y"][-1] if ts["smooth_y"] else 0.0
-        target = raw_est_with_other.get(p, endpoint)
-        scale = target / endpoint if abs(endpoint) > 0.01 else 1.0
-        trend_timeseries[p] = {
-            "eval_dates": ts["eval_dates"],
-            "smooth_y":   [v * scale for v in ts["smooth_y"]],
-            "smooth_std": [v * scale for v in ts["smooth_std"]],
-        }
-
-    # Förlängd historik: perioden TREND_START → valdagen 2026 körs som ett eget,
-    # oankrat segment och läggs före. Linjen hoppar till valresultatet på valdagen.
-    _pre_timeseries = aggregate_polls_kalman_timeseries(
-        polls_df,
-        house_weights=house_weights_df,
-        reference_date=BASELINE_ELECTION_DATE,
-        window_days=(BASELINE_ELECTION_DATE - TREND_START).days,
-    )
-    for p, pre in _pre_timeseries.items():
-        post = trend_timeseries.get(p)
-        if post is None:
-            trend_timeseries[p] = pre
-            continue
-        trend_timeseries[p] = {
-            k: list(pre[k]) + list(post[k]) for k in ("eval_dates", "smooth_y", "smooth_std")
-        }
-
-    mandates = allocate_all_mandates(raw_est)
+    with st.spinner("Kör prognosen (Kalman + 10 000 simuleringar)..."):
+        fc = build_forecast_cached(polls_df, reference_day(datetime.now()))
+    _days_left = fc.days_left
+    house_weights_df = fc.house_weights
+    latest_date = fc.latest_poll_date
+    raw_est = fc.raw_est
+    raw_est_with_other = fc.raw_est_with_other
+    raw_est_other = raw_est_with_other["O"]
+    trend_timeseries = fc.trend_timeseries
+    mandates = fc.mandates
 
     # ── Topprad med logo ──
     import os as _os2, base64 as _b64
@@ -1910,12 +1846,9 @@ def main():
     fixed_df.columns = [PARTY_NAMES.get(c, c) if c != "Totalt" else c for c in fixed_df.columns]
 
     # Kör simulering en gång – används i både Tab 2 och Tab 4
-    with st.spinner("Kör 10 000 simuleringar..."):
-        sim = run_simulation(raw_est, polls_df, window_days, horizon_days=_days_left)
-
-    # Beräkna 2022-mandat per parti (summerat nationellt) för referens i CI-diagrammet
-    seats_2022_const = compute_2022_mandates()
-    seats_2022_total = {p: sum(seats_2022_const[c].get(p, 0) for c in seats_2022_const) for p in PARTIES}
+    sim = fc.sim
+    # Baslinjevalets fasta mandat per parti (summerat nationellt) för referens i CI-diagrammet
+    seats_2022_total = fc.baseline_seats_total
 
     _tab_labels = [
         "📊 Opinion", "🏛️ Mandat", "🗺️ Valkretsar",
