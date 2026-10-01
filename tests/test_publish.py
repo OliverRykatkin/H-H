@@ -115,3 +115,12 @@ def test_slugify():
     assert P.slugify("Västra Götaland") == "vastra-gotaland"
     assert P.slugify("Skåne N/Ö") == "skane-n-o"
     assert P.slugify("Stockholms stad") == "stockholms-stad"
+
+
+def test_rollback_pekar_om_manifestet(tmp_path):
+    first = P.run(str(tmp_path), reference_date=datetime(2026, 9, 30), n_sims=N_SIMS)
+    second = P.run(str(tmp_path), reference_date=REF, n_sims=N_SIMS)
+    assert _manifest(tmp_path).release == second["release"]
+    P.rollback(str(tmp_path), first["release"])
+    assert _manifest(tmp_path).release == first["release"]
+    assert (tmp_path / "releases" / second["release"] / "manifest.json").exists()  # inget raderat

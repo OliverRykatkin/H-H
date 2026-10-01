@@ -538,6 +538,27 @@ def write(storage: Storage, manifest: C.Manifest, objects: dict, cfg: dict, supe
     return {"release": rid, "objects": len(objects), "written": int(written)}
 
 
+def rollback(out: str, release_id: str, distribution_id: str | None = None) -> dict:
+    """Peka om manifest.json till en tidigare release. Inget raderas; latest/-alias
+    skrivs om från den releasens filer."""
+    storage = storage_from_uri(out, distribution_id)
+    raw = storage.get(f"releases/{release_id}/manifest.json")
+    if raw is None:
+        raise SystemExit(f"Releasen {release_id} finns inte")
+    manifest = C.Manifest.model_validate_json(raw)
+    for f in manifest.files:
+        if f.path.startswith("open/"):
+            data = storage.get(f.object)
+            if data is not None:
+                ctype = {".csv": "text/csv; charset=utf-8", ".json": "application/json",
+                         ".md": "text/markdown; charset=utf-8",
+                         ".parquet": "application/vnd.apache.parquet"}.get(Path(f.path).suffix, "application/octet-stream")
+                storage.put_pointer("latest/" + f.path[len("open/"):], data, ctype, cache_control=ALIAS)
+    storage.put_pointer("manifest.json", raw, "application/json")
+    storage.invalidate(["manifest.json", "latest/*"])
+    return {"release": release_id}
+
+
 def load_config(path: Path = CONFIG_PATH) -> dict:
     with open(path, "rb") as f:
         return tomllib.load(f)
@@ -590,7 +611,12 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--distribution-id", help="CloudFront-distribution att invalidera")
     ap.add_argument("--force", action="store_true", help="Publicera trots flaggor i kvalitetsgrinden")
     ap.add_argument("--report", help="Skriv kvalitetsrapport (markdown) hit")
+    ap.add_argument("--rollback", metavar="RELEASE_ID", help="Peka om manifest.json till en tidigare release")
     a = ap.parse_args(argv)
+    if a.rollback:
+        rollback(a.out, a.rollback, a.distribution_id)
+        print(f"manifest.json pekar nu på {a.rollback}")
+        return 0
     ref = datetime.fromisoformat(a.reference_date) if a.reference_date else None
     res = run(a.out, ref, a.seed, a.n_sims, a.supersedes, a.force, a.distribution_id, a.polls, a.report)
     if not res["published"]:

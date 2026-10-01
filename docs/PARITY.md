@@ -15,6 +15,27 @@ Sist i dokumentet finns två avsnitt:
 - *Nya funktioner som inte finns i dag*: sådant uppdraget kräver men som Streamlit saknar.
 - *Avvikelser att besluta*: avvikelser mot vallagen och fel i nuvarande kod.
 
+## Läget efter fas 1 (2026-10-01)
+
+Datalagret för alla rader nedan finns. `python -m mandatorn_model.publish` producerar varje release med 409 filer:
+- `national`, `timeseries`, `polls`, `mandates`, `simulation`, `probabilities`, `margins`, `institutes`
+- `backtest/<år>`
+- `valkrets/<slug>` ×29, `kommun/<kod>` ×290, `region/<län>` ×20
+- `valnatt/2026/*` (45 tidpunkter och index)
+- `open/*.csv` med schema, `draws.parquet`
+
+Kolumnen *Status* nedan gäller den nya **frontenden**, som är fas 2.
+
+**Paritet modell ↔ Streamlit.** `tools/parity_capture.py` och `parity_compare.py` jämför allt som `app.main()` ritar: 254 anrop, identiska före och efter utbrytningen. Releasens siffror räknas med samma funktioner som Streamlit-labbet använder.
+
+**Avsiktliga ändringar efter pariteten** (godkända beslut D6, D17, D19, D3):
+- Mandatberäkningen följer nu vallagen. Golden tests visar att den exakt återskapar Valmyndighetens officiella fördelning 2022 och 2026, per valkrets och mandattyp.
+- Valkretsprognosen använder nollsummerad sving.
+- Backtesten använder vikter från valet innan.
+- Verbal skala enligt D3.
+
+Punktprognosen 2026-10-01 är oförändrad, 173–176 mandat. Majoritetssannolikheterna ändrades med 0,3 pp och valnattens nowcast-mandat med 1–2 mandat per parti.
+
 ---
 
 ## 0. Globalt (sidhuvud och beräkningar som delas mellan flikar)

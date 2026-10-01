@@ -50,6 +50,45 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
+## Publiceringspipelinen (statisk sajt + öppen data)
+
+Modellen ligger i `mandatorn_model/` och körs utan Streamlit. Varje körning ger en
+oföränderlig, kontrollsummerad release; se `docs/ARCHITECTURE.md`.
+
+```bash
+pip install -r requirements-dev.txt
+pytest                                                # modell, vallag-golden tests, publicering
+python -m mandatorn_model.publish --out dist-data     # kör modellen → lokal release
+python -m mandatorn_model.publish --out dist-data --reference-date 2026-10-01   # återskapa en dag
+```
+
+Samma indata (`data/polls/Polls.csv` + baslinjefilerna), referensdatum och seed ger
+samma release-id (verifierat mellan Linux x86 och Windows arm64).
+
+### Lägga in en mätning
+1. Mätningarna läses från `data/polls/Polls.csv` (SwedishPolls-format). Jobbet
+   *Synka mätningar från SwedishPolls* öppnar en PR automatiskt var tredje timme vid
+   förändring. Mätningar som saknas där läggs till som en rad i filen i en egen PR.
+2. När PR:en slås ihop till `main` körs *Publicera*: först kvalitetsgrinden, sedan
+   modellen, och sist publiceringen.
+3. **Flaggad körning:** om grinden hittar något (orimlig summa, fältperiod i framtiden,
+   stort hopp mot institutets förra mätning, dubblett) publiceras inget och ett issue
+   öppnas. Godkänn genom att lägga till flaggornas id i `data/polls/quality_ack.txt`,
+   eller kör *Publicera* manuellt med `force`.
+
+### Rätta en release
+Releaser raderas aldrig. Rätta indata, kör *Publicera* manuellt (`workflow_dispatch`)
+med `supersedes = <gammalt release-id>` och logga rättelsen i `CHANGELOG-data.md`.
+Lokalt: `python -m mandatorn_model.publish --out <mål> --supersedes <id>`.
+Den gamla releasens manifest får då `supersededBy` satt, och klienten visar en markering.
+
+### Rulla tillbaka
+`python -m mandatorn_model.publish --out s3://<data-bucket> --distribution-id <id> --rollback <release-id>`
+pekar om `manifest.json` (och `latest/`) till en tidigare release. Inget raderas.
+
+### Infrastruktur
+AWS (S3 + CloudFront i `eu-north-1`) beskrivs som kod i `infra/`; se `infra/README.md`.
+
 ## Deploya på Google Cloud Run
 
 ```powershell
@@ -68,4 +107,4 @@ Alla prognoser är förenade med osäkerhet.
 
 ## Licens
 
-MIT
+Kod: MIT (se `LICENSE`). Publicerad data: CC BY-NC 4.0; kommersiell licens tecknas separat.

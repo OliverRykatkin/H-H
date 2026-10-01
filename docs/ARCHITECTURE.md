@@ -224,3 +224,14 @@ Mätt 2026-10-01 lokalt (Windows arm64), utan Streamlit-cache:
 | **En full körning, totalt** | **≈ 10 s** |
 
 Med per-valkrets-simuleringen (D11, `allocate_all_mandates` × 10 000) tillkommer ~10 s, eller < 1 s om den vektoriseras. En release beräknas alltså på under en minut i CI. Tunga beräkningar är inget hinder för att förberäkna allt.
+
+## 12. Läget efter fas 1 (2026-10-01): avvikelser från planen ovan
+
+- **Releasen** innehåller 409 filer. Manifestet är 84 kB, nära gränsen på 100 kB. Om kandidatsidor (~350 filer) tillkommer måste filindexet delas upp, förslagsvis i `manifest.json` plus ett `index/<del>.json` per entitetstyp. Ett test kontrollerar gränsen.
+- **Avrundning:** alla flyttal skrivs med 4 decimaler. Det ger samma bytes och samma release-id mellan plattformar (verifierat: CI Linux x86 = lokalt Windows arm64). Beroendena för pipelinen är låsta i `requirements-pipeline.txt`.
+- **Dragningar (D5):** objektet taggas `retention=draws` och gallras efter 7 dagar. Dygnets första dragning kopieras till `draws-daily/<datum>/`, som sparas i 400 dagar. Valdagen och dagen före kopieras till `draws-election/<datum>/`, som sparas för alltid.
+- **Referensdatum** avrundas till dygnets början (ASSUMPTIONS A-11).
+- **Kvalitetsgrind:** varje flagga har ett stabilt id. Godkända id ligger i `data/polls/quality_ack.txt`.
+- **Nowcast:** ingen fördröjning (D4), alltså inget `partner/`-prefix.
+- **Mandatmotor:** `mandatorn_model/vallag.py`. Den portas till TypeScript i fas 2 mot `tests/golden/`.
+- **Ej gjort i fas 1** (kräver kontot): `terraform apply` mot staging. Terraform är skrivet och validerat (`terraform validate`, även i CI). Det som återstår är state-bucket, en apply och repo-variablerna, se `infra/README.md`.
