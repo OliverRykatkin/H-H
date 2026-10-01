@@ -24,3 +24,6 @@ Thumbs.db
 data/raw/
 data/cache/
 
+
+# Lokala releaser från mandatorn_model.publish
+dist-data/

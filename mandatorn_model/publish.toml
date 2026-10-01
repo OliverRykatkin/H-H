@@ -1,0 +1,37 @@
+# Konfiguration för python -m mandatorn_model.publish
+
+[model]
+seed = 42
+n_sims = 10000
+mode = "forecast"          # forecast | nowcast | final
+
+[inputs]
+polls = "data/polls/Polls.csv"   # committad kopia (D16); synkas från SwedishPolls via PR
+
+[draws]
+enabled = true
+sample = 10000             # antal dragningar i draws.parquet
+
+# Öppen data på stabila adresser (latest/ + varje release). Kan slås av var för sig.
+[open_data]
+timeseries = true
+institutsbias = true
+kommuner = true
+regioner = true
+valkretsar = true
+mandat = true
+kandidater = false         # D10: aktiveras när kandidatlistor för 2030 finns
+draws = true
+
+[nowcast]
+public_delay_seconds = 0   # D4: ingen fördröjning
+
+# Kvalitetsgrind (docs/ASSUMPTIONS.md A-10)
+[quality]
+share_sum_min = 88.0         # summa av de 8 riksdagspartierna (övriga/osäkra ingår inte)
+share_sum_max = 101.5
+max_jump_large_pp = 4.0    # parti ≥ 10 %: max avvikelse mot samma instituts förra mätning
+max_jump_small_pp = 2.5
+large_party_pct = 10.0
+max_dev_from_aggregate_pp = 6.0
+recent_days = 120          # granska mätningar publicerade de senaste N dagarna

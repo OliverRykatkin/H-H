@@ -1,0 +1,10 @@
+# Kvitterade kvalitetsflaggor (en per rad). Godkända av ägaren; blockerar inte publicering.
+# Baslinje vid införandet 2026-10-01: mätningar som redan ingick i den publicerade modellen.
+jump:Indikator:2026-09-11:L  # Indikator 2026-09-11: L ändrades +3.2 pp mot institutets förra mätning (gräns 2.5 pp)
+jump:Infostat:2026-09-02:S  # Infostat 2026-09-02: S ändrades -4.6 pp mot institutets förra mätning (gräns 4.0 pp)
+jump:Novus:2026-09-01:S  # Novus 2026-09-01: S ändrades -4.3 pp mot institutets förra mätning (gräns 4.0 pp)
+jump:Sentio:2026-08-27:S  # Sentio 2026-08-27: S ändrades -5.5 pp mot institutets förra mätning (gräns 4.0 pp)
+jump:Sentio:2026-09-10:L  # Sentio 2026-09-10: L ändrades +3.0 pp mot institutets förra mätning (gräns 2.5 pp)
+jump:Sentio:2026-09-28:M  # Sentio 2026-09-28: M ändrades +5.4 pp mot institutets förra mätning (gräns 4.0 pp)
+jump:Sentio:2026-09-28:MP  # Sentio 2026-09-28: MP ändrades -2.6 pp mot institutets förra mätning (gräns 2.5 pp)
+jump:Sifo:2026-08-17:C  # Sifo 2026-08-17: C ändrades +2.6 pp mot institutets förra mätning (gräns 2.5 pp)
