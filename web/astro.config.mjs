@@ -6,7 +6,7 @@ import path from "node:path";
 // Statisk förrendering. Datan läses vid bygget från en release (MANDATORN_RELEASE_DIR)
 // och uppdateras i klienten från PUBLIC_DATA_URL om en nyare release finns.
 // Utan PUBLIC_DATA_URL (lokalt) serveras releasen under /_data/.
-const releaseDir = path.resolve(process.env.MANDATORN_RELEASE_DIR ?? path.join(process.cwd(), "..", "dist-data"));
+const releaseDir = path.resolve(process.env.MANDATORN_RELEASE_DIR || path.join(process.cwd(), "..", "dist-data"));
 const localData = !process.env.PUBLIC_DATA_URL;
 
 function serveLocalRelease() {
@@ -32,9 +32,9 @@ function serveLocalRelease() {
 }
 
 export default defineConfig({
-  site: process.env.PUBLIC_SITE_URL ?? "https://mandatorn.se",
+  site: process.env.PUBLIC_SITE_URL || "https://mandatorn.se",
   output: "static",
-  outDir: process.env.ASTRO_OUT_DIR ?? "./dist",
+  outDir: process.env.ASTRO_OUT_DIR || "./dist",
   trailingSlash: "always",
   build: { format: "directory", inlineStylesheets: "auto" },
   integrations: [react(), serveLocalRelease()],

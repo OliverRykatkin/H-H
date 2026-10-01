@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { formatInteger, formatNumber } from "../lib/text/grammar";
+import { formatNumber } from "../lib/text/grammar";
 import { PARTIES, PARTY_COLORS, PARTY_NAMES, THRESHOLD, TOTAL_SEATS } from "@contracts/constants";
 import { fetchManifest, fetchVerified } from "../lib/client/release";
 import type { SeatModel } from "../lib/seatModel";

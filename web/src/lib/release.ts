@@ -11,7 +11,7 @@ import path from "node:path";
 import type { Manifest } from "@contracts/contracts";
 import { SCHEMA_VERSION } from "@contracts/contracts";
 
-export const RELEASE_DIR = path.resolve(process.env.MANDATORN_RELEASE_DIR ?? path.join(process.cwd(), "..", "dist-data"));
+export const RELEASE_DIR = path.resolve(process.env.MANDATORN_RELEASE_DIR || path.join(process.cwd(), "..", "dist-data"));
 
 let cached: Manifest | null = null;
 const fileCache = new Map<string, unknown>();
@@ -66,5 +66,5 @@ export function readJSON<T>(logicalPath: string): T {
 
 /** Datafilens publika URL (för nedladdningslänkar och klienten). */
 export function dataUrl(): string {
-  return (process.env.PUBLIC_DATA_URL ?? "/_data").replace(/\/$/, "");
+  return (process.env.PUBLIC_DATA_URL || "/_data").replace(/\/$/, "");
 }

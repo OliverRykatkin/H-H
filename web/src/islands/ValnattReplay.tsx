@@ -67,9 +67,9 @@ export default function ValnattReplay({ times, initialTime, initial }: Props) {
             const raw = (state.raw?.[p] ?? 0) * 100, nc = state.nowcast[p] * 100, fin = state.final[p] * 100;
             return (
               <g key={p}>
-                {state.raw && <rect x={x0} y={y(raw)} width={bw} height={y(0) - y(raw)} fill="#c8c8c8"><title>Råräkning {fmt1.format(raw)} %</title></rect>}
-                <rect x={x0 + bw} y={y(nc)} width={bw} height={y(0) - y(nc)} fill={PARTY_COLORS[p]}><title>Nowcast {fmt1.format(nc)} %</title></rect>
-                <path d={`M${x0 + bw * 1.5},${y(fin) - 6} l6,6 l-6,6 l-6,-6 z`} fill="#111"><title>Slutresultat {fmt1.format(fin)} %</title></path>
+                {state.raw && <rect x={x0} y={y(raw)} width={bw} height={y(0) - y(raw)} fill="#c8c8c8" role="img" aria-label={`Råräkning ${fmt1.format(raw)} %`} />}
+                <rect x={x0 + bw} y={y(nc)} width={bw} height={y(0) - y(nc)} fill={PARTY_COLORS[p]} role="img" aria-label={`Nowcast ${fmt1.format(nc)} %`} />
+                <path d={`M${x0 + bw * 1.5},${y(fin) - 6} l6,6 l-6,6 l-6,-6 z`} fill="#111" role="img" aria-label={`Slutresultat ${fmt1.format(fin)} %`} />
                 <text x={x0 + bw} y={H - 6} textAnchor="middle" fontSize="12">{p}</text>
               </g>
             );

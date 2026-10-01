@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dist = path.resolve(process.argv.find((a, i) => i > 1 && !a.startsWith("--")) ?? path.join(here, "..", "dist"));
-const site = (process.env.PUBLIC_SITE_URL ?? "https://mandatorn.se").replace(/\/$/, "");
+const site = (process.env.PUBLIC_SITE_URL || "https://mandatorn.se").replace(/\/$/, "");
 const withOg = !process.argv.includes("--no-og");
 const HTML_BUDGET = 150 * 1024;
 const JS_BUDGET_GZ = 200 * 1024;

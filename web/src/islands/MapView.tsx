@@ -4,6 +4,7 @@
  * Renderar ingenting om WebGL eller geodata saknas — sidan har alltid en tabell som fallback.
  */
 import { useEffect, useRef, useState } from "react";
+import type { MapLayerMouseEvent } from "maplibre-gl";
 
 export interface MapValue {
   name: string;
@@ -42,7 +43,7 @@ export default function MapView({ geoUrl, idProperty, values, title, attribution
     let map: { remove(): void } | null = null;
     let cancelled = false;
     (async () => {
-      const [{ default: maplibregl }, geo] = await Promise.all([
+      const [maplibregl, geo] = await Promise.all([  // MapLibre 6: namngivna exporter
         import("maplibre-gl"),
         fetch(geoUrl).then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status))))),
         import("maplibre-gl/dist/maplibre-gl.css"),
@@ -66,14 +67,14 @@ export default function MapView({ geoUrl, idProperty, values, title, attribution
         m.addLayer({ id: "fill", type: "fill", source: "areas", paint: { "fill-color": ["get", "_color"], "fill-opacity": 0.85 } });
         m.addLayer({ id: "line", type: "line", source: "areas", paint: { "line-color": "#ffffff", "line-width": 0.6 } });
         const popup = new maplibregl.Popup({ closeButton: false, closeOnClick: false });
-        m.on("mousemove", "fill", (e) => {
+        m.on("mousemove", "fill", (e: MapLayerMouseEvent) => {
           const p = e.features?.[0]?.properties;
           if (!p) return;
           m.getCanvas().style.cursor = p._href ? "pointer" : "";
           popup.setLngLat(e.lngLat).setText(`${p._name}: ${p._label}`).addTo(m);
         });
         m.on("mouseleave", "fill", () => { popup.remove(); m.getCanvas().style.cursor = ""; });
-        m.on("click", "fill", (e) => {
+        m.on("click", "fill", (e: MapLayerMouseEvent) => {
           const href = e.features?.[0]?.properties?._href;
           if (href) window.location.href = href;
         });
