@@ -1,8 +1,26 @@
 # En distribution per domän. Cache-Control sätts per objekt vid uppladdning
 # (immutable för hashade filer, s-maxage=5 för manifest) och respekteras här.
 
-data "aws_cloudfront_cache_policy" "use_origin_headers" {
-  name = "UseOriginCacheControlHeaders"
+# Egen policy i stället för den hanterade UseOriginCacheControlHeaders: den lägger Host
+# i cachenyckeln och skickar då vidare besökarens Host till S3, som svarar NotFound.
+resource "aws_cloudfront_cache_policy" "origin_headers" {
+  name        = "${local.prefix}-origin-cache-control"
+  min_ttl     = 0
+  default_ttl = 60
+  max_ttl     = 31536000
+  parameters_in_cache_key_and_forwarded_to_origin {
+    enable_accept_encoding_gzip   = true
+    enable_accept_encoding_brotli = true
+    cookies_config {
+      cookie_behavior = "none"
+    }
+    headers_config {
+      header_behavior = "none"
+    }
+    query_strings_config {
+      query_string_behavior = "none"
+    }
+  }
 }
 
 data "aws_cloudfront_cache_policy" "optimized" {
@@ -88,7 +106,7 @@ resource "aws_cloudfront_distribution" "site" {
     allowed_methods            = ["GET", "HEAD"]
     cached_methods             = ["GET", "HEAD"]
     compress                   = true
-    cache_policy_id            = data.aws_cloudfront_cache_policy.use_origin_headers.id
+    cache_policy_id            = aws_cloudfront_cache_policy.origin_headers.id
     response_headers_policy_id = data.aws_cloudfront_response_headers_policy.security.id
     function_association {
       event_type   = "viewer-request"
@@ -153,7 +171,7 @@ resource "aws_cloudfront_distribution" "data" {
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
     cached_methods             = ["GET", "HEAD", "OPTIONS"]
     compress                   = true
-    cache_policy_id            = data.aws_cloudfront_cache_policy.use_origin_headers.id
+    cache_policy_id            = aws_cloudfront_cache_policy.origin_headers.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.data_cors.id
   }
 
