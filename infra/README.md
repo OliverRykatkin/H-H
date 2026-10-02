@@ -18,8 +18,8 @@ Det här skapas per miljö (`staging` eller `prod`):
    terraform init -backend-config="bucket=mandatorn-tfstate" -backend-config="key=mandatorn/staging.tfstate"
    terraform apply -var-file=staging.tfvars
    ```
-   Prod körs på samma sätt med `key=mandatorn/prod.tfstate` och `prod.tfvars`. Prod skapar OIDC-providern, så kör prod först om båda ska ligga i samma konto. Annars sätter du `environment` därefter.
-5. Om `manage_dns = true` och prod: peka domänen hos One.com till namnservrarna i outputen `route53_name_servers` (D2). Annars lägger du in posterna från `manual_dns_records` för hand.
+   Prod körs på samma sätt med `key=mandatorn/prod.tfstate` och `prod.tfvars`. GitHubs OIDC-provider finns en gång per konto: miljön som sätts upp först har `create_github_oidc_provider = true` (staging här), den andra `false`.
+5. Om `manage_dns = true` och prod: peka domänen hos One.com till namnservrarna i outputen `route53_name_servers` (D2). Annars görs det i två steg: kör först `terraform apply -var-file=staging.tfvars -target=aws_acm_certificate.site -target=aws_acm_certificate.data`, lägg in valideringsposterna (CNAME) från certifikatens `domain_validation_options` hos One.com, och kör sedan hela `apply`. Lägg till sist in CNAME-posterna från outputen `manual_dns_cnames`.
 6. Sätt repo-variabler i GitHub (Settings → Secrets and variables → Actions → Variables):
 
    | Variabel | Värde |
@@ -27,8 +27,13 @@ Det här skapas per miljö (`staging` eller `prod`):
    | `AWS_ROLE_ARN` | output `github_publish_role_arn` |
    | `DATA_BUCKET` | output `data_bucket` |
    | `DATA_DISTRIBUTION_ID` | output `data_distribution_id` |
-   | `HEALTHCHECK_URL` | ping-URL från Healthchecks.io (D15) |
+   | `SITE_BUCKET` | output `site_bucket` |
+   | `SITE_DISTRIBUTION_ID` | output `site_distribution_id` |
+   | `PUBLIC_DATA_URL` | `https://data.mandatorn.se` (staging: `https://data.beta.mandatorn.se`) |
+   | `PUBLIC_SITE_URL` | `https://mandatorn.se` (staging: `https://beta.mandatorn.se`) |
    | `STATUS_URL` | `https://data.mandatorn.se/status.json` |
+
+   Ping-URL:en från Healthchecks.io (D15) läggs som **hemlighet** `HEALTHCHECK_URL` (inte variabel), eftersom loggarna är publika.
 
    Utan `AWS_ROLE_ARN` publicerar workflowen *Publicera* bara lokalt och sparar releasen som artefakt.
 

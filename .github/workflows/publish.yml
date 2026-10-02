@@ -97,8 +97,10 @@ jobs:
           retention-days: 7
 
       - name: Heartbeat-ping
-        if: steps.publish.outputs.code == '0' && vars.HEALTHCHECK_URL != ''
-        run: curl -fsS -m 10 --retry 3 "${{ vars.HEALTHCHECK_URL }}"
+        if: steps.publish.outputs.code == '0'
+        env:
+          HEALTHCHECK_URL: ${{ secrets.HEALTHCHECK_URL }}  # hemlighet: maskeras i de publika loggarna
+        run: '[ -z "$HEALTHCHECK_URL" ] || curl -fsS -m 10 --retry 3 -o /dev/null "$HEALTHCHECK_URL"'
 
       - name: Lokal kopia av releasen för sajtbygget
         if: steps.publish.outputs.code == '0' && env.AWS_ROLE_ARN != ''

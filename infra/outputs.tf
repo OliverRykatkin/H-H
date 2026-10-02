@@ -36,15 +36,17 @@ output "route53_name_servers" {
   value       = var.manage_dns && var.environment == "prod" ? aws_route53_zone.root[0].name_servers : []
 }
 
-output "manual_dns_records" {
-  description = "Om manage_dns = false: lägg in dessa poster hos DNS-leverantören"
-  value = var.manage_dns ? {} : {
-    certificate_validation = local.validation_records
-    cnames = merge(
-      { for a in local.site_aliases : a => aws_cloudfront_distribution.site.domain_name },
-      { (local.data_domain) = aws_cloudfront_distribution.data.domain_name },
-    )
-  }
+output "certificate_validation_records" {
+  description = "Om manage_dns = false: CNAME-poster att lägga in hos DNS-leverantören för certifikatvalideringen"
+  value       = var.manage_dns ? null : local.validation_records
+}
+
+output "manual_dns_cnames" {
+  description = "Om manage_dns = false: CNAME-poster som pekar domänerna mot CloudFront"
+  value = var.manage_dns ? null : merge(
+    { for a in local.site_aliases : a => aws_cloudfront_distribution.site.domain_name },
+    { (local.data_domain) = aws_cloudfront_distribution.data.domain_name },
+  )
 }
 
 output "fly_nowcast_role_arn" {

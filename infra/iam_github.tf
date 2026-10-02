@@ -1,19 +1,21 @@
 # GitHub Actions → AWS via OIDC. Inga långlivade nycklar.
 # publish-rollen: bara main-grenen; preview-rollen: pull requests, bara previews/-prefixet.
 
+# OIDC-providern finns en gång per konto: den miljö som sätts upp först skapar den
+# (create_github_oidc_provider = true), den andra slår upp den.
 data "aws_iam_openid_connect_provider" "github" {
-  count = var.environment == "prod" ? 0 : 1
+  count = var.create_github_oidc_provider ? 0 : 1
   url   = "https://token.actions.githubusercontent.com"
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
-  count          = var.environment == "prod" ? 1 : 0
+  count          = var.create_github_oidc_provider ? 1 : 0
   url            = "https://token.actions.githubusercontent.com"
   client_id_list = ["sts.amazonaws.com"]
 }
 
 locals {
-  oidc_arn = var.environment == "prod" ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
+  oidc_arn = var.create_github_oidc_provider ? aws_iam_openid_connect_provider.github[0].arn : data.aws_iam_openid_connect_provider.github[0].arn
 }
 
 data "aws_iam_policy_document" "trust_main" {

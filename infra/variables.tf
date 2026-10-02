@@ -19,6 +19,12 @@ variable "github_repo" {
   default     = "OliverRykatkin/H-H"
 }
 
+variable "create_github_oidc_provider" {
+  description = "Skapa GitHubs OIDC-provider i kontot (true i den miljö som sätts upp först, false i den andra)"
+  type        = bool
+  default     = true
+}
+
 variable "manage_dns" {
   description = "Skapa Route 53-zon och poster (D2). false = posterna skrivs ut som output och läggs in manuellt."
   type        = bool
