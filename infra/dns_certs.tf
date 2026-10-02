@@ -99,3 +99,23 @@ resource "aws_route53_record" "data" {
     evaluate_target_health = false
   }
 }
+
+# Poster som fanns hos One.com och flyttas med till Route 53 (prod).
+resource "aws_route53_record" "root_txt" {
+  count   = var.manage_dns && var.environment == "prod" ? 1 : 0
+  zone_id = local.zone_id
+  name    = var.root_domain
+  type    = "TXT"
+  ttl     = 3600
+  records = ["google-site-verification=8HTRUvMp6EQi-pJJMdMQIxbgKU7HKuGMdnPrCuyJTBk"]
+}
+
+# Null-MX (RFC 7505): domänen tar inte emot e-post.
+resource "aws_route53_record" "root_mx" {
+  count   = var.manage_dns && var.environment == "prod" ? 1 : 0
+  zone_id = local.zone_id
+  name    = var.root_domain
+  type    = "MX"
+  ttl     = 3600
+  records = ["0 ."]
+}
