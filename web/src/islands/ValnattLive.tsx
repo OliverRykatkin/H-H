@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Manifest, NowcastLive } from "@contracts/contracts";
 import { PARTIES, PARTY_COLORS, PARTY_NAMES, TOTAL_SEATS } from "@contracts/constants";
 import { dataBase, fetchManifest, fetchVerified } from "../lib/client/release";
+import { sortBlocs } from "../lib/blocOrder";
 import { formatInteger, formatNumber } from "../lib/text/grammar";
 import { belowThreshold, feedWarning, liveSummary, updatedClock, type FeedStatus } from "../lib/islands/livePoll";
 
@@ -71,7 +72,7 @@ export default function ValnattLive({ initial }: Props) {
         <div className="metric"><div className="label">Räknade distrikt</div><div className="value">{formatInteger(nc.nCounted)}</div><div className="sub">av {formatInteger(nc.nTotal)}</div></div>
         <div className="metric"><div className="label">Andel av rösterna</div><div className="value">{formatInteger(Math.round(nc.voteShareCounted * 100))} %</div><div className="sub">jämfört med förra valet</div></div>
         <div className="metric"><div className="label">Uppdaterat</div><div className="value">{t ?? "–"}</div><div className="sub">Valmyndighetens räkning</div></div>
-        {nc.blocs.map((b) => (
+        {sortBlocs(nc.blocs, (b) => b.name).map((b) => (
           <div className="metric" key={b.name}><div className="label">{b.name}</div><div className="value">{formatInteger(b.seats)} mandat</div><div className="sub">{formatNumber(b.share, 1)} % av rösterna</div></div>
         ))}
       </div>

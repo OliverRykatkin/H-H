@@ -27,7 +27,7 @@ const k = PARTIES.reduce((s, p) => s + result[p], 0) / 100;
 const share = (d: { shares: Record<string, number> }, p: string) => d.shares[p] * k;
 const errors = weekBefore ? PARTIES.map((p) => share(weekBefore, p) - result[p]) : [];
 const mae = errors.length ? errors.reduce((s, e) => s + Math.abs(e), 0) / errors.length : null;
-const blocs = { "Högerblocket": ["M", "L", "KD", "SD"], "Vänsterblocket": ["S", "V", "MP", "C"] } as const;
+const blocs = { "Vänsterblocket": ["S", "V", "MP", "C"], "Högerblocket": ["M", "L", "KD", "SD"] } as const;
 const winner = Object.entries(blocs).map(([b, ps]) => ({ b, seats: ps.reduce((s, p) => s + (seatsResult[p] ?? 0), 0) }))
   .sort((x, y) => y.seats - x.seats)[0];
 const electionDate = a?.electionDate ?? (year === 2022 ? "2022-09-11" : `${year}-09-01`);
@@ -52,8 +52,8 @@ const description = a ? `Mandatorns prognos inför riksdagsvalet ${year} jämfö
   <h2>Sannolikhet för egen majoritet</h2>
   <LineChart dates={dates} title="Sannolikhet för egen majoritet per block" yMin={0} yMax={100} refLine={50}
     series={[
-      { key: "H", label: "Högerblocket", color: "#1f8f78", values: a!.days.map((d) => d.pMajority["Högerblocket"] * 100) },
       { key: "V", label: "Vänsterblocket", color: "#c2405f", values: a!.days.map((d) => d.pMajority["Vänsterblocket"] * 100) },
+      { key: "H", label: "Högerblocket", color: "#1f8f78", values: a!.days.map((d) => d.pMajority["Högerblocket"] * 100) },
     ]} />
 
   <h2>En vecka före valet jämfört med utfallet</h2>

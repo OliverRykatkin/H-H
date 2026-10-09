@@ -4,12 +4,19 @@ import type {
   Simulation, Timeseries, ValnattIndex,
 } from "@contracts/contracts";
 import { hasFile, paths, readJSON } from "./release";
+import { sortBlocKeys, sortBlocs } from "./blocOrder";
 
-export const national = () => readJSON<National>("national.json");
+export const national = (): National => {
+  const n = readJSON<National>("national.json");
+  return { ...n, blocs: sortBlocs(n.blocs, (b) => b.name), trend: sortBlocs(n.trend, (r) => r.name) };
+};
 export const timeseries = () => readJSON<Timeseries>("timeseries.json");
 export const polls = () => readJSON<Polls>("polls.json");
 export const mandates = () => readJSON<Mandates>("mandates.json");
-export const simulation = () => readJSON<Simulation>("simulation.json");
+export const simulation = (): Simulation => {
+  const s = readJSON<Simulation>("simulation.json");
+  return { ...s, blocs: sortBlocKeys(s.blocs) as Simulation["blocs"], blocHistogram: sortBlocKeys(s.blocHistogram) as Simulation["blocHistogram"] };
+};
 export const probabilities = () => readJSON<Probabilities>("probabilities.json");
 export const margins = () => readJSON<Margins>("margins.json");
 export const institutes = () => readJSON<Institutes>("institutes.json");

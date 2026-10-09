@@ -42,7 +42,7 @@ describe("runScenario", () => {
     expect(Object.values(r.total).reduce((a, b) => a + b, 0)).toBe(349);
     expect(r.total.L).toBe(0);
     expect(r.belowThreshold).toContain("L");
-    expect(r.blocs.map((b) => b.name)).toEqual(["Högerblocket", "Vänsterblocket"]);
+    expect(r.blocs.map((b) => b.name)).toEqual(["Vänsterblocket", "Högerblocket"]);
   });
 
   it("negativa och ogiltiga värden behandlas som 0", () => {

@@ -8,6 +8,7 @@ import { nationalIngress } from "../lib/text/ingress";
 import { displayPct } from "../lib/text/scale";
 import { BLOC_PARTIES, PARTIES, PARTY_COLORS, BASELINE_YEAR, TOTAL_SEATS } from "@contracts/constants";
 import * as D from "../lib/data";
+import { sortBlocs } from "../lib/blocOrder";
 import { pct, signed, signedInt, partyName, dateSv, changeClass, slugify } from "../lib/format";
 
 const nat = D.national();
@@ -94,7 +95,7 @@ const jsonLd = {
 
   <h2>Mandatprognos</h2>
   <SeatBar seats={nat.seats} caption={`Om det vore val i dag. ${TOTAL_SEATS} mandat, streckad linje = 175 (egen majoritet).`} />
-  <TrendChart ts={ts} keys={Object.keys(BLOC_PARTIES)} colors={blocSeries} title="Blockens samlade stöd" threshold={50} yMin={35} yMax={60} />
+  <TrendChart ts={ts} keys={sortBlocs(Object.keys(BLOC_PARTIES), (k) => k)} colors={blocSeries} title="Blockens samlade stöd" threshold={50} yMin={35} yMax={60} />
   <p><a href="/mandat/">Hela mandatfördelningen, intervall och mandatmarginaler →</a></p>
 
   <h2>Hur sannolikt är det att …</h2>

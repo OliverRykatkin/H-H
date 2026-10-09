@@ -1,4 +1,5 @@
 /** Scenarioberäkning: egna andelar → mandat med samma motor som pipelinen (seatModel.ts). */
+import { sortBlocs } from "../blocOrder";
 import { BLOC_PARTIES, TOTAL_SEATS, THRESHOLD } from "@contracts/constants";
 import { allocateAllMandates, type SeatModel } from "../seatModel";
 
@@ -22,7 +23,7 @@ export function runScenario(shares: Record<string, number>, model: SeatModel): S
     total,
     shareAll: alloc.share_all,
     belowThreshold: model.parties.filter((p) => (alloc.share_all[p] ?? 0) < THRESHOLD),
-    blocs: Object.entries(BLOC_PARTIES).map(([name, ps]) => {
+    blocs: sortBlocs(Object.entries(BLOC_PARTIES), ([n]) => n).map(([name, ps]) => {
       const seats = ps.reduce((s, p) => s + (total[p] ?? 0), 0);
       return { name, seats, majority: seats >= majority };
     }),
