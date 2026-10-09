@@ -110,6 +110,16 @@ resource "aws_route53_record" "root_txt" {
   records = ["google-site-verification=8HTRUvMp6EQi-pJJMdMQIxbgKU7HKuGMdnPrCuyJTBk"]
 }
 
+# Streamlit-labbet på Cloud Run (D20), via Cloud Run-domänmappning.
+resource "aws_route53_record" "lab" {
+  count   = var.manage_dns && var.environment == "prod" ? 1 : 0
+  zone_id = local.zone_id
+  name    = "lab.${var.root_domain}"
+  type    = "CNAME"
+  ttl     = 300
+  records = ["ghs.googlehosted.com"]
+}
+
 # Null-MX (RFC 7505): domänen tar inte emot e-post.
 resource "aws_route53_record" "root_mx" {
   count   = var.manage_dns && var.environment == "prod" ? 1 : 0
