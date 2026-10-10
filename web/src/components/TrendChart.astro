@@ -4,7 +4,7 @@
  * streck vid valen. Serien glesas till var `step`:e dag för att hålla HTML-vikten nere.
  */
 import type { Timeseries } from "@contracts/contracts";
-import { PARTY_COLORS } from "@contracts/constants";
+import { PARTY_COLORS, BLOC_PARTIES } from "@contracts/constants";
 import { partyName, dateSv } from "../lib/format";
 
 interface Props {
@@ -63,11 +63,11 @@ const hover = {
   x: idx.map((i) => Math.round(x(ts.dates[i]) * 10) / 10),
   l: idx.map((i) => dateSv(ts.dates[i])),
   s: keys.filter((k) => ts.series[k]).map((k) => ({
-    n: names[k] ?? partyName(k), c: colors[k] ?? "#888",
+    n: names[k] ?? partyName(k), c: colors[k] ?? "#888", pk: (BLOC_PARTIES as Record<string, string[]>)[k] ?? [k],
     v: idx.map((i) => r1(ts.series[k].p50[i])),
     ...(withBand ? { lo: idx.map((i) => r1(ts.series[k].p5[i])), hi: idx.map((i) => r1(ts.series[k].p95[i])) } : {}),
   })),
-  T, B: H - B,
+  T, B: H - B, t0, t1, L, R, W, y0: yMin, y1: yMax, polls: true,
 };
 ---
 <figure class="chartfig">
@@ -91,7 +91,7 @@ const hover = {
     {keys.filter((k) => ts.series[k]).map((k) => (
       <span style="margin-right:0.9em;white-space:nowrap"><span class="swatch" style={`background:${colors[k] ?? "#888"}`}></span>{names[k] ?? partyName(k)} {ts.series[k].p50[last]?.toFixed(1).replace(".", ",")} %</span>
     ))}
-    <br />Linje = skattat stöd, skuggat = 90 % osäkerhetsintervall. Streckade linjer = val. Håll muspekaren över (eller tryck på) grafen för värden per dag.
+    <br />Linje = skattat stöd, skuggat = 90 % osäkerhetsintervall. Streckade linjer = val. Prickarna är enskilda mätningar. Håll muspekaren över (eller tryck på) grafen för värden per dag och mätning.
   </figcaption>
 </figure>
 <script>import "../lib/client/chartHover";</script>
