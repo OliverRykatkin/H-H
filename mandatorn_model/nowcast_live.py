@@ -3,6 +3,7 @@ räkna nowcast och mandat, publicera en release med mode "nowcast".
 
     python -m mandatorn_model.nowcast_live --out s3://<data-bucket> --year 2030
     python -m mandatorn_model.nowcast_live --out dist-data --replay 2026 --step-minutes 10   # simulator
+    python -m mandatorn_model.nowcast_live --out dist-data --profile eu2029 --replay 2024     # EU-simulator (eu2029/)
 
 Varje nowcast-release bygger vidare på senaste prognosreleasen (samma filer + nowcast.json),
 så att sajtens övriga sidor fungerar hela natten. Ingen fördröjning för publiken (D4).
@@ -25,9 +26,11 @@ import pandas as pd
 
 from mandatorn_model import contracts as C
 from mandatorn_model.constants import BLOC_PARTIES, PARTIES
+from mandatorn_model.election import EU2029, PROFILES, RD2026, ElectionProfile
+from mandatorn_model.eu_seats import allocate_eu
 from mandatorn_model.nowcast import compute_nowcast
 from mandatorn_model.seats import allocate_all_mandates
-from mandatorn_model.storage import Storage, storage_from_uri
+from mandatorn_model.storage import PrefixedStorage, Storage, storage_from_uri
 
 REPO = Path(__file__).resolve().parents[1]
 STOCKHOLM = ZoneInfo("Europe/Stockholm")
@@ -44,6 +47,7 @@ class Snapshot:
     updated_at: str | None           # Valmyndighetens senasteUppdateringstid
     fingerprint: str                 # ändras när datan ändras (md5 eller simulerad tid)
     final: dict[str, float] | None = None   # slutresultat (bara simulatorn)
+    final_seats: dict[str, int] | None = None   # officiell mandatfördelning (bara EU-simulatorn)
     meta: dict = field(default_factory=dict)
 
 
@@ -82,8 +86,9 @@ def align_baseline(districts: pd.DataFrame, baseline: pd.DataFrame) -> pd.DataFr
 class ValmyndighetenSource:
     """Hämtar den preliminära RD-filen när index.md5 visar en ny version."""
 
-    def __init__(self, year: int, baseline_path: Path):
+    def __init__(self, year: int, baseline_path: Path, profile: ElectionProfile = RD2026):
         self.year = year
+        self.profile = profile
         self.baseline = pd.read_csv(baseline_path, dtype={"district_code": str})
         self._aligned_for: str | None = None
         self._aligned: pd.DataFrame | None = None
@@ -91,12 +96,13 @@ class ValmyndighetenSource:
     def fetch(self) -> Snapshot | None:
         from mandatorn_model import val_feed as vf
 
-        idx = vf.fetch_index(self.year)
+        kw = {} if self.profile.feed_prefix == "val" else {"prefix": self.profile.feed_prefix}
+        idx = vf.fetch_index(self.year, **kw)
         try:
-            rel, md5 = vf.find_rd_file(idx, preliminary=True)
+            rel, md5 = vf.find_area_file(idx, self.profile.feed_valtyp, "00", preliminary=True)
         except LookupError:
             return None  # inga resultat publicerade ännu
-        res = vf.parse_rd_zip(vf.download_file(self.year, rel, expected_md5=md5))
+        res = vf.parse_rd_zip(vf.download_file(self.year, rel, expected_md5=md5, **kw))
         if res.districts.empty:
             return None
         key = hashlib.sha256(res.districts["prev_codes"].str.cat(sep=";").encode()).hexdigest()
@@ -111,10 +117,11 @@ class ReplaySource:
     """Simulator: spelar upp en sparad valnatt i verklig rapporteringsordning.
 
     year=2026: data/valnatt_2026.csv.gz (baslinje 2022 ur Valmyndighetens jämförelse).
+    year="eu2024": data/valnatt_eu2024.csv.gz (EU-valet 2024, baslinje EU 2019 ur Valmyndighetens jämförelse).
     year=2022: data/valnatt_2022.csv.gz + 2018 års distrikt (data_loader; laddas ner vid behov).
     """
 
-    def __init__(self, year: int, start: datetime, step: timedelta, end: datetime | None = None):
+    def __init__(self, year: int | str, start: datetime, step: timedelta, end: datetime | None = None):
         df = pd.read_csv(REPO / "data" / f"valnatt_{year}.csv.gz")
         df["reported_at"] = pd.to_datetime(df["reported_at"])
         self.df = df
@@ -124,6 +131,14 @@ class ReplaySource:
             self.baseline.columns = COLS
             from mandatorn_model.constants import BASELINE
             self.final = {p: BASELINE[p] / 100 for p in PARTIES}
+        elif year == "eu2024":
+            from mandatorn_model.eu_forecast import eu_shares, load_eu_results
+            cmp = df[df["comparable"]]
+            self.baseline = cmp[["district_id", "base_total_valid_votes"] + [f"base_{c}" for c in VOTE_COLS]].copy()
+            self.baseline.columns = COLS
+            res = load_eu_results()["2024"]
+            self.final = {p: v / 100 for p, v in eu_shares(res).items() if p in PARTIES}
+            self.final_seats = {p["party"]: p["seats"] for p in res["parties"] if p["party"] in PARTIES}
         elif year == 2022:
             from mandatorn_model.constants import NATIONAL_2022
             from mandatorn_model.data_loader import load_2018_districts
@@ -133,6 +148,7 @@ class ReplaySource:
         else:
             raise ValueError(f"Ingen sparad valnatt för {year}")
         self.year, self.t, self.step = year, start, step
+        self.final_seats = getattr(self, "final_seats", None)
         self.end = end or df["reported_at"].max().to_pydatetime()
 
     @property
@@ -147,7 +163,7 @@ class ReplaySource:
             return None
         return Snapshot(counted=counted[COLS], baseline=self.baseline, n_total=len(self.df),
                         updated_at=t.isoformat(), fingerprint=t.isoformat(), final=self.final,
-                        meta={"replay": self.year})
+                        final_seats=self.final_seats, meta={"replay": self.year})
 
 
 # ── Beräkning ───────────────────────────────────────────────────────────────
@@ -169,6 +185,25 @@ def compute_state(snap: Snapshot, election: str, baseline_year: int) -> C.Nowcas
         blocs=[C.NowcastBloc(name=b, parties=ps, seats=sum(seats[p] for p in ps), share=sum(nc[p] for p in ps) * 100)
                for b, ps in BLOC_PARTIES.items()],
         final=snap.final,
+    )
+
+
+def compute_state_eu(snap: Snapshot, election: str, baseline_year: int, profile: ElectionProfile = EU2029) -> C.EuNowcastLive:
+    """Som compute_state, men med EU:s mandatregler (en riksvalkrets, 4 %, inga block)."""
+    base_ids = set(snap.baseline["district_id"])
+    comparable = snap.counted[snap.counted["district_id"].isin(base_ids)]
+    nc = compute_nowcast(comparable[COLS], snap.baseline[COLS], PARTIES)
+    total = float(snap.counted["total_valid_votes"].sum())
+    raw = {p: float(snap.counted[f"votes_{p}"].sum()) / total for p in PARTIES} if total else {p: nc[p] for p in PARTIES}
+    # Nowcastens andelar gäller alla giltiga röster (övriga ingår), så spärrbasen är 1.
+    alloc = allocate_eu({p: nc[p] for p in PARTIES}, 1.0, profile)
+    return C.EuNowcastLive(
+        election=election, baselineYear=baseline_year, feedUpdatedAt=snap.updated_at,
+        publishedAt=snap.updated_at or "",
+        nCounted=int(len(snap.counted)), nTotal=int(snap.n_total), nComparable=int(len(comparable)),
+        voteShareCounted=float(nc["coverage"]), seatsTotal=profile.seats,
+        raw=raw, nowcast={p: float(nc[p]) for p in PARTIES}, seats={p: alloc.get(p, 0) for p in PARTIES},
+        final=snap.final, finalSeats=snap.final_seats,
     )
 
 
@@ -211,7 +246,7 @@ def write_feed_status(storage: Storage, ok: bool, error: str | None = None, upda
 
 
 def run(source: Source, storage: Storage, election: str, baseline_year: int, interval: float = 60.0,
-        max_iterations: int | None = None, sleep=time.sleep, log=print) -> list[str]:
+        max_iterations: int | None = None, sleep=time.sleep, log=print, compute=compute_state) -> list[str]:
     """Pollingloop. Publicerar bara när datan ändrats. Returnerar publicerade release-id."""
     published, last_fp, i = [], None, 0
 
@@ -226,7 +261,7 @@ def run(source: Source, storage: Storage, election: str, baseline_year: int, int
         try:
             snap = source.fetch()
             if snap is not None and snap.fingerprint != last_fp:
-                state = compute_state(snap, election, baseline_year)
+                state = compute(snap, election, baseline_year)
                 rid = publish_state(storage, state, snap.fingerprint)
                 published.append(rid)
                 last_fp = snap.fingerprint
@@ -248,24 +283,39 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", required=True, help="Katalog eller s3://bucket (måste ha en prognosrelease)")
-    ap.add_argument("--year", type=int, default=2030, help="Valår för live-flödet")
-    ap.add_argument("--election", default="2030-09-08")
-    ap.add_argument("--baseline", default=str(REPO / "data" / "baseline_districts_2026.csv.gz"))
+    ap.add_argument("--profile", choices=sorted(PROFILES), default="rd2026",
+                    help="Val: rd2026 (riksdagen, standard) eller eu2029 (egen release-kedja under eu2029/)")
+    ap.add_argument("--year", type=int, help="Valår för live-flödet (standard: 2030 för riksdagen, 2029 för EU)")
+    ap.add_argument("--election", help="Valdatum (standard ur profilen)")
+    ap.add_argument("--baseline", help="Baslinjefil per distrikt (standard ur profilen)")
     ap.add_argument("--interval", type=float, default=60.0, help="Sekunder mellan hämtningar (Valmyndigheten: ≥ 60)")
-    ap.add_argument("--replay", type=int, choices=[2022, 2026], help="Simulator: spela upp en sparad valnatt")
+    ap.add_argument("--replay", choices=["2022", "2026", "2024"],
+                    help="Simulator: spela upp en sparad valnatt (2022/2026 riksdag, 2024 EU)")
     ap.add_argument("--step-minutes", type=float, default=10.0, help="Simulator: simulerad tid per steg")
+    ap.add_argument("--hours", type=float, default=8.0, help="Simulator: antal simulerade timmar")
     ap.add_argument("--distribution-id")
     a = ap.parse_args(argv)
+    profile = PROFILES[a.profile]
+    is_eu = profile is EU2029
+    if a.replay and (a.replay == "2024") != is_eu:
+        ap.error("--replay 2024 hör till --profile eu2029, och 2022/2026 till rd2026")
     storage = storage_from_uri(a.out, a.distribution_id)
+    if is_eu:
+        storage = PrefixedStorage(storage, profile.release_prefix)
+    compute = compute_state_eu if is_eu else compute_state
     if a.replay:
-        start = datetime(a.replay, 9, 11 if a.replay == 2022 else 13, 20, 30)
-        src = ReplaySource(a.replay, start, timedelta(minutes=a.step_minutes),
-                           end=start + timedelta(hours=8))
-        run(src, storage, election=start.date().isoformat(), baseline_year=a.replay - 4,
-            interval=a.interval if a.interval < 60 else 0.0)
+        year = "eu2024" if is_eu else int(a.replay)
+        start = (datetime(2024, 6, 9, 21, 0) if is_eu
+                 else datetime(year, 9, 11 if year == 2022 else 13, 20, 30))
+        src = ReplaySource(year, start, timedelta(minutes=a.step_minutes), end=start + timedelta(hours=a.hours))
+        run(src, storage, election=start.date().isoformat(), baseline_year=2019 if is_eu else year - 4,
+            interval=a.interval if a.interval < 60 else 0.0, compute=compute)
     else:
-        src = ValmyndighetenSource(a.year, Path(a.baseline))
-        run(src, storage, election=a.election, baseline_year=a.year - 4, interval=max(a.interval, 60.0))
+        year = a.year or (profile.election_date.year)
+        default_baseline = "baseline_districts_eu2024.csv.gz" if is_eu else "baseline_districts_2026.csv.gz"
+        src = ValmyndighetenSource(year, Path(a.baseline or REPO / "data" / default_baseline), profile)
+        run(src, storage, election=a.election or profile.election_date.date().isoformat(),
+            baseline_year=2024 if is_eu else year - 4, interval=max(a.interval, 60.0), compute=compute)
     return 0
 
 

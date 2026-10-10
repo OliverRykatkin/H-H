@@ -314,6 +314,56 @@ export interface EuMethod {
   shrink: number;
 }
 
+// ── EuNowcastLive.schema.json ──
+/**
+ * Live-nowcast under EU-valnatten (mode: nowcast, eget prefix eu2029/). Andelar = andel av alla giltiga röster.
+ */
+export interface EuNowcastLive {
+  baselineYear: number;
+  /**
+   * Valdatum (YYYY-MM-DD)
+   */
+  election: string;
+  feedUpdatedAt: string | null;
+  /**
+   * Slutresultat (bara i simulatorn)
+   */
+  final?: {
+    [k: string]: number;
+  } | null;
+  /**
+   * Officiell mandatfördelning (bara i simulatorn)
+   */
+  finalSeats?: {
+    [k: string]: number;
+  } | null;
+  /**
+   * Räknade distrikt som kunde jämföras med baslinjevalet
+   */
+  nComparable: number;
+  nCounted: number;
+  nTotal: number;
+  nowcast: {
+    [k: string]: number;
+  };
+  publishedAt: string;
+  raw: {
+    [k: string]: number;
+  };
+  schemaVersion?: number;
+  /**
+   * EU-mandat enligt nowcasten
+   */
+  seats: {
+    [k: string]: number;
+  };
+  seatsTotal: number;
+  /**
+   * Andel av baslinjevalets röster som räknats
+   */
+  voteShareCounted: number;
+}
+
 // ── EuSimulation.schema.json ──
 export interface EuSimulation {
   horizonDays: number;

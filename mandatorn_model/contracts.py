@@ -453,6 +453,25 @@ class EuSimulation(_Model):
     parties: list[EuSeatDistribution]
 
 
+class EuNowcastLive(_Model):
+    """Live-nowcast under EU-valnatten (mode: nowcast, eget prefix eu2029/). Andelar = andel av alla giltiga röster."""
+    schemaVersion: int = SCHEMA_VERSION
+    election: str = Field(description="Valdatum (YYYY-MM-DD)")
+    baselineYear: int
+    feedUpdatedAt: str | None
+    publishedAt: str
+    nCounted: int
+    nTotal: int
+    nComparable: int = Field(description="Räknade distrikt som kunde jämföras med baslinjevalet")
+    voteShareCounted: float = Field(description="Andel av baslinjevalets röster som räknats")
+    seatsTotal: int
+    raw: dict[str, float]
+    nowcast: dict[str, float]
+    seats: dict[str, int] = Field(description="EU-mandat enligt nowcasten")
+    final: dict[str, float] | None = Field(default=None, description="Slutresultat (bara i simulatorn)")
+    finalSeats: dict[str, int] | None = Field(default=None, description="Officiell mandatfördelning (bara i simulatorn)")
+
+
 class EuBacktestYear(_Model):
     year: int
     referenceDate: str
@@ -485,5 +504,5 @@ ARTIFACT_MODELS: dict[str, type[_Model]] = {
     "Timeseries": Timeseries, "Polls": Polls, "Mandates": Mandates, "Simulation": Simulation,
     "Probabilities": Probabilities, "Constituency": Constituency, "Area": Area,
     "Margins": Margins, "Backtest": Backtest, "Institutes": Institutes,
-    "EuNational": EuNational, "EuSimulation": EuSimulation, "EuBacktest": EuBacktest,
+    "EuNational": EuNational, "EuNowcastLive": EuNowcastLive, "EuSimulation": EuSimulation, "EuBacktest": EuBacktest,
 }

@@ -1,0 +1,113 @@
+{
+  "$id": "https://data.mandatorn.se/schema/v1/EuNowcastLive.json",
+  "additionalProperties": false,
+  "description": "Live-nowcast under EU-valnatten (mode: nowcast, eget prefix eu2029/). Andelar = andel av alla giltiga röster.",
+  "properties": {
+    "baselineYear": {
+      "type": "integer"
+    },
+    "election": {
+      "description": "Valdatum (YYYY-MM-DD)",
+      "type": "string"
+    },
+    "feedUpdatedAt": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "final": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Slutresultat (bara i simulatorn)"
+    },
+    "finalSeats": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Officiell mandatfördelning (bara i simulatorn)"
+    },
+    "nComparable": {
+      "description": "Räknade distrikt som kunde jämföras med baslinjevalet",
+      "type": "integer"
+    },
+    "nCounted": {
+      "type": "integer"
+    },
+    "nTotal": {
+      "type": "integer"
+    },
+    "nowcast": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "publishedAt": {
+      "type": "string"
+    },
+    "raw": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "type": "object"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seats": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "description": "EU-mandat enligt nowcasten",
+      "type": "object"
+    },
+    "seatsTotal": {
+      "type": "integer"
+    },
+    "voteShareCounted": {
+      "description": "Andel av baslinjevalets röster som räknats",
+      "type": "number"
+    }
+  },
+  "required": [
+    "election",
+    "baselineYear",
+    "feedUpdatedAt",
+    "publishedAt",
+    "nCounted",
+    "nTotal",
+    "nComparable",
+    "voteShareCounted",
+    "seatsTotal",
+    "raw",
+    "nowcast",
+    "seats"
+  ],
+  "title": "EuNowcastLive",
+  "type": "object"
+}

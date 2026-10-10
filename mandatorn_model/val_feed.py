@@ -70,8 +70,9 @@ class FeedResult:
 # Manifest (index.md5)
 # --------------------------------------------------------------------------- #
 
-def index_url(year: int | str) -> str:
-    return f"{RESULT_BASE}/val{year}/index.md5"
+def index_url(year: int | str, prefix: str = "val") -> str:
+    """prefix: "val" (riksdag, kommun, region) eller "euval" (EU-valet)."""
+    return f"{RESULT_BASE}/{prefix}{year}/index.md5"
 
 
 def _http_get(url: str, timeout: int = 60) -> bytes:
@@ -100,8 +101,8 @@ def parse_index(text: str) -> dict[str, str]:
     return out
 
 
-def fetch_index(year: int | str, timeout: int = 60) -> dict[str, str]:
-    return parse_index(_http_get(index_url(year), timeout=timeout).decode("utf-8"))
+def fetch_index(year: int | str, timeout: int = 60, prefix: str = "val") -> dict[str, str]:
+    return parse_index(_http_get(index_url(year, prefix), timeout=timeout).decode("utf-8"))
 
 
 def find_area_file(index: dict[str, str], valtyp: str, kod: str,
@@ -132,14 +133,19 @@ def find_rd_file(index: dict[str, str], preliminary: bool = True) -> tuple[str, 
     return find_area_file(index, "RD", "00", preliminary=preliminary)
 
 
+def find_eu_file(index: dict[str, str], preliminary: bool = True) -> tuple[str, str]:
+    """Hitta EU-valets nationella fil (hela riket i `_00_E`, katalog `p/e/` eller `s/e/`)."""
+    return find_area_file(index, "E", "00", preliminary=preliminary)
+
+
 # --------------------------------------------------------------------------- #
 # Nedladdning + verifiering
 # --------------------------------------------------------------------------- #
 
 def download_file(year: int | str, relpath: str, expected_md5: str | None = None,
-                  timeout: int = 120) -> bytes:
+                  timeout: int = 120, prefix: str = "val") -> bytes:
     """Ladda ner en fil från manifestet (relpath börjar med `./`)."""
-    url = f"{RESULT_BASE}/val{year}/{relpath.lstrip('./')}"
+    url = f"{RESULT_BASE}/{prefix}{year}/{relpath.lstrip('./')}"
     data = _http_get(url, timeout=timeout)
     if expected_md5 is not None:
         got = hashlib.md5(data).hexdigest()
@@ -160,8 +166,11 @@ def _extract_json(zip_bytes: bytes, needle: str) -> dict:
                  if needle in n and n.endswith(".json")]
         if not names:
             raise ValueError(f"Ingen {needle}-JSON i zip: {zf.namelist()}")
-        with zf.open(names[0]) as fh:
-            return json.load(io.TextIOWrapper(fh, encoding="utf-8"))
+        raw = zf.read(names[0])
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except UnicodeDecodeError:  # EU-filernas mandatfördelning är Windows-1252
+        return json.loads(raw.decode("cp1252"))
 
 
 def extract_rostfordelning(zip_bytes: bytes) -> dict:

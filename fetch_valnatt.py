@@ -17,6 +17,8 @@ Användning:
     python fetch_valnatt.py            # 2026 (baslinje 2022)
     python fetch_valnatt.py 2022       # 2022 (baslinje 2018) — simulator/integrationstest
     python fetch_valnatt.py --baseline 2026   # slutligt resultat per distrikt → data/baseline_districts_2026.csv.gz
+    python fetch_valnatt.py --eu 2024         # EU-valet 2024 (baslinje EU 2019) → data/valnatt_eu2024.csv.gz
+    python fetch_valnatt.py --eu 2024 --baseline   # → data/baseline_districts_eu2024.csv.gz (nowcast EU 2029)
 """
 from __future__ import annotations
 
@@ -80,15 +82,18 @@ def build_baseline(rostfordelning: dict) -> pd.DataFrame:
 
 def main(argv: list[str]) -> int:
     baseline = "--baseline" in argv
+    eu = "--eu" in argv
     years = [a for a in argv if a.isdigit()]
-    year = int(years[0]) if years else 2026
-    idx = vf.fetch_index(year)
-    relpath, md5 = vf.find_rd_file(idx, preliminary=not baseline)
+    year = int(years[0]) if years else (2024 if eu else 2026)
+    prefix, tag = ("euval", f"eu{year}") if eu else ("val", str(year))
+    idx = vf.fetch_index(year, prefix=prefix)
+    find = vf.find_eu_file if eu else vf.find_rd_file
+    relpath, md5 = find(idx, preliminary=not baseline)
     print(f"Fil: {relpath}")
-    data = vf.download_file(year, relpath, expected_md5=md5)
+    data = vf.download_file(year, relpath, expected_md5=md5, prefix=prefix)
     if baseline:
         df = build_baseline(vf.extract_rostfordelning(data))
-        out = DATA / f"baseline_districts_{year}.csv.gz"
+        out = DATA / f"baseline_districts_{tag}.csv.gz"
         df.to_csv(out, index=False, compression={"method": "gzip", "mtime": 0})  # deterministisk gzip
         print(f"{len(df)} distrikt, {df['total_valid_votes'].sum():,} röster → {out} ({out.stat().st_size // 1024} kB)")
         return 0
@@ -97,7 +102,7 @@ def main(argv: list[str]) -> int:
     share_cmp = df.loc[df["comparable"], "total_valid_votes"].sum() / df["total_valid_votes"].sum()
     print(f"Distrikt: {len(df)} ordinarie, {n_cmp} jämförbara mot förra valet ({share_cmp:.1%} av rösterna)")
     print(f"Rapporterade {df['reported_at'].iloc[0]} → {df['reported_at'].iloc[-1]}")
-    out = DATA / f"valnatt_{year}.csv.gz"
+    out = DATA / f"valnatt_{tag}.csv.gz"
     df.to_csv(out, index=False, compression={"method": "gzip", "mtime": 0})  # deterministisk gzip
     print(f"Skrev: {out} ({out.stat().st_size / 1024:.0f} kB)")
     return 0

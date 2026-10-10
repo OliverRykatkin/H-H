@@ -1,6 +1,6 @@
 name: Valnatt-simulator
 
-# Integrationstest och demo: spelar upp valnatten 2026 i verklig rapporteringsordning
+# Integrationstest och demo: spelar upp valnatten 2026 (och EU-valet 2024) i verklig rapporteringsordning
 # genom live-nowcasten och sparar releaserna som artefakt (även för redaktioner).
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
           cache-dependency-path: requirements-pipeline.txt
       - run: pip install -r requirements-pipeline.txt pytest
       - name: Integrationstester för live-nowcasten
-        run: pytest -q tests/test_nowcast_live.py
+        run: pytest -q tests/test_nowcast_live.py tests/test_eu_nowcast.py
       - name: Prognosrelease att bygga vidare på
         run: python -m mandatorn_model.publish --out sim-data --force
       - name: Spela upp valnatten 2026
@@ -34,10 +34,17 @@ jobs:
           python -m mandatorn_model.nowcast_live --out sim-data --replay 2026 \
             --step-minutes "${{ inputs.step_minutes || '10' }}" --interval 0 | tee simulering.log
           echo '```' >> "$GITHUB_STEP_SUMMARY"; cat simulering.log >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: EU-prognosrelease att bygga vidare på
+        run: python -m mandatorn_model.eu_publish --out sim-data --force
+      - name: Spela upp EU-valnatten 2024
+        run: |
+          python -m mandatorn_model.nowcast_live --out sim-data --profile eu2029 --replay 2024             --step-minutes "${{ inputs.step_minutes || '10' }}" --hours 24 --interval 0 | tee simulering-eu.log
+          echo '```' >> "$GITHUB_STEP_SUMMARY"; cat simulering-eu.log >> "$GITHUB_STEP_SUMMARY"; echo '```' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: valnatt-simulering-2026
           path: |
             sim-data
             simulering.log
+            simulering-eu.log
           retention-days: 14
