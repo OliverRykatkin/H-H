@@ -1,5 +1,5 @@
 /** Ren logik för live-läget på valnatten: pollning med paus när fliken är dold, och texter. */
-import type { NowcastLive } from "@contracts/contracts";
+import type { EuNowcastLive, NowcastLive } from "@contracts/contracts";
 import { PARTY_NAMES } from "@contracts/constants";
 import { formatInteger, formatNumber, list } from "../text/grammar";
 import { clock } from "../text/time";
@@ -74,6 +74,16 @@ export function liveSummary(nc: NowcastLive): string {
   const big = Object.entries(nc.nowcast).sort((a, b) => b[1] - a[1])[0];
   return `${head} Enligt nowcasten får ${lead.name} ${formatInteger(lead.seats)} av 349 mandat och därmed ${majority}. ` +
     `Största parti är ${PARTY_NAMES[big[0]] ?? big[0]} med ${formatNumber(big[1] * 100, 1)} procent.`;
+}
+
+/** Löptext för EU-valnatten: största parti och mandat enligt nowcasten (ingen blockindelning i EU-valet). */
+export function euLiveSummary(nc: Pick<EuNowcastLive, "feedUpdatedAt" | "voteShareCounted" | "nCounted" | "nTotal" | "nowcast" | "seats" | "seatsTotal">): string {
+  const t = updatedClock(nc);
+  const share = Math.round(nc.voteShareCounted * 100);
+  const head = `${t ? `Klockan ${t} var` : "Hittills är"} ${formatInteger(nc.nCounted)} av ${formatInteger(nc.nTotal)} valdistrikt räknade (${share} procent av rösterna).`;
+  if (nc.nCounted === 0) return head;
+  const big = Object.entries(nc.nowcast).sort((a, b) => b[1] - a[1])[0];
+  return `${head} Enligt nowcasten blir ${PARTY_NAMES[big[0]] ?? big[0]} största parti med ${formatNumber(big[1] * 100, 1)} procent och ${formatInteger(nc.seats[big[0]] ?? 0)} av ${nc.seatsTotal} mandat.`;
 }
 
 /** Varningstext om Valmyndighetens flöde inte svarar, annars null. Okänd/tom status → ingen varning. */

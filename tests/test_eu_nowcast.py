@@ -82,3 +82,15 @@ def test_tidig_nowcast_har_farre_distrikt_an_slutet(night):
     early = C.EuNowcastLive.model_validate_json(storage.get(f.object))
     _, late = _state(storage)
     assert early.nCounted < late.nCounted and early.voteShareCounted < late.voteShareCounted
+
+
+def test_oppen_data_for_eu_ligger_under_eu_prefixet(night):
+    out, storage, _ = night
+    m = C.Manifest.model_validate_json(storage.get("manifest.json"))
+    paths = {f.path for f in m.files}
+    assert {"open/eu_partier.csv", "open/eu_partier.schema.json", "open/eu_backtest.csv",
+            "open/draws.parquet", "open/README.md"} <= paths
+    csv = storage.get("latest/eu_partier.csv").decode("utf-8").splitlines()
+    assert csv[0].startswith("parti,namn,andel") and len(csv) == 10      # 8 partier + övriga + rubrik
+    assert len(storage.get("latest/eu_backtest.csv").decode("utf-8").splitlines()) == 17   # 2 val × 8 partier
+    assert not (out / "latest").exists()                                 # riksdagens alias rörs inte

@@ -1,0 +1,42 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { dataUrl, eu } from "../../../lib/release";
+import { dateSv } from "../../../lib/format";
+
+interface Schema { title: string; attribution: string; columns: { name: string; description: string; type: string }[] }
+const m = eu.manifest();
+const base = `${dataUrl()}/eu2029`;
+const files = eu.paths("open/").filter((p) => p.endsWith(".csv")).map((p) => {
+  const e = eu.entry(p);
+  return { name: p.slice("open/".length), schema: eu.readJSON<Schema>(p.replace(".csv", ".schema.json")), size: e.size, sha256: e.sha256 };
+});
+const draws = m.files.find((f) => f.path === "open/draws.parquet");
+const kb = (n: number) => `${(n / 1024).toFixed(0)} kB`;
+const description = "EU-prognosen som öppen data: CSV-filer och simuleringsdragningar på stabila adresser, licens CC BY-NC 4.0.";
+---
+<Layout title="EU-valet: öppen data" description={description} eu>
+  <h1>Öppen data: EU-valet</h1>
+  <p class="lede">Prognosen för EU-valet publiceras som öppna filer. Varje körning ger en oföränderlig release med kontrollsummor, och de senaste versionerna finns på stabila adresser.</p>
+  <p>Datan får användas fritt för icke-kommersiella ändamål enligt <a href="https://creativecommons.org/licenses/by-nc/4.0/deed.sv">CC BY-NC 4.0</a>. Ange källa så här: <em>{files[0]?.schema.attribution}</em></p>
+  <p class="small muted">Senaste release <span class="num">{m.release.slice(0, 16)}</span>, referensdatum {dateSv(m.generatedAt)}. Adresser under <code>{base}/latest/</code>; manifest på <a href={`${base}/manifest.json`}>{base}/manifest.json</a>. Riksdagsvalets filer finns på <a href="/data/">Öppen data</a>.</p>
+
+  {files.map((f) => (
+    <section class="card" style="margin-bottom:1rem">
+      <h3 style="margin-top:0"><a href={`${base}/latest/${f.name}`}>{f.name}</a> <span class="small muted">({kb(f.size)})</span></h3>
+      <p>{f.schema.title}. <a href={`${base}/latest/${f.name.replace(".csv", ".schema.json")}`} class="small">Schema (JSON)</a></p>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Kolumn</th><th>Beskrivning</th><th>Typ</th></tr></thead>
+          <tbody>{f.schema.columns.map((c) => <tr><td><code>{c.name}</code></td><td>{c.description}</td><td class="small muted">{c.type}</td></tr>)}</tbody>
+        </table>
+      </div>
+      <p class="small muted">SHA-256 {f.sha256}</p>
+    </section>
+  ))}
+  {draws && (
+    <section class="card">
+      <h3 style="margin-top:0"><a href={`${base}/latest/draws.parquet`}>draws.parquet</a> <span class="small muted">({kb(draws.size)})</span></h3>
+      <p>Urval av simuleringsdragningar: röstandel per parti (kolumner <code>M</code>…<code>SD</code>) och mandat (<code>seats_M</code>…) per dragning.</p>
+    </section>
+  )}
+</Layout>

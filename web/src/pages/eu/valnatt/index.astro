@@ -1,0 +1,35 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import EuValnattLive from "../../../islands/EuValnattLive";
+import type { EuNowcastLive } from "@contracts/contracts";
+import { eu } from "../../../lib/release";
+import { euNational } from "../../../lib/eu";
+import { dateSv } from "../../../lib/format";
+
+// Live-läge: förrenderas om EU-releasen vid bygget är en nowcast-release. Ön finns alltid och visar
+// sig själv om manifestet blir "nowcast" efter bygget (ingen ombyggnad krävs).
+const live = eu.manifest().mode === "nowcast" && eu.hasFile("nowcast.json") ? eu.readJSON<EuNowcastLive>("nowcast.json") : null;
+const nat = euNational();
+const description = "Så följer Mandatorn EU-valnatten: nowcast av mandatfördelningen medan rösterna räknas, baserad på förändringen mot förra EU-valet.";
+---
+<Layout title="EU-valnatten" description={description} eu>
+  <EuValnattLive client:load initial={live} />
+  <h1>EU-valnatten</h1>
+  {!live && (
+    <p class="banner warn">
+      Ingen räkning pågår. På valnatten ({dateSv(nat.electionDate)}{nat.electionDateProvisional ? ", ett antagande" : ""}) visas här
+      hur mandaten fördelas medan rösterna räknas, och sidan uppdateras automatiskt.
+    </p>
+  )}
+  <p class="lede">
+    Under valnatten är råräkningen missvisande eftersom små distrikt rapporterar först. Nowcasten jämför i stället
+    förändringen mot förra EU-valet i de distrikt som räknats och skriver fram den för resten av landet.
+  </p>
+  <h2>Om nowcasten</h2>
+  <ul>
+    <li>Sverige är en enda valkrets i EU-valet. Mandaten ({nat.seatsTotal} st) fördelas på hela landets röster, med 4 procents spärr.</li>
+    <li>Baslinjen är Valmyndighetens jämförelsesiffror för EU-valet 2024, omräknade till de distrikt som gäller 2029. Distrikt som inte går att jämföra ingår bara i råräkningen.</li>
+    <li>Räkningen går fort: vid EU-valet 2024 var ungefär 11 procent av rösterna räknade klockan 22 och 98 procent klockan 02. Nowcasten har därför kort livslängd, men stor nytta de första timmarna efter att vallokalerna stängt.</li>
+    <li>Metoden bygger på <a href="https://www.nationalekonomi.se/artikel/nowcasting-pa-valnatten-metod-och-utvardering-fran-valprognos-se/">Nowcasting på valnatten (valprognos.se)</a>. Se även <a href="/eu/metod/">metodsidan</a> för prognosen före valet.</li>
+  </ul>
+</Layout>
