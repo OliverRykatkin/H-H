@@ -144,6 +144,29 @@ class S3Storage:
         )
 
 
+class PrefixedStorage:
+    """Lägger ett prefix framför alla nycklar: en egen release-kedja (t.ex. 'eu2029/') i samma bucket."""
+
+    def __init__(self, inner: Storage, prefix: str):
+        # list_releases saknas medvetet: ingen kod listar releaser via prefixlagret.
+        self.inner, self.prefix = inner, prefix.strip("/") + "/"
+
+    def exists(self, key: str) -> bool:
+        return self.inner.exists(self.prefix + key)
+
+    def get(self, key: str) -> bytes | None:
+        return self.inner.get(self.prefix + key)
+
+    def put_immutable(self, key: str, data: bytes, content_type: str, tags: dict | None = None) -> bool:
+        return self.inner.put_immutable(self.prefix + key, data, content_type, tags=tags)
+
+    def put_pointer(self, key: str, data: bytes, content_type: str, cache_control: str = POINTER) -> None:
+        self.inner.put_pointer(self.prefix + key, data, content_type, cache_control=cache_control)
+
+    def invalidate(self, paths: list[str]) -> None:
+        self.inner.invalidate([self.prefix + p for p in paths])
+
+
 def storage_from_uri(uri: str, distribution_id: str | None = None) -> Storage:
     """'s3://bucket' → S3Storage, annars en lokal katalog."""
     if uri.startswith("s3://"):

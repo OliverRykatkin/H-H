@@ -1,0 +1,80 @@
+{
+  "$defs": {
+    "EuSeatDistribution": {
+      "additionalProperties": false,
+      "properties": {
+        "histogram": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Antal dragningar per mandatantal",
+          "type": "object"
+        },
+        "mean": {
+          "type": "number"
+        },
+        "median": {
+          "type": "integer"
+        },
+        "p25": {
+          "type": "integer"
+        },
+        "p5": {
+          "type": "integer"
+        },
+        "p75": {
+          "type": "integer"
+        },
+        "p95": {
+          "type": "integer"
+        },
+        "party": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "party",
+        "mean",
+        "p5",
+        "p25",
+        "median",
+        "p75",
+        "p95",
+        "histogram"
+      ],
+      "title": "EuSeatDistribution",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/EuSimulation.json",
+  "additionalProperties": false,
+  "properties": {
+    "horizonDays": {
+      "type": "integer"
+    },
+    "nSims": {
+      "type": "integer"
+    },
+    "parties": {
+      "items": {
+        "$ref": "#/$defs/EuSeatDistribution"
+      },
+      "type": "array"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seed": {
+      "type": "integer"
+    }
+  },
+  "required": [
+    "nSims",
+    "seed",
+    "horizonDays",
+    "parties"
+  ],
+  "title": "EuSimulation",
+  "type": "object"
+}

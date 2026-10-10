@@ -393,6 +393,88 @@ class ElectionResult(_Model):
     constituencies: list[ResultConstituency]
 
 
+# ── EU-valet (eget release-prefix, parti som str: listan 2029 är okänd) ───────
+
+class EuPartyEstimate(_Model):
+    party: str
+    name: str
+    share: float = Field(description="Förväntad andel av alla giltiga röster (%); övriga (O) antas som i EU-valet 2024")
+    lastElection: float | None = Field(description="Resultat i EU-valet 2024 (%)")
+    change: float | None
+    rdEquivalent: float | None = Field(default=None, description="Riksdagsopinionen omräknad till andel av alla giltiga röster (%)")
+    deviation: float | None = Field(default=None, description="Pålagd historisk EU-avvikelse (pp, efter krympning)")
+    sd: float | None = Field(default=None, description="Simuleringens totala σ (pp)")
+    pAboveThreshold: float | None = None
+    pLargest: float | None = None
+    seats: int
+    seatsLast: int | None = Field(default=None, description="Mandat i EU-valet 2024")
+
+
+class EuMethod(_Model):
+    proxy: str = Field(description="Öppen beskrivning av proxyn för EU-opinion")
+    shrink: float
+    deviationYears: list[int]
+    caveat: str
+
+
+class EuNational(_Model):
+    schemaVersion: int = SCHEMA_VERSION
+    election: str
+    electionDate: str
+    electionDateProvisional: bool
+    seatsTotal: int
+    threshold: float = Field(description="Spärr i riket (andel, 0–1)")
+    referenceDate: str
+    daysLeft: int
+    latestPoll: str
+    estimates: list[EuPartyEstimate]
+    seats: dict[str, int]
+    belowThreshold: list[str]
+    largestParty: str
+    method: EuMethod
+
+
+class EuSeatDistribution(_Model):
+    party: str
+    mean: float
+    p5: int
+    p25: int
+    median: int
+    p75: int
+    p95: int
+    histogram: dict[str, int] = Field(description="Antal dragningar per mandatantal")
+
+
+class EuSimulation(_Model):
+    schemaVersion: int = SCHEMA_VERSION
+    nSims: int
+    seed: int
+    horizonDays: int
+    parties: list[EuSeatDistribution]
+
+
+class EuBacktestYear(_Model):
+    year: int
+    referenceDate: str
+    official: dict[str, float]
+    naive: dict[str, float] = Field(description="Bara riksdagsmätningar, ingen avvikelse")
+    adjusted: dict[str, float] = Field(description="Riksdagsmätningar + avvikelse ur tidigare EU-val")
+    maeNaive: float
+    maeAdjusted: float
+    seatsOfficial: dict[str, int]
+    seatsNaive: dict[str, int]
+    seatsAdjusted: dict[str, int]
+    seatErrorNaive: int
+    seatErrorAdjusted: int
+    adjustedFrom: list[int]
+
+
+class EuBacktest(_Model):
+    schemaVersion: int = SCHEMA_VERSION
+    note: str
+    years: list[EuBacktestYear]
+
+
 ARTIFACT_MODELS: dict[str, type[_Model]] = {
     "ElectionResult": ElectionResult,
     "NowcastLive": NowcastLive,
@@ -403,4 +485,5 @@ ARTIFACT_MODELS: dict[str, type[_Model]] = {
     "Timeseries": Timeseries, "Polls": Polls, "Mandates": Mandates, "Simulation": Simulation,
     "Probabilities": Probabilities, "Constituency": Constituency, "Area": Area,
     "Margins": Margins, "Backtest": Backtest, "Institutes": Institutes,
+    "EuNational": EuNational, "EuSimulation": EuSimulation, "EuBacktest": EuBacktest,
 }

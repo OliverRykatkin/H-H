@@ -198,6 +198,150 @@ export interface ResultConstituency {
   };
 }
 
+// ── EuBacktest.schema.json ──
+export interface EuBacktest {
+  note: string;
+  schemaVersion?: number;
+  years: EuBacktestYear[];
+}
+/**
+ * This interface was referenced by `EuBacktest`'s JSON-Schema
+ * via the `definition` "EuBacktestYear".
+ */
+export interface EuBacktestYear {
+  /**
+   * Riksdagsmätningar + avvikelse ur tidigare EU-val
+   */
+  adjusted: {
+    [k: string]: number;
+  };
+  adjustedFrom: number[];
+  maeAdjusted: number;
+  maeNaive: number;
+  /**
+   * Bara riksdagsmätningar, ingen avvikelse
+   */
+  naive: {
+    [k: string]: number;
+  };
+  official: {
+    [k: string]: number;
+  };
+  referenceDate: string;
+  seatErrorAdjusted: number;
+  seatErrorNaive: number;
+  seatsAdjusted: {
+    [k: string]: number;
+  };
+  seatsNaive: {
+    [k: string]: number;
+  };
+  seatsOfficial: {
+    [k: string]: number;
+  };
+  year: number;
+}
+
+// ── EuNational.schema.json ──
+export interface EuNational {
+  belowThreshold: string[];
+  daysLeft: number;
+  election: string;
+  electionDate: string;
+  electionDateProvisional: boolean;
+  estimates: EuPartyEstimate[];
+  largestParty: string;
+  latestPoll: string;
+  method: EuMethod;
+  referenceDate: string;
+  schemaVersion?: number;
+  seats: {
+    [k: string]: number;
+  };
+  seatsTotal: number;
+  /**
+   * Spärr i riket (andel, 0–1)
+   */
+  threshold: number;
+}
+/**
+ * This interface was referenced by `EuNational`'s JSON-Schema
+ * via the `definition` "EuPartyEstimate".
+ */
+export interface EuPartyEstimate {
+  change: number | null;
+  /**
+   * Pålagd historisk EU-avvikelse (pp, efter krympning)
+   */
+  deviation?: number | null;
+  /**
+   * Resultat i EU-valet 2024 (%)
+   */
+  lastElection: number | null;
+  name: string;
+  pAboveThreshold?: number | null;
+  pLargest?: number | null;
+  party: string;
+  /**
+   * Riksdagsopinionen omräknad till andel av alla giltiga röster (%)
+   */
+  rdEquivalent?: number | null;
+  /**
+   * Simuleringens totala σ (pp)
+   */
+  sd?: number | null;
+  seats: number;
+  /**
+   * Mandat i EU-valet 2024
+   */
+  seatsLast?: number | null;
+  /**
+   * Förväntad andel av alla giltiga röster (%); övriga (O) antas som i EU-valet 2024
+   */
+  share: number;
+}
+/**
+ * This interface was referenced by `EuNational`'s JSON-Schema
+ * via the `definition` "EuMethod".
+ */
+export interface EuMethod {
+  caveat: string;
+  deviationYears: number[];
+  /**
+   * Öppen beskrivning av proxyn för EU-opinion
+   */
+  proxy: string;
+  shrink: number;
+}
+
+// ── EuSimulation.schema.json ──
+export interface EuSimulation {
+  horizonDays: number;
+  nSims: number;
+  parties: EuSeatDistribution[];
+  schemaVersion?: number;
+  seed: number;
+}
+/**
+ * This interface was referenced by `EuSimulation`'s JSON-Schema
+ * via the `definition` "EuSeatDistribution".
+ */
+export interface EuSeatDistribution {
+  /**
+   * Antal dragningar per mandatantal
+   */
+  histogram: {
+    [k: string]: number;
+  };
+  mean: number;
+  median: number;
+  p25: number;
+  p5: number;
+  p75: number;
+  p95: number;
+  party: string;
+}
+
 // ── Institutes.schema.json ──
 export interface Institutes {
   bias: {

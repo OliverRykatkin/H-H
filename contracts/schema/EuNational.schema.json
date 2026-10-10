@@ -1,0 +1,226 @@
+{
+  "$defs": {
+    "EuMethod": {
+      "additionalProperties": false,
+      "properties": {
+        "caveat": {
+          "type": "string"
+        },
+        "deviationYears": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "proxy": {
+          "description": "Öppen beskrivning av proxyn för EU-opinion",
+          "type": "string"
+        },
+        "shrink": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "proxy",
+        "shrink",
+        "deviationYears",
+        "caveat"
+      ],
+      "title": "EuMethod",
+      "type": "object"
+    },
+    "EuPartyEstimate": {
+      "additionalProperties": false,
+      "properties": {
+        "change": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deviation": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Pålagd historisk EU-avvikelse (pp, efter krympning)"
+        },
+        "lastElection": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Resultat i EU-valet 2024 (%)"
+        },
+        "name": {
+          "type": "string"
+        },
+        "pAboveThreshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "pLargest": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "party": {
+          "type": "string"
+        },
+        "rdEquivalent": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Riksdagsopinionen omräknad till andel av alla giltiga röster (%)"
+        },
+        "sd": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Simuleringens totala σ (pp)"
+        },
+        "seats": {
+          "type": "integer"
+        },
+        "seatsLast": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mandat i EU-valet 2024"
+        },
+        "share": {
+          "description": "Förväntad andel av alla giltiga röster (%); övriga (O) antas som i EU-valet 2024",
+          "type": "number"
+        }
+      },
+      "required": [
+        "party",
+        "name",
+        "share",
+        "lastElection",
+        "change",
+        "seats"
+      ],
+      "title": "EuPartyEstimate",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/EuNational.json",
+  "additionalProperties": false,
+  "properties": {
+    "belowThreshold": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "daysLeft": {
+      "type": "integer"
+    },
+    "election": {
+      "type": "string"
+    },
+    "electionDate": {
+      "type": "string"
+    },
+    "electionDateProvisional": {
+      "type": "boolean"
+    },
+    "estimates": {
+      "items": {
+        "$ref": "#/$defs/EuPartyEstimate"
+      },
+      "type": "array"
+    },
+    "largestParty": {
+      "type": "string"
+    },
+    "latestPoll": {
+      "type": "string"
+    },
+    "method": {
+      "$ref": "#/$defs/EuMethod"
+    },
+    "referenceDate": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "seats": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "type": "object"
+    },
+    "seatsTotal": {
+      "type": "integer"
+    },
+    "threshold": {
+      "description": "Spärr i riket (andel, 0–1)",
+      "type": "number"
+    }
+  },
+  "required": [
+    "election",
+    "electionDate",
+    "electionDateProvisional",
+    "seatsTotal",
+    "threshold",
+    "referenceDate",
+    "daysLeft",
+    "latestPoll",
+    "estimates",
+    "seats",
+    "belowThreshold",
+    "largestParty",
+    "method"
+  ],
+  "title": "EuNational",
+  "type": "object"
+}

@@ -1,0 +1,111 @@
+{
+  "$defs": {
+    "EuBacktestYear": {
+      "additionalProperties": false,
+      "properties": {
+        "adjusted": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Riksdagsmätningar + avvikelse ur tidigare EU-val",
+          "type": "object"
+        },
+        "adjustedFrom": {
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "maeAdjusted": {
+          "type": "number"
+        },
+        "maeNaive": {
+          "type": "number"
+        },
+        "naive": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "Bara riksdagsmätningar, ingen avvikelse",
+          "type": "object"
+        },
+        "official": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "type": "object"
+        },
+        "referenceDate": {
+          "type": "string"
+        },
+        "seatErrorAdjusted": {
+          "type": "integer"
+        },
+        "seatErrorNaive": {
+          "type": "integer"
+        },
+        "seatsAdjusted": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "seatsNaive": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "seatsOfficial": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "type": "object"
+        },
+        "year": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "year",
+        "referenceDate",
+        "official",
+        "naive",
+        "adjusted",
+        "maeNaive",
+        "maeAdjusted",
+        "seatsOfficial",
+        "seatsNaive",
+        "seatsAdjusted",
+        "seatErrorNaive",
+        "seatErrorAdjusted",
+        "adjustedFrom"
+      ],
+      "title": "EuBacktestYear",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/EuBacktest.json",
+  "additionalProperties": false,
+  "properties": {
+    "note": {
+      "type": "string"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "years": {
+      "items": {
+        "$ref": "#/$defs/EuBacktestYear"
+      },
+      "type": "array"
+    }
+  },
+  "required": [
+    "note",
+    "years"
+  ],
+  "title": "EuBacktest",
+  "type": "object"
+}
