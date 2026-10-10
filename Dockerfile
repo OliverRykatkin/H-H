@@ -5,6 +5,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Labbet ska inte indexeras (den publika sajten är mandatorn.se).
+RUN python -c "import pathlib, streamlit; p = pathlib.Path(streamlit.__file__).parent / 'static' / 'index.html'; t = p.read_text(encoding='utf-8'); assert '<head>' in t; p.write_text(t.replace('<head>', '<head><meta name=\"robots\" content=\"noindex,nofollow\">', 1), encoding='utf-8')"
+
 COPY . .
 
 ENV PORT=8080
