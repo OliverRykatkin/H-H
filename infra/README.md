@@ -39,3 +39,7 @@ Det här skapas per miljö (`staging` eller `prod`):
 
 ## Kostnad
 Se `docs/ARCHITECTURE.md`, avsnitt 9. Budgetlarmet ligger på 20 USD/månad (`monthly_budget_usd`).
+
+## Inloggning (IAM Identity Center)
+
+Använd SSO i stället för root: `aws sso login --profile mandatorn` och sedan `$env:AWS_PROFILE = "mandatorn"` (PowerShell) eller `export AWS_PROFILE=mandatorn` före `terraform`. Portal: `https://d-c3676f5e40.awsapps.com/start` (Identity Center ligger i `eu-north-1`, resurserna i `eu-central-1`). Profilen ligger i `~/.aws/config`.
