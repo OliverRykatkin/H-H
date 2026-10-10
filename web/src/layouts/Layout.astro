@@ -3,7 +3,7 @@ import dm400 from "@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff2?url"
 import dm700 from "@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff2?url";
 import "../styles/global.css";
 import { PARTY_COLORS } from "@contracts/constants";
-import { manifest, dataUrl } from "../lib/release";
+import { manifest, dataUrl, eu } from "../lib/release";
 
 interface Props {
   title: string;
@@ -12,11 +12,14 @@ interface Props {
   ogImage?: string;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
   noindex?: boolean;
+  /** EU-valets sidor: egen meny, egen release och eget datalager (eu2029/). */
+  eu?: boolean;
 }
-const { title, description, jsonLd, noindex = false } = Astro.props;
+const { title, description, jsonLd, noindex = false, eu: isEu = false } = Astro.props;
 // OG-bilden genereras vid bygget per sida (scripts/og.mjs): /og/<sökväg>.png
 const ogImage = Astro.props.ogImage ?? `/og${Astro.url.pathname === "/" ? "/index" : Astro.url.pathname.replace(/\/$/, "")}.png`;
-const m = manifest();
+const m = isEu ? eu.manifest() : manifest();
+const dataBase = isEu ? `${dataUrl()}/eu2029` : dataUrl();
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const fullTitle = title === "Mandatorn" ? title : `${title} – Mandatorn`;
 const partyVars = Object.entries(PARTY_COLORS).map(([p, c]) => `--party-${p}:${c}`).join(";");
@@ -25,8 +28,13 @@ const nav = [
   ["/", "Översikt"], ["/mandat/", "Mandat"], ["/sannolikheter/", "Sannolikheter"],
   ["/valkretsar/", "Valkretsar"], ["/kommuner/", "Kommuner"], ["/regioner/", "Regioner"],
   ["/partier/", "Partier"], ["/institut/", "Institut"], ["/valnatt/", "Valnatt"],
-  ["/data/", "Öppen data"], ["/om/", "Metod"],
+  ["/data/", "Öppen data"], ["/eu/", "EU-valet"], ["/om/", "Metod"],
 ];
+const euNav = [
+  ["/eu/", "Översikt"], ["/eu/partier/", "Partier"], ["/eu/sannolikheter/", "Sannolikheter"],
+  ["/eu/metod/", "Metod"], ["/", "Riksdagsvalet"],
+];
+const menu = isEu ? euNav : nav;
 const path = Astro.url.pathname;
 ---
 <!doctype html>
@@ -48,7 +56,7 @@ const path = Astro.url.pathname;
     <meta property="og:image" content={new URL(ogImage, Astro.site).href} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="mandatorn:release" content={m.release} />
-    <meta name="mandatorn:data" content={dataUrl()} />
+    <meta name="mandatorn:data" content={dataBase} />
     <link rel="preload" href={dm400} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={dm700} as="font" type="font/woff2" crossorigin />
     {/* font-display: optional — typsnittet byts aldrig mitt i visningen (ingen layoutförskjutning). */}
@@ -62,8 +70,8 @@ const path = Astro.url.pathname;
       <div class="wrap">
         <a class="brand" href="/">Mandatorn</a>
         <nav class="nav" aria-label="Huvudmeny">
-          {nav.map(([href, label]) => (
-            <a href={href} aria-current={(href === "/" ? path === "/" : path.startsWith(href)) ? "page" : undefined}>{label}</a>
+          {menu.map(([href, label]) => (
+            <a href={href} aria-current={(href === "/" || href === "/eu/" ? path === href : path.startsWith(href)) ? "page" : undefined}>{label}</a>
           ))}
         </nav>
       </div>

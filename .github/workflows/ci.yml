@@ -44,6 +44,8 @@ jobs:
       - run: pip install -r requirements-pipeline.txt
       - name: Bygg en release att rendera mot
         run: python -m mandatorn_model.publish --out dist-data --force
+      - name: Bygg EU-valets release (eu2029/)
+        run: python -m mandatorn_model.eu_publish --out dist-data --force
       - uses: actions/setup-node@v4
         with:
           node-version: "22"

@@ -1,0 +1,38 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { PARTY_COLORS } from "@contracts/constants";
+import { euNational } from "../../../lib/eu";
+import { partyName, signed, changeClass, pct, dateSv } from "../../../lib/format";
+import { displayPct } from "../../../lib/text/scale";
+import { formatNumber } from "../../../lib/text/grammar";
+
+const nat = euNational();
+const rows = nat.estimates.filter((e) => e.party !== "O").sort((a, b) => b.share - a.share);
+const pe = (v: number | null | undefined) => (v == null ? "–" : `${formatNumber(v, 1)} pe`);
+const description = `Stöd per parti inför EU-valet ${nat.electionDate.slice(0, 4)}: ${rows.map((r) => `${r.party} ${formatNumber(r.share, 1)} %`).join(", ")}, med riksdagsopinionen och EU-avvikelsen var för sig.`;
+---
+<Layout title="EU-valet: partier" description={description} eu>
+  <h1>Partierna i EU-valet</h1>
+  <p class="lede">Skattat stöd per parti, uppdelat i riksdagsopinionen och den historiska EU-avvikelsen som läggs på.</p>
+  <p class="small muted">Uppdaterad {dateSv(nat.referenceDate)}. Andelar är procent av alla giltiga röster; övriga partier antas få {pct(nat.estimates.find((e) => e.party === "O")?.share)}.</p>
+  <div class="table-scroll">
+    <table>
+      <caption>Hur EU-prognosen byggs upp per parti (pe = procentenheter).</caption>
+      <thead><tr><th>Parti</th><th class="r">Riksdagsopinion</th><th class="r">EU-avvikelse</th><th class="r">Prognos</th><th class="r">EU-valet 2024</th><th class="r">Förändring</th><th class="r">Osäkerhet (σ)</th><th class="r">Största parti</th></tr></thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr>
+            <td><span class="swatch" style={`background:${PARTY_COLORS[r.party]}`}></span>{partyName(r.party)}</td>
+            <td class="r">{pct(r.rdEquivalent)}</td>
+            <td class={`r ${changeClass(r.deviation)}`}>{signed(r.deviation)}</td>
+            <td class="r"><strong>{pct(r.share)}</strong></td>
+            <td class="r">{pct(r.lastElection)}</td>
+            <td class={`r ${changeClass(r.change)}`}>{signed(r.change)}</td>
+            <td class="r">{pe(r.sd)}</td>
+            <td class="r">{r.pLargest == null ? "–" : displayPct(r.pLargest)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Layout>

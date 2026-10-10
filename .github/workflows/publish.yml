@@ -77,6 +77,19 @@ jobs:
           cat report.md >> "$GITHUB_STEP_SUMMARY"
           if [ "$code" != "0" ] && [ "$code" != "2" ]; then exit "$code"; fi
 
+      - name: EU-valets prognos (eget prefix eu2029/)
+        if: steps.publish.outputs.code == '0'
+        run: |
+          out=dist-data
+          extra=()
+          if [ -n "$AWS_ROLE_ARN" ]; then
+            out="s3://$DATA_BUCKET"
+            extra+=(--distribution-id "$DATA_DISTRIBUTION_ID")
+          fi
+          [ -n "${{ inputs.reference_date }}" ] && extra+=(--reference-date "${{ inputs.reference_date }}")
+          [ "${{ inputs.force }}" = "true" ] && extra+=(--force)
+          python -m mandatorn_model.eu_publish --out "$out" "${extra[@]}"
+
       - name: Flaggad körning → issue (inget publiceras)
         if: steps.publish.outputs.code == '2'
         env:

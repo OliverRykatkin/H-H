@@ -1,0 +1,77 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { PARTIES, PARTY_COLORS } from "@contracts/constants";
+import { euNational, euBacktest } from "../../../lib/eu";
+import { partyName, dateSv } from "../../../lib/format";
+import { formatNumber } from "../../../lib/text/grammar";
+
+const nat = euNational();
+const bt = euBacktest();
+const m = nat.method;
+const year = nat.electionDate.slice(0, 4);
+const description = `Så räknar Mandatorn på EU-valet ${year}: riksdagsmätningar som proxy, historisk EU-avvikelse, simulering och backtest mot 2019 och 2024.`;
+const pe = (v: number) => `${formatNumber(v, 1)} pe`;
+---
+<Layout title="EU-valet: metod" description={description} eu>
+  <h1>Så räknar vi på EU-valet</h1>
+  <p class="banner warn">{m.caveat}</p>
+
+  <h2>Mandatreglerna</h2>
+  <p>
+    Sverige är en enda valkrets i EU-valet och väljer {nat.seatsTotal} ledamöter. Partier under {Math.round(nat.threshold * 100)} procent
+    av alla giltiga röster får inga mandat. Mandaten fördelas med jämkade uddatalsmetoden (första divisor 1,2).
+    Det återskapar Valmyndighetens officiella utfall 2019 och 2024 exakt. Antalet mandat och valdagen
+    {nat.electionDateProvisional ? ` (${dateSv(nat.electionDate)} är ett antagande)` : ""} kan ändras före valet.
+  </p>
+
+  <h2>Proxy för opinionen</h2>
+  <p>{m.proxy}</p>
+  <p>
+    Avvikelsen bygger på valen {m.deviationYears.join(" och ")}. Två val ger en grov uppskattning, därför tas bara
+    {" "}{formatNumber(m.shrink * 100, 0)} procent av den med och dess spridning mellan valen räknas in i osäkerheten.
+  </p>
+
+  <h2>Simulering</h2>
+  <p>
+    Varje partis andel dras från en normalfördelning. Spridningen består av mätspridning i riksdagsmätningarna,
+    1,0 procentenheter strukturell osäkerhet, osäkerhet över tid fram till valet och avvikelsens spridning. Andelen övriga partier är fast.
+    Varje dragning går genom EU:s mandatregler.
+  </p>
+
+  <h2>Backtest</h2>
+  <p>{bt.note}</p>
+  <div class="table-scroll">
+    <table>
+      <caption>Medelfel över de åtta partierna (pe) och felplacerade mandat dagen före valet.</caption>
+      <thead><tr><th>Val</th><th>Utan avvikelse</th><th>Med avvikelse</th><th>Avvikelse ur</th></tr></thead>
+      <tbody>
+        {bt.years.map((y) => (
+          <tr>
+            <td>{y.year}</td>
+            <td>{pe(y.maeNaive)}, {y.seatErrorNaive} mandat fel</td>
+            <td>{pe(y.maeAdjusted)}, {y.seatErrorAdjusted} mandat fel</td>
+            <td>{y.adjustedFrom.length ? y.adjustedFrom.join(", ") : "ingen tidigare"}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  {bt.years.map((y) => (
+    <div class="table-scroll">
+      <table>
+        <caption>EU-valet {y.year}: faktiskt resultat och prognos (andel i procent, mandat).</caption>
+        <thead><tr><th>Parti</th><th class="r">Resultat</th><th class="r">Utan avvikelse</th><th class="r">Med avvikelse</th><th class="r">Mandat</th><th class="r">Utan</th><th class="r">Med</th></tr></thead>
+        <tbody>
+          {PARTIES.map((p) => (
+            <tr>
+              <td><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span>{partyName(p)}</td>
+              <td class="r">{formatNumber(y.official[p], 1)}</td><td class="r">{formatNumber(y.naive[p], 1)}</td><td class="r">{formatNumber(y.adjusted[p], 1)}</td>
+              <td class="r">{y.seatsOfficial[p]}</td><td class="r">{y.seatsNaive[p]}</td><td class="r">{y.seatsAdjusted[p]}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ))}
+</Layout>

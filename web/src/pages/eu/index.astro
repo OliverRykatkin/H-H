@@ -1,0 +1,56 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import EuSeatBar from "../../components/EuSeatBar.astro";
+import EuSeatIntervals from "../../components/EuSeatIntervals.astro";
+import { PARTY_COLORS } from "@contracts/constants";
+import { euNational, euSimulation } from "../../lib/eu";
+import { partyName, signedInt, signed, dateSv, changeClass, pct } from "../../lib/format";
+import { displayPct } from "../../lib/text/scale";
+import { seats as seatsWord } from "../../lib/text/grammar";
+
+const nat = euNational();
+const sim = euSimulation();
+const parties = nat.estimates.filter((e) => e.party !== "O").sort((a, b) => b.seats - a.seats || b.share - a.share);
+const last = Object.fromEntries(parties.map((e) => [e.party, e.seatsLast ?? 0]));
+const top = parties[0];
+const year = nat.electionDate.slice(0, 4);
+const description = `Mandatprognos för EU-valet ${year}: ${parties.map((p) => `${p.party} ${p.seats}`).join(", ")} av ${nat.seatsTotal} svenska mandat. Baseras på riksdagsmätningar, eftersom EU-mätningar saknas.`;
+---
+<Layout title="EU-valet" description={description} eu>
+  <h1>EU-valet {year}</h1>
+  <p class="lede">
+    Om det vore EU-val i dag skulle {top.name} bli största parti med {seatsWord(top.seats)} av Sveriges {nat.seatsTotal}.
+    Det är en prognos med stor osäkerhet: det finns inga mätningar av EU-valet, så den bygger på riksdagsopinionen.
+  </p>
+  <p class="banner warn">
+    {nat.method.caveat} <a href="/eu/metod/">Så räknar vi</a>.
+    {nat.electionDateProvisional && ` Valdagen är inte fastställd; ${dateSv(nat.electionDate)} är ett antagande.`}
+  </p>
+  <p class="small muted">Punktprognos för {dateSv(nat.referenceDate)}. Intervallen gäller valdagen ({nat.daysLeft} dagar kvar). Spärr: {Math.round(nat.threshold * 100)} procent i hela landet.</p>
+
+  <EuSeatBar seats={nat.seats} total={nat.seatsTotal} caption="Om det vore val i dag. Streckad linje = hälften av mandaten." />
+
+  <h2>Mandat och stöd per parti</h2>
+  <div class="table-scroll">
+    <table>
+      <caption>Förväntad andel av alla giltiga röster och mandat, jämfört med EU-valet 2024.</caption>
+      <thead><tr><th>Parti</th><th class="r">Andel</th><th class="r">Förändring (pe)</th><th class="r">Mandat</th><th class="r">Mandat 2024</th><th class="r">Förändring</th><th class="r">Över spärren</th></tr></thead>
+      <tbody>
+        {parties.map((p) => (
+          <tr>
+            <td><span class="swatch" style={`background:${PARTY_COLORS[p.party]}`}></span>{partyName(p.party)}</td>
+            <td class="r">{pct(p.share)}</td>
+            <td class={`r ${changeClass(p.change)}`}>{signed(p.change)}</td>
+            <td class="r"><strong>{p.seats}</strong></td>
+            <td class="r">{p.seatsLast ?? "–"}</td>
+            <td class={`r ${changeClass(p.seats - (p.seatsLast ?? 0), 0)}`}>{signedInt(p.seats - (p.seatsLast ?? 0))}</td>
+            <td class="r">{p.pAboveThreshold == null ? "–" : displayPct(p.pAboveThreshold)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Osäkerhet på valdagen</h2>
+  <EuSeatIntervals sim={sim} last={last} />
+</Layout>

@@ -1,0 +1,60 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import { PARTY_COLORS } from "@contracts/constants";
+import { euNational, euSimulation } from "../../../lib/eu";
+import { partyName, dateSv } from "../../../lib/format";
+import { displayPct, verbal } from "../../../lib/text/scale";
+import { formatInteger, formatNumber } from "../../../lib/text/grammar";
+
+const nat = euNational();
+const sim = euSimulation();
+const parties = nat.estimates.filter((e) => e.party !== "O").sort((a, b) => b.share - a.share);
+const bySeats = Object.fromEntries(sim.parties.map((p) => [p.party, p]));
+const maxCount = Math.max(...sim.parties.flatMap((p) => Object.values(p.histogram)));
+const description = `Sannolikheter för EU-valet ${nat.electionDate.slice(0, 4)} ur ${formatInteger(sim.nSims)} simuleringar: vilka partier som kommer över spärren, blir störst och hur många mandat de får.`;
+---
+<Layout title="EU-valet: sannolikheter" description={description} eu>
+  <h1>Hur sannolikt är det att …</h1>
+  <p class="lede">
+    Sannolikheterna bygger på {formatInteger(sim.nSims)} simuleringar av EU-valet, {formatInteger(sim.horizonDays)} dagar framåt.
+    {nat.method.caveat}
+  </p>
+  <p class="small muted">Uppdaterad {dateSv(nat.referenceDate)}. Simuleringar visar aldrig 0 eller 100 procent — mindre än 1 procent visas som &lt;1 %.</p>
+
+  <div class="table-scroll">
+    <table>
+      <caption>Sannolikhet att komma över {Math.round(nat.threshold * 100)} %-spärren och att bli största parti.</caption>
+      <thead><tr><th>Parti</th><th class="r">Över spärren</th><th></th><th class="r">Största parti</th><th class="r">Mandat (median)</th><th class="r">90 % intervall</th></tr></thead>
+      <tbody>
+        {parties.map((p) => (
+          <tr>
+            <td><span class="swatch" style={`background:${PARTY_COLORS[p.party]}`}></span>{partyName(p.party)}</td>
+            <td class="r">{displayPct(p.pAboveThreshold ?? 0)}</td>
+            <td class="small muted">{verbal(p.pAboveThreshold ?? 0)}</td>
+            <td class="r">{displayPct(p.pLargest ?? 0)}</td>
+            <td class="r">{bySeats[p.party].median}</td>
+            <td class="r">{bySeats[p.party].p5}–{bySeats[p.party].p95}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Mandatfördelning per parti</h2>
+  <p class="small muted">Hur ofta partiet fick respektive antal mandat i simuleringarna.</p>
+  {[...sim.parties].sort((a, b) => b.median - a.median || b.mean - a.mean).map((p) => {
+    const counts = Object.entries(p.histogram).map(([k, v]) => [Number(k), v] as const).sort((a, b) => a[0] - b[0]);
+    const W = 520, H = 70, bw = Math.min(28, (W - 20) / (counts.length || 1));
+    return (
+      <figure>
+        <svg class="chart" viewBox={`0 0 ${W} ${H + 18}`} role="img" aria-label={`${partyName(p.party)}: ${counts.map(([k, v]) => `${k} mandat ${displayPct(v / sim.nSims)}`).join(", ")}`}>
+          {counts.map(([k, v], i) => {
+            const h = Math.max(1, (v / maxCount) * H);
+            return <g><rect x={10 + i * bw} y={H - h} width={bw - 3} height={h} fill={PARTY_COLORS[p.party]} /><text x={10 + i * bw + (bw - 3) / 2} y={H + 13} text-anchor="middle" font-size="11" fill="#5c5f63">{k}</text></g>;
+          })}
+        </svg>
+        <figcaption class="small">{partyName(p.party)} — mandat (snitt {formatNumber(p.mean, 1)})</figcaption>
+      </figure>
+    );
+  })}
+</Layout>
