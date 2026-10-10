@@ -1,0 +1,841 @@
+{
+ "source": "https://resultat.val.se/resultatfiler/euval2024/s/e/EU-val_2024_slutlig_00_E.zip",
+ "note": "2019: antal mandat avser fördelningen med 21 mandat som gäller från 2020-02-01 (Storbritannien lämnade EU).",
+ "elections": {
+  "2024": {
+   "valid_votes": 4198011,
+   "seats_total": 21,
+   "turnout": 53.39,
+   "eligible": 7942272,
+   "parties": [
+    {
+     "party": "S",
+     "code": "0002",
+     "name": "Arbetarepartiet-Socialdemokraterna",
+     "votes": 1039676,
+     "seats": 5
+    },
+    {
+     "party": "C",
+     "code": "0004",
+     "name": "Centerpartiet",
+     "votes": 306227,
+     "seats": 2
+    },
+    {
+     "party": "KD",
+     "code": "0068",
+     "name": "Kristdemokraterna",
+     "votes": 239530,
+     "seats": 1
+    },
+    {
+     "party": "L",
+     "code": "0003",
+     "name": "Liberalerna (tidigare Folkpartiet)",
+     "votes": 183675,
+     "seats": 1
+    },
+    {
+     "party": "MP",
+     "code": "0055",
+     "name": "MiljÃ¶partiet de grÃ¶na",
+     "votes": 581322,
+     "seats": 3
+    },
+    {
+     "party": "M",
+     "code": "0001",
+     "name": "Moderaterna",
+     "votes": 736079,
+     "seats": 4
+    },
+    {
+     "party": "SD",
+     "code": "0110",
+     "name": "Sverigedemokraterna",
+     "votes": 552920,
+     "seats": 3
+    },
+    {
+     "party": "V",
+     "code": "0005",
+     "name": "VÃ¤nsterpartiet",
+     "votes": 464166,
+     "seats": 2
+    },
+    {
+     "party": "FOLK",
+     "code": "1659",
+     "name": "Folklistan",
+     "votes": 25901,
+     "seats": 0
+    },
+    {
+     "party": "AfS",
+     "code": "1325",
+     "name": "Alternativ fÃ¶r Sverige",
+     "votes": 17049,
+     "seats": 0
+    },
+    {
+     "party": "PP",
+     "code": "0524",
+     "name": "Piratpartiet",
+     "votes": 15403,
+     "seats": 0
+    },
+    {
+     "party": "MED",
+     "code": "1296",
+     "name": "Medborgerlig Samling",
+     "votes": 12699,
+     "seats": 0
+    },
+    {
+     "party": "MD",
+     "code": "1568",
+     "name": "MoD - MÃ¤nskliga rÃ¤ttigheter och Demokrati",
+     "votes": 8057,
+     "seats": 0
+    },
+    {
+     "party": "KrVP",
+     "code": "1551",
+     "name": "Kristna VÃ¤rdepartiet",
+     "votes": 3896,
+     "seats": 0
+    },
+    {
+     "party": "Liv",
+     "code": "0532",
+     "name": "VÃ¤rdigt Liv",
+     "votes": 2545,
+     "seats": 0
+    },
+    {
+     "party": "SWX",
+     "code": "1643",
+     "name": "Swexit",
+     "votes": 2285,
+     "seats": 0
+    },
+    {
+     "party": "PNy",
+     "code": "1439",
+     "name": "Partiet Nyans",
+     "votes": 1772,
+     "seats": 0
+    },
+    {
+     "party": "Skp",
+     "code": "1586",
+     "name": "SKP",
+     "votes": 1629,
+     "seats": 0
+    },
+    {
+     "party": "KA",
+     "code": "1543",
+     "name": "Klimatalliansen",
+     "votes": 1200,
+     "seats": 0
+    },
+    {
+     "party": "Volt",
+     "code": "1610",
+     "name": "Volt Sverige",
+     "votes": 388,
+     "seats": 0
+    },
+    {
+     "party": "DD",
+     "code": "1150",
+     "name": "Direktdemokraterna",
+     "votes": 275,
+     "seats": 0
+    },
+    {
+     "party": "BAS",
+     "code": "1525",
+     "name": "Basinkomstpartiet",
+     "votes": 222,
+     "seats": 0
+    },
+    {
+     "party": "KLP",
+     "code": "0638",
+     "name": "Klassiskt liberala partiet",
+     "votes": 161,
+     "seats": 0
+    },
+    {
+     "party": "LPo",
+     "code": "1011",
+     "name": "Landsbygdspartiet Oberoende",
+     "votes": 95,
+     "seats": 0
+    },
+    {
+     "party": "Kn",
+     "code": "1505",
+     "name": "Knapptryckarna",
+     "votes": 80,
+     "seats": 0
+    },
+    {
+     "party": "ENH",
+     "code": "0189",
+     "name": "Enhet",
+     "votes": 75,
+     "seats": 0
+    },
+    {
+     "party": "KDP",
+     "code": "1661",
+     "name": "KDP - Kunskapsdemokratiska partiet",
+     "votes": 73,
+     "seats": 0
+    },
+    {
+     "party": "#1579",
+     "code": "1579",
+     "name": "Kalle ankapartiet",
+     "votes": 65,
+     "seats": 0
+    },
+    {
+     "party": "OKP",
+     "code": "1472",
+     "name": "Ond Kyckling Partiet",
+     "votes": 64,
+     "seats": 0
+    },
+    {
+     "party": "#1650",
+     "code": "1650",
+     "name": "FÃ¶r Allas BÃ¤sta",
+     "votes": 53,
+     "seats": 0
+    },
+    {
+     "party": "#1491",
+     "code": "1491",
+     "name": "Pax",
+     "votes": 46,
+     "seats": 0
+    },
+    {
+     "party": "TRP",
+     "code": "1309",
+     "name": "TRYGGHETSPARTIET",
+     "votes": 36,
+     "seats": 0
+    },
+    {
+     "party": "#1526",
+     "code": "1526",
+     "name": "Valsamverkanspartiet",
+     "votes": 30,
+     "seats": 0
+    },
+    {
+     "party": "#1628",
+     "code": "1628",
+     "name": "ANARKISTERNA",
+     "votes": 29,
+     "seats": 0
+    },
+    {
+     "party": "#1645",
+     "code": "1645",
+     "name": "UT",
+     "votes": 26,
+     "seats": 0
+    },
+    {
+     "party": "#1493",
+     "code": "1493",
+     "name": "Sverige ut ur EU/Frihetliga RÃ¤ttvisepartiet (FRP)",
+     "votes": 19,
+     "seats": 0
+    },
+    {
+     "party": "#1662",
+     "code": "1662",
+     "name": "AMORISTERNA",
+     "votes": 19,
+     "seats": 0
+    },
+    {
+     "party": "S-V",
+     "code": "0977",
+     "name": "Socialisterna-VÃ¤lfÃ¤rdspartiet",
+     "votes": 15,
+     "seats": 0
+    },
+    {
+     "party": "#1658",
+     "code": "1658",
+     "name": "Solens Frihetsparti",
+     "votes": 12,
+     "seats": 0
+    },
+    {
+     "party": "#1465",
+     "code": "1465",
+     "name": "KÃ¤rlek",
+     "votes": 11,
+     "seats": 0
+    },
+    {
+     "party": "EAP",
+     "code": "0029",
+     "name": "Europeiska Arbetarpartiet-EAP",
+     "votes": 9,
+     "seats": 0
+    },
+    {
+     "party": "#1606",
+     "code": "1606",
+     "name": "FAMILJENS FRIHET",
+     "votes": 9,
+     "seats": 0
+    },
+    {
+     "party": "#1654",
+     "code": "1654",
+     "name": "Origo",
+     "votes": 9,
+     "seats": 0
+    },
+    {
+     "party": "#1668",
+     "code": "1668",
+     "name": "Mer Golf, Mindre KrÃ¥ngel",
+     "votes": 8,
+     "seats": 0
+    },
+    {
+     "party": "#1454",
+     "code": "1454",
+     "name": "Yggdrasil",
+     "votes": 7,
+     "seats": 0
+    },
+    {
+     "party": "#1484",
+     "code": "1484",
+     "name": "Fredspartiet",
+     "votes": 7,
+     "seats": 0
+    },
+    {
+     "party": "#1577",
+     "code": "1577",
+     "name": "FÃ¶renade Demokratiska Partiet",
+     "votes": 6,
+     "seats": 0
+    },
+    {
+     "party": "#1601",
+     "code": "1601",
+     "name": "GRÃ–NA DEMOKRATER",
+     "votes": 6,
+     "seats": 0
+    },
+    {
+     "party": "#1629",
+     "code": "1629",
+     "name": "Bjornpartiet",
+     "votes": 6,
+     "seats": 0
+    },
+    {
+     "party": "#1548",
+     "code": "1548",
+     "name": "Fria Wermland",
+     "votes": 5,
+     "seats": 0
+    },
+    {
+     "party": "#1592",
+     "code": "1592",
+     "name": "Stram Kurs Sverige",
+     "votes": 5,
+     "seats": 0
+    },
+    {
+     "party": "#1627",
+     "code": "1627",
+     "name": "Naturistpartiet",
+     "votes": 5,
+     "seats": 0
+    },
+    {
+     "party": "#1653",
+     "code": "1653",
+     "name": "Globala partiet",
+     "votes": 5,
+     "seats": 0
+    },
+    {
+     "party": "#1448",
+     "code": "1448",
+     "name": "Enade Sverige",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "#1502",
+     "code": "1502",
+     "name": "Monisterna",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "#1510",
+     "code": "1510",
+     "name": "FÃ¶retaget Sverige",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "#1609",
+     "code": "1609",
+     "name": "WILLY TIGER",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "#1622",
+     "code": "1622",
+     "name": "Det minst dÃ¥liga partiet",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "#1634",
+     "code": "1634",
+     "name": "Chillpartiet",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "#1652",
+     "code": "1652",
+     "name": "HÃ¶gerpartiet de konservativa",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "#1660",
+     "code": "1660",
+     "name": "Socialliberalerna",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "#1666",
+     "code": "1666",
+     "name": "Sympartiet",
+     "votes": 4,
+     "seats": 0
+    },
+    {
+     "party": "CSIS",
+     "code": "1318",
+     "name": "Common sense in Sweden",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "#1404",
+     "code": "1404",
+     "name": "Ã„ndrings partiet revolution",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "#1457",
+     "code": "1457",
+     "name": "Sverigepartiet",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "#1479",
+     "code": "1479",
+     "name": "Fritt val",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "#1519",
+     "code": "1519",
+     "name": "Nix to the Six",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "#1559",
+     "code": "1559",
+     "name": "Stora Norrlands oberoende Frihetsparti",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "#1591",
+     "code": "1591",
+     "name": "MITT SVERIGE",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "#1595",
+     "code": "1595",
+     "name": "Nationalsocialistiska reformistiska Partiet",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "#1655",
+     "code": "1655",
+     "name": "FEL - FÃ¶retagens EU lÃ¤nk",
+     "votes": 3,
+     "seats": 0
+    },
+    {
+     "party": "HD",
+     "code": "1480",
+     "name": "Humanistisk demokrati (HD)",
+     "votes": 2,
+     "seats": 0
+    },
+    {
+     "party": "LB",
+     "code": "1605",
+     "name": "LÃ¶ddebygden",
+     "votes": 2,
+     "seats": 0
+    },
+    {
+     "party": "#1471",
+     "code": "1471",
+     "name": "Majspartiet",
+     "votes": 2,
+     "seats": 0
+    },
+    {
+     "party": "#1507",
+     "code": "1507",
+     "name": "Sociallibertarianerna",
+     "votes": 2,
+     "seats": 0
+    },
+    {
+     "party": "#1623",
+     "code": "1623",
+     "name": "Nu fÃ¥r det fan vara nog",
+     "votes": 2,
+     "seats": 0
+    },
+    {
+     "party": "#1644",
+     "code": "1644",
+     "name": "Upplysningspartiet",
+     "votes": 2,
+     "seats": 0
+    },
+    {
+     "party": "#1663",
+     "code": "1663",
+     "name": "Klimatmissionen",
+     "votes": 2,
+     "seats": 0
+    },
+    {
+     "party": "EVA",
+     "code": "1482",
+     "name": "En Vis Avskaffar AsylrÃ¤tten!",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "NR",
+     "code": "1528",
+     "name": "NY REFORM (NR)",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1436",
+     "code": "1436",
+     "name": "Gula vÃ¤starna",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1440",
+     "code": "1440",
+     "name": "MÃ¤larÃ¶arnas parti",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1466",
+     "code": "1466",
+     "name": "SÃ¤kerhetspartiet",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1468",
+     "code": "1468",
+     "name": "Vinningspartiet",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1495",
+     "code": "1495",
+     "name": "Kapitalism med vÃ¤nligt ansikte",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1508",
+     "code": "1508",
+     "name": "Rastliberalerna",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1573",
+     "code": "1573",
+     "name": "FrihetsrÃ¶relsen",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1578",
+     "code": "1578",
+     "name": "Partiet FolkomrÃ¶stning",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1589",
+     "code": "1589",
+     "name": "Enad Politik",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1596",
+     "code": "1596",
+     "name": "Ny Demokrati",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1612",
+     "code": "1612",
+     "name": "KSP",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1613",
+     "code": "1613",
+     "name": "Neoteknokraterna",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1624",
+     "code": "1624",
+     "name": "Invandrarpartiet",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1630",
+     "code": "1630",
+     "name": "Upprorsdemokraterna",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1631",
+     "code": "1631",
+     "name": "FN Parti art.27",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1633",
+     "code": "1633",
+     "name": "Stinas Initiativ",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1649",
+     "code": "1649",
+     "name": "TheSmartSoul",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1656",
+     "code": "1656",
+     "name": "Dixi Et Salvavi Animam DESAM",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1665",
+     "code": "1665",
+     "name": "Resurs Demokrati",
+     "votes": 1,
+     "seats": 0
+    },
+    {
+     "party": "#1670",
+     "code": "1670",
+     "name": "Hur svÃ¥rt kan det va?",
+     "votes": 1,
+     "seats": 0
+    }
+   ]
+  },
+  "2019": {
+   "valid_votes": 4151470,
+   "seats_total": 21,
+   "turnout": 55.27,
+   "eligible": 7576917,
+   "parties": [
+    {
+     "party": "S",
+     "code": "0002",
+     "name": "Arbetarepartiet-Socialdemokraterna",
+     "votes": 974589,
+     "seats": 5
+    },
+    {
+     "party": "C",
+     "code": "0004",
+     "name": "Centerpartiet",
+     "votes": 447641,
+     "seats": 2
+    },
+    {
+     "party": "KD",
+     "code": "0068",
+     "name": "Kristdemokraterna",
+     "votes": 357856,
+     "seats": 2
+    },
+    {
+     "party": "L",
+     "code": "0003",
+     "name": "Liberalerna (tidigare Folkpartiet)",
+     "votes": 171419,
+     "seats": 1
+    },
+    {
+     "party": "MP",
+     "code": "0055",
+     "name": "MiljÃ¶partiet de grÃ¶na",
+     "votes": 478258,
+     "seats": 3
+    },
+    {
+     "party": "M",
+     "code": "0001",
+     "name": "Moderaterna",
+     "votes": 698770,
+     "seats": 4
+    },
+    {
+     "party": "SD",
+     "code": "0110",
+     "name": "Sverigedemokraterna",
+     "votes": 636877,
+     "seats": 3
+    },
+    {
+     "party": "V",
+     "code": "0005",
+     "name": "VÃ¤nsterpartiet",
+     "votes": 282300,
+     "seats": 1
+    },
+    {
+     "party": "AfS",
+     "code": "1325",
+     "name": "Alternativ fÃ¶r Sverige",
+     "votes": 19178,
+     "seats": 0
+    },
+    {
+     "party": "PP",
+     "code": "0524",
+     "name": "Piratpartiet",
+     "votes": 26526,
+     "seats": 0
+    },
+    {
+     "party": "MED",
+     "code": "1296",
+     "name": "Medborgerlig Samling",
+     "votes": 6363,
+     "seats": 0
+    },
+    {
+     "party": "DD",
+     "code": "1150",
+     "name": "Direktdemokraterna",
+     "votes": 1276,
+     "seats": 0
+    },
+    {
+     "party": "KLP",
+     "code": "0638",
+     "name": "Klassiskt liberala partiet",
+     "votes": 702,
+     "seats": 0
+    },
+    {
+     "party": "LPo",
+     "code": "1011",
+     "name": "Landsbygdspartiet Oberoende",
+     "votes": 2059,
+     "seats": 0
+    },
+    {
+     "party": "TRP",
+     "code": "1309",
+     "name": "TRYGGHETSPARTIET",
+     "votes": 53,
+     "seats": 0
+    },
+    {
+     "party": "EAP",
+     "code": "0029",
+     "name": "Europeiska Arbetarpartiet-EAP",
+     "votes": 29,
+     "seats": 0
+    },
+    {
+     "party": "CSIS",
+     "code": "1318",
+     "name": "Common sense in Sweden",
+     "votes": 33,
+     "seats": 0
+    }
+   ]
+  }
+ }
+}
