@@ -117,7 +117,9 @@ jobs:
 
       - name: Lokal kopia av releasen för sajtbygget
         if: steps.publish.outputs.code == '0' && env.AWS_ROLE_ARN != ''
-        run: python -m mandatorn_model.publish --out dist-data --force ${{ inputs.reference_date && format('--reference-date {0}', inputs.reference_date) || '' }}
+        run: |
+          python -m mandatorn_model.publish --out dist-data --force ${{ inputs.reference_date && format('--reference-date {0}', inputs.reference_date) || '' }}
+          python -m mandatorn_model.eu_publish --out dist-data --force ${{ inputs.reference_date && format('--reference-date {0}', inputs.reference_date) || '' }}
 
       - uses: actions/setup-node@v4
         if: steps.publish.outputs.code == '0'

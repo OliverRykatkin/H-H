@@ -23,7 +23,7 @@ from mandatorn_model.constants import (
 from mandatorn_model.election import EU2029, ElectionProfile
 from mandatorn_model.eu_seats import allocate_eu
 from mandatorn_model.kalman import aggregate_polls_kalman
-from mandatorn_model.polls import compute_house_weights, parse_polls
+from mandatorn_model.polls import compute_house_weights
 from mandatorn_model.seats import BASELINE_OTHERS
 
 EU_RESULTS = Path(__file__).resolve().parents[1] / "data" / "eu_results.json"
