@@ -11,7 +11,7 @@ Det sker utan fördröjning (DECISIONS D4). Koden finns i `mandatorn_model/nowca
 
 1. Skapa appen: `fly apps create mandatorn-nowcast`.
 2. Aktivera Fly-OIDC i Terraform:
-   - Sätt `fly_org = "<din-org-slug>"` i tfvars.
+   - Sätt `fly_org = "oliver-rykatkin-gmail-com"` i tfvars.
    - Kör `terraform apply`.
    - Outputen `fly_nowcast_role_arn` ger rollens ARN.
 3. Sätt hemligheter (inga långlivade AWS-nycklar):
@@ -29,12 +29,12 @@ Det sker utan fördröjning (DECISIONS D4). Koden finns i `mandatorn_model/nowca
 
 ## AWS-credentials via Fly OIDC
 
-**Antagande, verifiera mot Fly-dokumentationen före valet.** Fly utfärdar OIDC-token per maskin:
-- Utfärdaren är `https://oidc.fly.io/<org>`.
+**Verifierat 2026-10-10** (rollen antogs från en Fly-maskin). Fly utfärdar OIDC-token per maskin:
+- Utfärdaren är `https://oidc.fly.io/<org>`. OBS: `<org>` är organisationens *namn* (för oss `oliver-rykatkin-gmail-com`), inte slugen `personal`.
 - `aud` är `sts.amazonaws.com`.
 - `sub` har formatet `<org>:<app>:<maskin-id>`.
 
-När hemligheten `AWS_ROLE_ARN` är satt antas Fly skriva token till `/.fly/oidc_token` och sätta `AWS_WEB_IDENTITY_TOKEN_FILE` i maskinen. boto3 använder då `AssumeRoleWithWebIdentity` automatiskt, utan nycklar. Om miljövariabeln inte sätts automatiskt går det att sätta själv: `fly secrets set AWS_WEB_IDENTITY_TOKEN_FILE=/.fly/oidc_token`.
+När hemligheten `AWS_ROLE_ARN` är satt skriver Fly token till `/.fly/oidc_token` och sätter `AWS_WEB_IDENTITY_TOKEN_FILE` i maskinen (bekräftat). boto3 använder då `AssumeRoleWithWebIdentity` automatiskt, utan nycklar. Om miljövariabeln inte sätts automatiskt går det att sätta själv: `fly secrets set AWS_WEB_IDENTITY_TOKEN_FILE=/.fly/oidc_token`.
 
 Rollens trust-policy (`infra/fly_oidc.tf`) tillåter `sub` som matchar `<org>:mandatorn-nowcast:*`. Rollen får bara:
 - skriva och läsa i data-bucketen
