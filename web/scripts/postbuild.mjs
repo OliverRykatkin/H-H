@@ -107,11 +107,58 @@ if (withOg) {
     if (cur) lines.push(cur);
     return lines;
   };
+  // Startsidans bild: blockens mandat + stapel med alla mandat, ur den släppta releasen.
+  const readData = (name) => {
+    try {
+      const dir = path.join(dist, "_data");
+      const m = JSON.parse(fs.readFileSync(path.join(dir, "manifest.json"), "utf-8"));
+      return JSON.parse(fs.readFileSync(path.join(dir, m.files.find((f) => f.path === name).object), "utf-8"));
+    } catch { return null; }
+  };
+  const COLORS = { M: "#52BDEC", L: "#006AB3", C: "#009933", KD: "#000077", S: "#E8112D", V: "#AF0000", MP: "#83CF39", SD: "#DDDD00" };
+  const BAR_ORDER = ["V", "S", "MP", "C", "L", "KD", "M", "SD"];
+  const MONTHS = ["januari", "februari", "mars", "april", "maj", "juni", "juli", "augusti", "september", "oktober", "november", "december"];
+  const homeSvg = () => {
+    const nat = readData("national.json"), md = readData("mandates.json");
+    if (!nat || !md) return null;
+    const seats = Object.fromEntries(md.parties.map((q) => [q.party, q.total]));
+    const total = BAR_ORDER.reduce((s, q) => s + (seats[q] ?? 0), 0);
+    if (!total) return null;
+    const bloc = (name) => nat.blocs.find((b) => b.name === name);
+    const left = bloc("Vänsterblocket"), right = bloc("Högerblocket");
+    const x0 = 72, w = 1056, y = 340, h = 90;
+    let x = x0, seg = "";
+    for (const q of BAR_ORDER) {
+      const n = seats[q] ?? 0; if (!n) continue;
+      const sw = (w * n) / total, cx = x + sw / 2;
+      seg += `<rect x="${x.toFixed(1)}" y="${y}" width="${(sw - 2).toFixed(1)}" height="${h}" fill="${COLORS[q]}"/>` +
+        `<text x="${cx.toFixed(1)}" y="${y + 58}" font-family="DM Sans" font-size="34" font-weight="700" text-anchor="middle" fill="${q === "SD" ? "#111213" : "#ffffff"}">${n}</text>` +
+        `<text x="${cx.toFixed(1)}" y="${y + h + 34}" font-family="DM Sans" font-size="24" font-weight="700" text-anchor="middle" fill="#5c5f63">${q}</text>`;
+      x += sw;
+    }
+    const mx = x0 + (w * 175) / total;
+    const d = new Date(nat.referenceDate + "T12:00:00Z");
+    const stamp = `Om det vore val i dag · uppdaterad ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#ffffff"/><rect width="1200" height="14" fill="#0b5cad"/>
+<text x="72" y="100" font-family="DM Sans" font-size="34" font-weight="700" fill="#0b5cad">Mandatorn</text>
+<text x="1128" y="100" font-family="DM Sans" font-size="28" text-anchor="end" fill="#5c5f63">Riksdagsvalet ${nat.nextElection.slice(0, 4)}</text>
+<text x="72" y="215" font-family="DM Sans" font-size="104" font-weight="700" fill="#c2405f">${left.seats}</text>
+<text x="72" y="262" font-family="DM Sans" font-size="32" fill="#111213">Vänsterblocket</text>
+<text x="1128" y="215" font-family="DM Sans" font-size="104" font-weight="700" text-anchor="end" fill="#1f8f78">${right.seats}</text>
+<text x="1128" y="262" font-family="DM Sans" font-size="32" text-anchor="end" fill="#111213">Högerblocket</text>
+<text x="600" y="215" font-family="DM Sans" font-size="30" text-anchor="middle" fill="#5c5f63">av ${total} mandat</text>
+${seg}
+<line x1="${mx.toFixed(1)}" y1="${y - 26}" x2="${mx.toFixed(1)}" y2="${y + h + 6}" stroke="#111213" stroke-width="3" stroke-dasharray="7 5"/>
+<text x="${mx.toFixed(1)}" y="${y - 36}" font-family="DM Sans" font-size="22" text-anchor="middle" fill="#111213">175 = majoritet</text>
+<text x="72" y="590" font-family="DM Sans" font-size="26" fill="#5c5f63">${stamp}</text>
+<text x="1128" y="590" font-family="DM Sans" font-size="26" text-anchor="end" fill="#5c5f63">mandatorn.se</text></svg>`;
+  };
   for (const p of indexable) {
     const title = p.title.replace(/ – Mandatorn$/, "");
     const tl = wrap(title, 28).slice(0, 3);
     const dl = wrap(p.description, 62).slice(0, 3);
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+    const svg = (p.route === "/" ? homeSvg() : null) ?? `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
 <rect width="1200" height="630" fill="#ffffff"/><rect width="1200" height="14" fill="#0b5cad"/>
 <text x="72" y="110" font-family="DM Sans" font-size="34" font-weight="700" fill="#0b5cad">Mandatorn</text>
 ${tl.map((l, i) => `<text x="72" y="${210 + i * 76}" font-family="DM Sans" font-size="64" font-weight="700" fill="#111213">${esc(l)}</text>`).join("")}
