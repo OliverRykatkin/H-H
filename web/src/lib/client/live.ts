@@ -7,6 +7,8 @@
 import type {
   Area, Constituency, Institutes, Manifest, National, Simulation,
 } from "@contracts/contracts";
+import { TOTAL_SEATS } from "@contracts/constants";
+import { wedgePaths } from "../hemicycle";
 import { fetchManifest, fetchVerified, ReleaseError } from "./release";
 import { startPoller } from "../islands/livePoll";
 import { areaIngress, constituencyIngress, instituteIngress, nationalIngress, partyIngress } from "../text/ingress";
@@ -41,10 +43,18 @@ async function updateMetrics(m: Manifest) {
     if (kind === "bloc-seats") {
       const b = national.blocs.find((x) => x.name === key);
       if (b) el.textContent = `${b.seats} mandat`;
+    } else if (kind === "bloc-num") {
+      const b = national.blocs.find((x) => x.name === key);
+      if (b) el.textContent = String(b.seats);
     } else if (kind === "seats") {
       if (national.seats[key] != null) el.textContent = String(national.seats[key]);
     }
   });
+  // Hemicykelns prickar följer mandaten.
+  const hemi = document.querySelector<SVGSVGElement>("svg[data-hemicycle]");
+  if (hemi) {
+    for (const w of wedgePaths(national.seats, TOTAL_SEATS)) hemi.querySelector(`path[data-party="${w.party}"]`)?.setAttribute("d", w.d);
+  }
 }
 
 document.addEventListener("mandatorn:newer-release", async (ev) => {

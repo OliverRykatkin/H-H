@@ -1,0 +1,33 @@
+---
+/**
+ * Riksdagens hemicykel: en prick per mandat, vänster → höger, blockens mandat i mitten och en
+ * streckad linje vid mandat 175. Prickarna ritas som en sökväg per parti (HTML-budgeten är trång);
+ * klienten ritar om sökvägarna vid ny release (lib/client/live.ts).
+ */
+import { PARTY_COLORS, TOTAL_SEATS } from "@contracts/constants";
+import { partyName } from "../lib/format";
+import { HEMI_VIEWBOX, HEMI_DOT, HEMI_NUMBER_X, HEMI_NUMBER_Y, majorityLine, wedgePaths } from "../lib/hemicycle";
+
+interface Props { seats: Record<string, number>; left: { name: string; seats: number }; right: { name: string; seats: number } }
+const { seats, left, right } = Astro.props;
+const wedges = wedgePaths(seats, TOTAL_SEATS);
+const m = majorityLine(TOTAL_SEATS);
+const label = `Mandatfördelning om det vore val i dag: ${left.name} ${left.seats}, ${right.name} ${right.seats}. ` +
+  wedges.filter((w) => (seats[w.party] ?? 0) > 0).map((w) => `${partyName(w.party)} ${seats[w.party]}`).join(", ") + ".";
+---
+<svg class="hemi" data-hemicycle viewBox={HEMI_VIEWBOX} role="img" aria-label={label}>
+  <g fill="none" stroke-linecap="round" stroke-width={HEMI_DOT}>
+    {wedges.map((w, k) => <path class="wedge" data-party={w.party} d={w.d} stroke={PARTY_COLORS[w.party]} style={`--k:${k}`} />)}
+  </g>
+  <line x1={m.x1} y1={m.y1} x2={m.x2} y2={m.y2} stroke="#111213" stroke-width="1.6" stroke-dasharray="5 4" />
+  <text x={m.lx} y={m.ly} text-anchor="middle" font-size="17" font-weight="700" fill="#111213">175</text>
+  <text class="hemi-num" x={HEMI_NUMBER_X.left} y={HEMI_NUMBER_Y} text-anchor="middle" font-size="54" font-weight="700" fill="var(--c-bloc-left)" data-live-metric={`bloc-num:${left.name}`}>{left.seats}</text>
+  <text class="hemi-num" x={HEMI_NUMBER_X.right} y={HEMI_NUMBER_Y} text-anchor="middle" font-size="54" font-weight="700" fill="var(--c-bloc-right)" data-live-metric={`bloc-num:${right.name}`}>{right.seats}</text>
+</svg>
+
+<style>
+  .hemi { display: block; width: 100%; height: auto; font-variant-numeric: tabular-nums; }
+  .hemi .wedge { animation: hemi-in 0.45s ease-out both; animation-delay: calc(var(--k) * 60ms); }
+  @keyframes hemi-in { from { opacity: 0; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .hemi .wedge { animation: none; } }
+</style>

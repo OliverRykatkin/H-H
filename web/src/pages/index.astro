@@ -1,12 +1,13 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import TrendChart from "../components/TrendChart.astro";
-import SeatBar from "../components/SeatBar.astro";
+import Hemicycle from "../components/Hemicycle.astro";
+import { HEMI_ORDER } from "../lib/hemicycle";
 import ProbCard from "../components/ProbCard.astro";
 import Ingress from "../components/Ingress.astro";
 import { nationalIngress } from "../lib/text/ingress";
 import { displayPct } from "../lib/text/scale";
-import { BLOC_PARTIES, PARTIES, PARTY_COLORS, BASELINE_YEAR, TOTAL_SEATS } from "@contracts/constants";
+import { BLOC_PARTIES, PARTIES, PARTY_COLORS, BASELINE_YEAR } from "@contracts/constants";
 import * as D from "../lib/data";
 import { sortBlocs } from "../lib/blocOrder";
 import { pct, signed, signedInt, partyName, dateSv, changeClass, slugify } from "../lib/format";
@@ -19,7 +20,13 @@ const md = D.mandates();
 const pollRows = D.polls().polls.slice(0, 10);
 const est = Object.fromEntries(nat.estimates.map((e) => [e.party, e]));
 const seatsByParty = Object.fromEntries(md.parties.map((p) => [p.party, p]));
-const blocColors = { "Högerblocket": "var(--c-bloc-right)", "Vänsterblocket": "var(--c-bloc-left)" };
+const leftBloc = nat.blocs.find((b) => b.name === "Vänsterblocket")!;
+const rightBloc = nat.blocs.find((b) => b.name === "Högerblocket")!;
+const legend = [
+  { bloc: leftBloc, color: "var(--c-bloc-left)" },
+  { bloc: rightBloc, color: "var(--c-bloc-right)" },
+].map((l) => ({ ...l, parties: HEMI_ORDER.filter((p) => (BLOC_PARTIES[l.bloc.name] as readonly string[]).includes(p)) }));
+const belowThreshold = nat.belowThreshold.map((p) => `${partyName(p)} (${pct(est[p].share)})`).join(", ");
 const blocSeries = { "Högerblocket": "#1f8f78", "Vänsterblocket": "#c2405f" };
 const description = `Mandatorns prognos för riksdagen: ${nat.blocs.map((b) => `${b.name} ${b.seats} mandat`).join(", ")}. Uppdaterad ${dateSv(nat.referenceDate)}.`;
 const jsonLd = {
@@ -30,20 +37,29 @@ const jsonLd = {
 };
 ---
 <Layout title="Mandatorn" description={description} jsonLd={jsonLd}>
-  <h1>Opinionsläget och mandatprognosen</h1>
-  <Ingress text={nationalIngress(nat, sim, nat.referenceDate)} live="national" />
-  <p class="small muted">Prognosen visar läget om det vore val i dag. Uppdaterad {dateSv(nat.referenceDate)}, senaste mätning {dateSv(nat.latestPoll)}.</p>
-
-  <section class="grid grid-4" aria-label="Nyckeltal">
-    {nat.blocs.map((b) => (
-      <div class="card metric">
-        <div class="label">{b.name}</div>
-        <div class="value" style={`color:${blocColors[b.name as keyof typeof blocColors]}`} data-live-metric={`bloc-seats:${b.name}`}>{b.seats} mandat</div>
-        <div class="sub">{signedInt(b.seats - 175)} mot majoritet · egen majoritet i valet: {displayPct(b.pMajority)}</div>
+  <section class="hero">
+    <h1 class="hero-title">Opinionsläget och mandatprognosen</h1>
+    <div class="hero-figure">
+      <Hemicycle seats={nat.seats} left={leftBloc} right={rightBloc} />
+      <div class="hero-legend">
+        {legend.map((l) => (
+          <div class="bloc">
+            <p class="bloc-head"><strong style={`color:${l.color}`}>{l.bloc.name}</strong> <span class="num" data-live-metric={`bloc-seats:${l.bloc.name}`}>{l.bloc.seats} mandat</span></p>
+            <ul class="bloc-parties">
+              {l.parties.map((p) => (
+                <li><span class="swatch" style={`background:${PARTY_COLORS[p]}`}></span>{p} <span class="num" data-live-metric={`seats:${p}`}>{nat.seats[p] ?? 0}</span></li>
+              ))}
+            </ul>
+            <p class="small muted">{signedInt(l.bloc.seats - 175)} mot majoritet · egen majoritet i valet: {displayPct(l.bloc.pMajority)}</p>
+          </div>
+        ))}
       </div>
-    ))}
-    <div class="card metric"><div class="label">Största parti</div><div class="value">{partyName(nat.largestParty)}</div><div class="sub">{pct(est[nat.largestParty].share)}</div></div>
-    <div class="card metric"><div class="label">Under 4 %-spärren</div><div class="value">{nat.belowThreshold.length ? nat.belowThreshold.join(", ") : "Inga"}</div><div class="sub">i punktprognosen</div></div>
+    </div>
+    <div class="hero-text">
+      <Ingress text={nationalIngress(nat, sim, nat.referenceDate)} live="national" />
+      <p class="small muted">Prognosen visar läget om det vore val i dag. Uppdaterad {dateSv(nat.referenceDate)}, senaste mätning {dateSv(nat.latestPoll)}.</p>
+      <p class="small">Största parti: {partyName(nat.largestParty)} ({pct(est[nat.largestParty].share)}). {nat.belowThreshold.length ? `Under 4 %-spärren i punktprognosen: ${belowThreshold}.` : "Alla riksdagspartier klarar 4 %-spärren i punktprognosen."}</p>
+    </div>
   </section>
 
   <h2>Opinionstrender</h2>
@@ -94,7 +110,6 @@ const jsonLd = {
   </div>
 
   <h2>Mandatprognos</h2>
-  <SeatBar seats={nat.seats} caption={`Om det vore val i dag. ${TOTAL_SEATS} mandat, streckad linje = 175 (egen majoritet).`} />
   <TrendChart ts={ts} keys={sortBlocs(Object.keys(BLOC_PARTIES), (k) => k)} colors={blocSeries} title="Blockens samlade stöd" threshold={50} yMin={35} yMax={60} />
   <p><a href="/mandat/">Hela mandatfördelningen, intervall och mandatmarginaler →</a></p>
 
@@ -121,3 +136,4 @@ const jsonLd = {
     </table>
   </div>
 </Layout>
+

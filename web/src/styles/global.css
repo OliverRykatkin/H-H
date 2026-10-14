@@ -77,3 +77,18 @@ svg text { font-family: var(--font-sans); }
 .chart[data-hover] { touch-action: pan-y; cursor: crosshair; }
 .chart-tip { position: absolute; top: 0.5rem; z-index: 2; pointer-events: none; background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius); box-shadow: 0 2px 8px rgb(0 0 0 / 0.12); padding: 0.4rem 0.6rem; font-size: 0.8125rem; line-height: 1.45; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .chart-tip strong { display: block; margin-bottom: 0.15rem; }
+
+/* Startsidans hero (hemicykel + text) */
+.hero { display: grid; gap: var(--space-2) var(--space-8); grid-template-areas: "title" "figure" "text"; }
+.hero-title { grid-area: title; margin: var(--space-4) 0 0; }
+.hero-figure { grid-area: figure; min-width: 0; }
+.hero-text { grid-area: text; min-width: 0; }
+.hero-text .lede { font-size: 1.125rem; }
+.hero-legend { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-top: var(--space-3); }
+.bloc-head { margin: 0 0 var(--space-1); font-size: var(--fs-lg); line-height: 1.3; }
+.bloc-parties { list-style: none; margin: 0 0 var(--space-1); padding: 0; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-weight: 600; }
+.bloc-parties .num { font-weight: 400; }
+.bloc .small { margin: 0; }
+@media (min-width: 52rem) {
+  .hero { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); grid-template-areas: "title figure" "text figure"; grid-template-rows: auto 1fr; align-items: start; }
+}
