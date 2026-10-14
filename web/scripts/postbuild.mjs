@@ -110,7 +110,8 @@ if (withOg) {
   // Startsidans bild: blockens mandat + stapel med alla mandat, ur den släppta releasen.
   const readData = (name) => {
     try {
-      const dir = path.join(dist, "_data");
+      // Samma releasekatalog som sajtbygget (astro.config.mjs); i produktion finns ingen dist/_data.
+      const dir = path.resolve(process.env.MANDATORN_RELEASE_DIR || path.join(here, "..", "..", "dist-data"));
       const m = JSON.parse(fs.readFileSync(path.join(dir, "manifest.json"), "utf-8"));
       return JSON.parse(fs.readFileSync(path.join(dir, m.files.find((f) => f.path === name).object), "utf-8"));
     } catch { return null; }
