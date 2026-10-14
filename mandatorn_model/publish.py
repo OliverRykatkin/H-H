@@ -209,7 +209,7 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
         nextElection=NEXT_ELECTION.date().isoformat(), daysLeft=fc.days_left,
         latestPoll=fc.latest_poll_date, estimates=estimates, seats=mandates["total"], blocs=blocs,
         largestParty=max(raw_est, key=raw_est.get),
-        belowThreshold=[p for p in PARTIES if raw_est[p] < THRESHOLD], swing=swing, trend=trend,
+        belowThreshold=[p for p in PARTIES if fc.shares_all[p] < THRESHOLD], swing=swing, trend=trend,
     ))
 
     # timeseries.json + öppen CSV
