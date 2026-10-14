@@ -18,8 +18,17 @@ const parties = [...sim.parties].sort((a, b) => b.median - a.median);
 const coalitions = [...sim.coalitions].sort((a, b) => b.prob - a.prob);
 const top = [...majority].sort((a, b) => b.p - a.p)[0];
 const description = `Sannolikheter för valet ${nat.nextElection.slice(0, 4)} ur ${formatInteger(sim.nSims)} simuleringar: ${majority.map((m) => `${m.name} ${displayPct(m.p)}`).join(", ")}.`;
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Sannolikheter inför riksdagsvalet 2030",
+  description,
+  inLanguage: "sv-SE",
+  dateModified: nat.referenceDate,
+  isPartOf: { "@type": "WebSite", name: "Mandatorn", url: Astro.site?.href },
+};
 ---
-<Layout title="Sannolikheter" description={description}>
+<Layout title="Sannolikheter" description={description} jsonLd={jsonLd}>
   <h1>Hur sannolikt är det att …</h1>
   <p class="lede">
     Sannolikheterna bygger på {formatInteger(sim.nSims)} simuleringar av valet {nat.nextElection.slice(0, 4)},
