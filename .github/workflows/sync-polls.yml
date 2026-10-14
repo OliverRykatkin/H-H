@@ -1,7 +1,7 @@
 name: Synka mätningar från SwedishPolls
 
-# Jämför den committade kopian (data/polls/Polls.csv) med SwedishPolls och öppnar en PR
-# vid förändring. Sammanslagning av PR:en triggar publiceringen. (DECISIONS D16)
+# Jämför den committade kopian (data/polls/Polls.csv) med SwedishPolls och committar direkt
+# till main vid förändring och startar publiceringen. (DECISIONS D16)
 on:
   schedule:
     - cron: "43 */3 * * *"   # var tredje timme, på udda minut
@@ -9,7 +9,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+  actions: write
 
 jobs:
   sync:
@@ -34,20 +34,15 @@ jobs:
               echo 'EOF'
             } >> "$GITHUB_OUTPUT"
           fi
-      - name: Öppna PR
+      - name: Committa till main och starta publicering
         if: steps.diff.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: sync/swedishpolls
-          delete-branch: true
-          commit-message: "Nya mätningar från SwedishPolls"
-          title: "Nya mätningar från SwedishPolls"
-          body: |
-            Automatisk synk av `data/polls/Polls.csv` från MansMeg/SwedishPolls.
-
-            Nya/ändrade rader (institut, urval, publiceringsdatum):
-            ```
-            ${{ steps.diff.outputs.summary }}
-            ```
-            Sammanslagning startar publiceringen (kvalitetsgrinden körs först).
-          add-paths: data/polls/Polls.csv
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/polls/Polls.csv
+          git commit -m "Nya mätningar från SwedishPolls" -m "${{ steps.diff.outputs.summary }}"
+          git push origin HEAD:main
+          # Push med GITHUB_TOKEN triggar inte publish.yml — starta den uttryckligen.
+          gh workflow run publish.yml --ref main
