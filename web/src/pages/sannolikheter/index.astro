@@ -3,7 +3,7 @@ import Layout from "../../layouts/Layout.astro";
 import ProbCard from "../../components/ProbCard.astro";
 import ProbHistogram from "../../components/ProbHistogram.astro";
 import CoalitionBuilder from "../../islands/CoalitionBuilder";
-import { PARTY_COLORS } from "@contracts/constants";
+import { PARTY_COLORS, TOTAL_SEATS } from "@contracts/constants";
 import * as D from "../../lib/data";
 import { partyName, dateSv, slugify } from "../../lib/format";
 import { displayPct, verbal } from "../../lib/text/scale";
@@ -32,6 +32,10 @@ const description = `Sannolikheter för valet ${nat.nextElection.slice(0, 4)} ur
   </div>
 
   <h2>Egen majoritet</h2>
+  <p class="small muted">
+    Frågorna ovan om "större stöd" och "majoritet av väljarna" gäller <strong>röster</strong>. Egen majoritet nedan gäller <strong>mandat</strong> (minst 175 av {TOTAL_SEATS}).
+    De kan skilja sig åt eftersom partier under 4 %-spärren får röster men inga mandat — ett block kan alltså få färre röster men ändå fler mandat.
+  </p>
   <section class="grid grid-3" aria-label="Majoritetssannolikheter">
     {majority.map((m) => (
       <div class="card metric"><div class="label">{m.name}</div><div class="value">{displayPct(m.p)}</div><div class="sub">{verbal(m.p)}</div></div>
