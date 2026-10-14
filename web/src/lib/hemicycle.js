@@ -13,12 +13,12 @@ const CX = HEMI_CX, CY = HEMI_CY, R_IN = 150, R_OUT = 288, ROWS = 10;
 /** @typedef {{ x: number, y: number, a: number }} Dot */
 const r1 = (v) => Math.round(v * 10) / 10;
 
-/** @param {number} total @returns {Dot[]} */
-export function hemicycleDots(total) {
-  const radii = Array.from({ length: ROWS }, (_, k) => R_IN + (k * (R_OUT - R_IN)) / (ROWS - 1));
+/** @param {number} total @param {number} [rows] antal rader; riksdagen = 10, mindre församlingar färre @returns {Dot[]} */
+export function hemicycleDots(total, rows = ROWS) {
+  const radii = Array.from({ length: rows }, (_, k) => R_IN + (k * (R_OUT - R_IN)) / (rows - 1));
   const sum = radii.reduce((s, r) => s + r, 0);
   const counts = radii.map((r) => Math.round((total * r) / sum));
-  counts[ROWS - 1] += total - counts.reduce((s, n) => s + n, 0);
+  counts[rows - 1] += total - counts.reduce((s, n) => s + n, 0);
   /** @type {Dot[]} */
   const dots = [];
   radii.forEach((r, k) => {

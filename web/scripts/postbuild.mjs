@@ -108,7 +108,7 @@ if (withOg) {
     } catch { return null; }
   };
   const { renderOgImages } = await import("./og.mjs");
-  const r = await renderOgImages({ dist, indexable, readData });
+  const r = await renderOgImages({ dist, indexable, readData, releaseDir });
   ogInfo = ` ${r.written} OG-bilder skrivna${r.fallbacks ? " (startsidan föll tillbaka på allmän mall — releasedata saknas)" : ""}.`;
 }
 

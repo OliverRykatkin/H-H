@@ -11,7 +11,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { HEMI_ORDER, HEMI_DOT, HEMI_NUMBER_X, HEMI_NUMBER_Y, majorityLine, wedgePaths } from "../src/lib/hemicycle.js";
+import { HEMI_ORDER, HEMI_DOT, HEMI_NUMBER_X, HEMI_NUMBER_Y, hemicycleDots, majorityLine, wedgePaths } from "../src/lib/hemicycle.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const TOTAL = 349;
@@ -53,9 +53,9 @@ const header = (right) => text(72, 100, "Mandatorn", { size: 34, weight: 700, fi
 const footer = (left) => text(72, 590, left, { size: 26, fill: MUTED }) + text(1128, 590, "mandatorn.se", { size: 26, fill: MUTED, anchor: "end" });
 
 /** Hemicykeln: bågens ruta (588×300) placeras med övre vänstra hörnet i (x, y) och skalas med s. */
-function hemi({ x, y, s, seats, colors = COLORS, numbers = null, majority = false }) {
-  const paths = wedgePaths(seats, TOTAL).filter((w) => w.d)
-    .map((w) => `<path d="${w.d}" stroke="${colors[w.party] ?? GHOST}"/>`).join("");
+function hemi({ x, y, s, seats, colors = COLORS, numbers = null, majority = false, groups = null, dot = HEMI_DOT }) {
+  const paths = (groups ?? wedgePaths(seats, TOTAL).map((w) => ({ d: w.d, color: colors[w.party] ?? GHOST }))).filter((w) => w.d)
+    .map((w) => `<path d="${w.d}" stroke="${w.color}"/>`).join("");
   let extra = "";
   if (majority) {
     const m = majorityLine(TOTAL);
@@ -66,7 +66,7 @@ function hemi({ x, y, s, seats, colors = COLORS, numbers = null, majority = fals
     extra += text(HEMI_NUMBER_X.left, HEMI_NUMBER_Y, String(numbers.left), { size: 54, weight: 700, fill: LEFT, anchor: "middle" }) +
       text(HEMI_NUMBER_X.right, HEMI_NUMBER_Y, String(numbers.right), { size: 54, weight: 700, fill: RIGHT, anchor: "middle" });
   }
-  return `<g transform="translate(${x - 6 * s} ${y - 6 * s}) scale(${s})"><g fill="none" stroke-linecap="round" stroke-width="${HEMI_DOT}">${paths}</g>${extra}</g>`;
+  return `<g transform="translate(${x - 6 * s} ${y - 6 * s}) scale(${s})"><g fill="none" stroke-linecap="round" stroke-width="${dot}">${paths}</g>${extra}</g>`;
 }
 
 const dateSv = (iso) => { const d = new Date(`${iso}T12:00:00Z`); return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
@@ -139,13 +139,34 @@ function valkretsSvg(ctx, name, seatsByParty, title) {
     footer(`Prognos för ${dateSv(ctx.nat.referenceDate)}`));
 }
 
+/** Kommunens eller regionens egna mandat (inkl. lokala partier i grått) som liten hemicykel. */
+function areaMotif(now, total) {
+  const n = total || Object.values(now).reduce((a, b) => a + b, 0);
+  if (!n) return null;
+  const rows = Math.max(2, Math.min(10, Math.ceil(Math.sqrt(n / 4.5))));
+  const sum = Array.from({ length: rows }, (_, k) => 150 + (k * 138) / (rows - 1)).reduce((a, b) => a + b, 0);
+  const dot = Math.min(12.4 * 2.6, 0.8 * Math.min(138 / (rows - 1), (Math.PI * sum) / n));
+  const dots = hemicycleDots(n, rows);
+  const local = Object.keys(now).filter((p) => !HEMI_ORDER.includes(p)).sort((a, b) => now[b] - now[a]);
+  let i = 0;
+  const groups = [...HEMI_ORDER, ...local].map((p) => {
+    const c = now[p] ?? 0;
+    const d = dots.slice(i, i + c).map((q) => `M${Math.round(q.x * 10) / 10} ${Math.round(q.y * 10) / 10}h0`).join("");
+    i += c;
+    return { d, color: COLORS[p] ?? "#9a9a9a" };
+  });
+  return { groups, dot };
+}
+
 function generalSvg(ctx, p) {
   const title = p.title.replace(/ – Mandatorn$/, "");
   const eu = p.route.startsWith("/eu");
   const wide = eu ? 1056 : 640;
   const tl = wrap(title, Math.floor(wide / 36), 3);
   const dl = wrap(p.description, Math.floor(wide / 15), eu ? 4 : 5);
-  const motif = !eu && ctx.nat ? hemi({ x: 790, y: 330, s: 0.58, seats: ctx.nat.seats }) : "";
+  const own = p.areaNow ? areaMotif(p.areaNow, p.areaTotal) : null;
+  const motif = own ? hemi({ x: 790, y: 330, s: 0.58, groups: own.groups, dot: own.dot })
+    : !eu && ctx.nat ? hemi({ x: 790, y: 330, s: 0.58, seats: ctx.nat.seats }) : "";
   return frame(
     header(eu ? "EU-valet 2029" : "") +
     lines(72, 200, tl, 74, { size: 64, weight: 700 }) +
@@ -154,13 +175,23 @@ function generalSvg(ctx, p) {
 }
 
 /** Skriver dist/og/<sida>.png för varje indexerbar sida. `readData(name)` läser en fil ur releasen. */
-export async function renderOgImages({ dist, indexable, readData }) {
+export async function renderOgImages({ dist, indexable, readData, releaseDir }) {
   const { Resvg } = await import("@resvg/resvg-js");
   const fontFiles = ["DMSans-Regular.ttf", "DMSans-Bold.ttf"].map((f) => path.join(here, "fonts", f));
   const nat = readData("national.json"), md = readData("mandates.json"), sim = readData("simulation.json");
   const ctx = { nat, sim, blocParties: { Vänsterblocket: ["S", "V", "MP", "C"], Högerblocket: ["M", "L", "KD", "SD"] } };
   const havePage = Boolean(nat && md);
   const valkrets = new Map(Object.entries(md?.constituencies ?? {}).map(([k, v]) => [slugify(k), [k, v]]));
+  // Kommuner och regioner: egna mandat (inkl. lokala partier) som märke.
+  const areas = new Map();
+  try {
+    const rel = JSON.parse(fs.readFileSync(path.join(releaseDir, "manifest.json"), "utf-8"));
+    for (const f of rel.files.filter((q) => /^(kommun|region)\/[^/]+\.json$/.test(q.path))) {
+      const a = readData(f.path);
+      const seats = a?.kind === "region" ? a.regionSeats : a?.kommunSeats;
+      if (a?.slug && seats?.now) areas.set(`${a.kind}/${a.slug}`, seats);
+    }
+  } catch { /* faller tillbaka på riksdagens fördelning */ }
   let n = 0, fallbacks = 0;
   for (const p of indexable) {
     let svg = null;
@@ -172,7 +203,9 @@ export async function renderOgImages({ dist, indexable, readData }) {
       else if (parti) { const code = Object.keys(NAMES).find((c) => slugify(NAMES[c]) === parti[1]); if (code) svg = partySvg(ctx, code); }
       else if (vk && valkrets.has(vk[1])) { const [name, seats] = valkrets.get(vk[1]); svg = valkretsSvg(ctx, name, seats, p.title.replace(/ – Mandatorn$/, "")); }
     }
-    if (!svg) { svg = generalSvg(ctx, p); if (p.route === "/") fallbacks++; }
+    if (!svg) {
+      const am = p.route.match(/^\/(kommun|region)\/([^/]+)\/$/), seats = am && areas.get(`${am[1]}/${am[2]}`);
+      svg = generalSvg(ctx, seats ? { ...p, areaNow: seats.now, areaTotal: seats.totalSeats } : p); if (p.route === "/") fallbacks++; }
     const png = new Resvg(svg, { font: { fontFiles, loadSystemFonts: false, defaultFontFamily: "DM Sans" } }).render().asPng();
     const name = p.route === "/" ? "index" : p.route.replace(/^\/|\/$/g, "");
     const out = path.join(dist, "og", `${name}.png`);
