@@ -96,9 +96,18 @@ export function formatNumber(x: number, decimals = 1): string {
   return (neg ? MINUS : "") + groupThousands(i) + (d ? "," + d : "");
 }
 
+/**
+ * Andel i procent. Ligger andelen under spärren men avrundas till den (3,99 → "4,0") visas två
+ * decimaler, avrundade nedåt så att det aldrig blir "4,00", för att inte påstå att partiet klarar spärren.
+ */
+export function formatShare(x: number, decimals = 1, threshold = 4): string {
+  if (x < threshold && Number(x.toFixed(decimals)) >= threshold) return formatNumber(Math.floor(x * 100 + 1e-9) / 100, 2);
+  return formatNumber(x, decimals);
+}
+
 /** "24,3 procent". */
 export function percent(x: number, decimals = 1): string {
-  return `${formatNumber(x, decimals)} procent`;
+  return `${formatShare(x, decimals)} procent`;
 }
 
 /** Singular bara för exakt "1" utan decimaler ("en procentenhet"); "1,0 procentenheter". */

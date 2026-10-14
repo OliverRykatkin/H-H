@@ -2,22 +2,25 @@
  * Geometri för riksdagens hemicykel: 349 platser i koncentriska rader, sorterade vänster → höger
  * på vinkel så att varje parti får en kil. Delas av SSR (Hemicycle.astro) och klientens live-uppdatering.
  */
-export const HEMI_ORDER = ["V", "S", "MP", "C", "L", "KD", "M", "SD"] as const;
+export const HEMI_ORDER = /** @type {const} */ (["V", "S", "MP", "C", "L", "KD", "M", "SD"]);
 export const HEMI_VIEWBOX = "0 -40 600 350";
 export const HEMI_DOT = 12.4; // prickens diameter (strokebredd)
 export const MAJORITY_SEAT = 175;
 
-const CX = 300, CY = 300, R_IN = 150, R_OUT = 288, ROWS = 10;
+export const HEMI_CX = 300, HEMI_CY = 300;
+const CX = HEMI_CX, CY = HEMI_CY, R_IN = 150, R_OUT = 288, ROWS = 10;
 
-interface Dot { x: number; y: number; a: number }
-const r1 = (v: number) => Math.round(v * 10) / 10;
+/** @typedef {{ x: number, y: number, a: number }} Dot */
+const r1 = (v) => Math.round(v * 10) / 10;
 
-export function hemicycleDots(total: number): Dot[] {
+/** @param {number} total @returns {Dot[]} */
+export function hemicycleDots(total) {
   const radii = Array.from({ length: ROWS }, (_, k) => R_IN + (k * (R_OUT - R_IN)) / (ROWS - 1));
   const sum = radii.reduce((s, r) => s + r, 0);
   const counts = radii.map((r) => Math.round((total * r) / sum));
   counts[ROWS - 1] += total - counts.reduce((s, n) => s + n, 0);
-  const dots: Dot[] = [];
+  /** @type {Dot[]} */
+  const dots = [];
   radii.forEach((r, k) => {
     for (let j = 0; j < counts[k]; j++) {
       const a = Math.PI * (1 - j / (counts[k] - 1));
@@ -28,7 +31,8 @@ export function hemicycleDots(total: number): Dot[] {
 }
 
 /** En sökväg per parti (nollängdssegment med runda ändar = prickar), i HEMI_ORDER. */
-export function wedgePaths(seats: Record<string, number>, total: number): { party: string; d: string }[] {
+/** @param {Record<string, number>} seats @param {number} total @returns {{ party: string, d: string }[]} */
+export function wedgePaths(seats, total) {
   const dots = hemicycleDots(total);
   let i = 0;
   return HEMI_ORDER.map((party) => {
@@ -40,12 +44,13 @@ export function wedgePaths(seats: Record<string, number>, total: number): { part
 }
 
 /** Radiell linje vid mandat 175 (första platsen som ger majoritet) + etikettens läge. */
-export function majorityLine(total: number) {
+/** @param {number} total */
+export function majorityLine(total) {
   const a = hemicycleDots(total)[MAJORITY_SEAT - 1].a;
-  const at = (r: number) => ({ x: r1(CX + r * Math.cos(a)), y: r1(CY - r * Math.sin(a)) });
+  const at = (/** @type {number} */ r) => ({ x: r1(CX + r * Math.cos(a)), y: r1(CY - r * Math.sin(a)) });
   const from = at(R_IN - 16), to = at(R_OUT + 14), label = at(R_OUT + 30);
   return { x1: from.x, y1: from.y, x2: to.x, y2: to.y, lx: label.x, ly: label.y };
 }
 
-export const HEMI_NUMBER_X = { left: 236, right: 364 } as const;
+export const HEMI_NUMBER_X = { left: 236, right: 364 };
 export const HEMI_NUMBER_Y = 262;

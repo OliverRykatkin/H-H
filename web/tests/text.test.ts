@@ -3,7 +3,7 @@ import { describe, expect, test } from "vitest";
 import { readFileSync } from "node:fs";
 import type { Constituency, National, Simulation } from "@contracts/contracts";
 import {
-  adjective, bloc, capitalize, counted, formatInteger, formatNumber, genitive, list, listPhrase, localParty,
+  adjective, bloc, capitalize, counted, formatInteger, formatNumber, formatShare, genitive, list, listPhrase, localParty,
   numberWord, party, percent, pp, pronoun, seats, sentences, signedPp,
 } from "@/lib/text/grammar";
 import { clock, daysBetween, electionCountdown, electionTiming, sinceBaselineElection, stockholmDay } from "@/lib/text/time";
@@ -64,6 +64,14 @@ describe("grammatik", () => {
     expect(formatNumber(-0.04)).toBe("0,0");
     expect(formatNumber(1234.5, 2)).toBe(`1${NBSP}234,50`);
     expect(percent(28.6147)).toBe("28,6 procent");
+    // Strax under spärren som avrundas till 4,0 visas med två decimaler (nedåt)
+    expect(formatShare(3.99)).toBe("3,99");
+    expect(percent(3.99)).toBe("3,99 procent");
+    expect(percent(3.996)).toBe("3,99 procent");
+    expect(percent(3.97)).toBe("3,97 procent");
+    expect(percent(3.94)).toBe("3,9 procent");
+    expect(percent(4.0)).toBe("4,0 procent");
+    expect(percent(4.04)).toBe("4,0 procent");
     expect(signedPp(1.0139)).toBe("+1,0 procentenheter");
     expect(signedPp(-0.6548)).toBe("−0,7 procentenheter");
     expect(signedPp(1, 0)).toBe("+1 procentenhet");

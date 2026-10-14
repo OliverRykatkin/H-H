@@ -1,11 +1,11 @@
 import { PARTY_NAMES } from "@contracts/constants";
+import { formatShare } from "./text/grammar";
 
-const nf1 = new Intl.NumberFormat("sv-SE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const nf0 = new Intl.NumberFormat("sv-SE", { maximumFractionDigits: 0 });
 
-/** 24,3 % */
+/** 24,3 % — strax under 4 %-spärren (3,95–3,99) visas med två decimaler, se formatShare. */
 export const pct = (v: number | null | undefined, digits = 1) =>
-  v == null || Number.isNaN(v) ? "–" : `${digits === 1 ? nf1.format(v) : nf0.format(v)} %`;
+  v == null || Number.isNaN(v) ? "–" : `${digits === 1 ? formatShare(v) : nf0.format(v)} %`;
 /** +1,2 / −0,4 (procentenheter, typografiskt minus) */
 export const signed = (v: number | null | undefined, digits = 1) => {
   if (v == null || Number.isNaN(v)) return "–";
