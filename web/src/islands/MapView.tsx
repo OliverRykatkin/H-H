@@ -55,7 +55,7 @@ export default function MapView({ geoUrl, idProperty, values, title, attribution
       }
       const m = new maplibregl.Map({
         container: ref.current,
-        style: { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#ffffff" } }] },
+        style: { version: 8, sources: {}, layers: [{ id: "bg", type: "background", paint: { "background-color": "#f6f7f5" } }] },
         bounds: [[10.5, 55.2], [24.2, 69.1]],
         fitBoundsOptions: { padding: 8 },
         attributionControl: { compact: true, customAttribution: attribution },
@@ -91,7 +91,7 @@ export default function MapView({ geoUrl, idProperty, values, title, attribution
   return (
     <figure>
       <div ref={ref} role="img" aria-label={`${title}. Samma uppgifter finns i tabellen nedan.`}
-        style={{ width: "100%", height: "min(70vh, 34rem)", background: "#f7f7f5", borderRadius: 6 }} />
+        style={{ width: "100%", height: "min(70vh, 34rem)", background: "#ecede9", borderRadius: 3 }} />
       <figcaption className="small muted">{state === "loading" ? "Laddar karta …" : title}</figcaption>
     </figure>
   );

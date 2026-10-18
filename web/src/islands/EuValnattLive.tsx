@@ -76,7 +76,7 @@ export default function EuValnattLive({ initial }: Props) {
 
       <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Råräkning och nowcast per parti">
         {[0, 10, 20, 30, 40].filter((v) => v <= yMax).map((v) => (
-          <g key={v}><line x1={L} x2={W} y1={y(v)} y2={y(v)} stroke="#ebebeb" /><text x={L - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="#5c5f63">{v}</text></g>
+          <g key={v}><line x1={L} x2={W} y1={y(v)} y2={y(v)} stroke="#e2e4e0" /><text x={L - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="#5c5f63">{v}</text></g>
         ))}
         {PARTIES.map((p, i) => {
           const x0 = L + i * gw + gw * 0.14;

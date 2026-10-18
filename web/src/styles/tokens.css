@@ -1,38 +1,48 @@
-/* Designtokens — enda stället för färger, typsnitt och avstånd. Varumärket läggs in här senare.
-   Partifärgerna sätts som --party-<KOD> i Layout.astro ur contracts/ts/constants.ts. */
+/* Designtokens — enda stället för färger, typsnitt och avstånd.
+   Partifärgerna sätts som --party-<KOD> i Layout.astro ur contracts/ts/constants.ts.
+   Idé: pricken (ett mandat) är enheten. Pappersgrå botten, bläck, och valsedelsfärgerna
+   (riksdag gul, region blå, kommun vit) som vägvisare i sidhuvudet. */
 :root {
   --font-sans: "DM Sans", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
   --font-num: "DM Sans", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
 
-  --c-bg: #ffffff;
-  --c-surface: #f7f7f5;
-  --c-text: #111213;
-  --c-muted: #5c5f63;          /* 7:1 mot vit — WCAG AA för liten text */
-  --c-border: #dcdcdc;
-  --c-grid: #ebebeb;
+  --c-bg: #f6f7f5;             /* pappersgrå, kall — inte krämvit */
+  --c-surface: #ecede9;
+  --c-text: #14181f;           /* bläck */
+  --c-muted: #565c64;          /* >6:1 mot bakgrunden — AA för liten text */
+  --c-border: #cfd2cc;
+  --c-grid: #e2e4e0;
   --c-accent: #0b5cad;
   --c-accent-text: #ffffff;
   --c-positive: #1c7c3c;
   --c-negative: #b3261e;
-  --c-warning-bg: #fff4d6;
+  --c-warning-bg: #fff1c2;
   --c-warning-text: #5c4200;
   --c-error-bg: #fde7e6;
   --c-error-text: #7a1712;
   --c-bloc-right: #1f8f78;
   --c-bloc-left: #c2405f;
 
-  --radius: 6px;
+  /* Valsedelsfärger: band i sidhuvudet beroende på val */
+  --c-ballot-rd: #f2d95c;
+  --c-ballot-rf: #8fbde6;
+  --c-ballot-kf: #cfd2cc;
+  --c-ballot-eu: #1f4e9c;
+
+  --radius: 3px;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
   --space-4: 1rem;
   --space-6: 1.5rem;
   --space-8: 2rem;
+  --space-12: 3rem;
   --maxw: 72rem;
 
   --fs-sm: 0.875rem;
   --fs-base: 1rem;
   --fs-lg: 1.25rem;
-  --fs-xl: 1.6rem;
-  --fs-xxl: 2.1rem;
+  --fs-xl: clamp(1.45rem, 1.2rem + 0.9vw, 1.8rem);
+  --fs-xxl: clamp(2rem, 1.4rem + 2.4vw, 3.1rem);
 }

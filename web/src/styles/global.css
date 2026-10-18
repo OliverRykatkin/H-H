@@ -14,16 +14,20 @@ a { color: var(--c-accent); text-underline-offset: 2px; }
 a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
   outline: 3px solid var(--c-accent); outline-offset: 2px;
 }
-h1, h2, h3 { line-height: 1.2; margin: var(--space-6) 0 var(--space-3); }
-h1 { font-size: var(--fs-xxl); margin-top: var(--space-4); }
-h2 { font-size: var(--fs-xl); }
-h3 { font-size: var(--fs-lg); }
+h1, h2, h3 { line-height: 1.15; margin: var(--space-6) 0 var(--space-3); text-wrap: balance; }
+h1 { font-size: var(--fs-xxl); margin-top: var(--space-6); letter-spacing: -0.025em; line-height: 1.05; }
+/* Rubriknivå 2 inleder ett avsnitt: bläckstreck överst, samma mönster på alla sidor. */
+h2 { font-size: var(--fs-xl); letter-spacing: -0.015em; margin-top: var(--space-12); padding-top: var(--space-3); border-top: 2px solid var(--c-text); }
+h3 { font-size: var(--fs-lg); letter-spacing: -0.01em; }
 p { margin: 0 0 var(--space-3); }
+/* Löptext och ingresser i serif; tabeller, tal, diagram och gränssnitt är DM Sans. */
+main > p, .lede { font-family: var(--font-serif); font-size: 1.0625rem; line-height: 1.6; max-width: 44rem; }
+main > p.small, main > p.muted.small, main > p.banner { font-family: var(--font-sans); font-size: var(--fs-sm); line-height: 1.55; }
 .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--space-4); }
 .muted { color: var(--c-muted); }
 .small { font-size: var(--fs-sm); }
 .num { font-variant-numeric: tabular-nums; }
-.lede { font-size: var(--fs-lg); max-width: 48rem; }
+.lede { font-size: 1.25rem; line-height: 1.55; max-width: 40rem; }
 .skip { position: absolute; left: -999px; }
 .skip:focus { left: var(--space-4); top: var(--space-2); background: var(--c-bg); padding: var(--space-2); z-index: 10; }
 .visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -31,19 +35,27 @@ p { margin: 0 0 var(--space-3); }
 .grid { display: grid; gap: var(--space-4); }
 @media (min-width: 48rem) { .grid-2 { grid-template-columns: 1fr 1fr; } .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-4 { grid-template-columns: repeat(4, 1fr); } }
 
-.card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius); padding: var(--space-4); }
+.card { background: transparent; border: 0; border-top: 1px solid var(--c-text); border-radius: 0; padding: var(--space-3) 0 var(--space-2); }
 .metric .label { font-size: var(--fs-sm); color: var(--c-muted); }
-.metric .value { font-size: var(--fs-xl); font-weight: 700; font-variant-numeric: tabular-nums; }
+.metric .value { font-size: clamp(1.9rem, 1.4rem + 2vw, 2.75rem); font-weight: 700; line-height: 1.05; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .metric .sub { font-size: var(--fs-sm); }
 
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
 th, td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--c-grid); text-align: left; }
 th { font-size: var(--fs-sm); color: var(--c-muted); font-weight: 600; }
+thead th { border-bottom-color: var(--c-text); }
+tbody th { color: var(--c-text); font-size: inherit; }
+td a { color: var(--c-text); text-decoration-color: var(--c-border); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+td a:hover { color: var(--c-accent); text-decoration-color: currentColor; }
+tbody tr:hover { background: var(--c-surface); }
 td.r, th.r { text-align: right; }
+td.r { white-space: nowrap; }
+@media (max-width: 47.99rem) { td:has(> .swatch), th:has(> .swatch) { white-space: nowrap; } }
 .table-scroll { overflow-x: auto; }
 caption { text-align: left; font-size: var(--fs-sm); color: var(--c-muted); padding-bottom: var(--space-2); }
 
-.swatch { display: inline-block; width: 0.75em; height: 0.75em; border-radius: 2px; margin-right: 0.4em; vertical-align: baseline; }
+/* Partimärket är en prick — samma enhet som ett mandat i hemicykeln. */
+.swatch { display: inline-block; width: 0.7em; height: 0.7em; border-radius: 50%; margin-right: 0.45em; vertical-align: baseline; }
 .pos { color: var(--c-positive); }
 .neg { color: var(--c-negative); }
 
@@ -51,19 +63,34 @@ caption { text-align: left; font-size: var(--fs-sm); color: var(--c-muted); padd
 .banner.warn { background: var(--c-warning-bg); color: var(--c-warning-text); }
 .banner.error { background: var(--c-error-bg); color: var(--c-error-text); }
 
-.site-header { border-bottom: 1px solid var(--c-border); }
+/* Sidhuvud: valsedelsband överst (riksdag gul, region blå, kommun grå, EU blå) + två menynivåer. */
+.site-header { background: var(--c-bg); border-top: 6px solid var(--c-ballot-rd); border-bottom: 1px solid var(--c-border); }
+.site-header[data-val="rf"] { border-top-color: var(--c-ballot-rf); }
+.site-header[data-val="kf"] { border-top-color: var(--c-ballot-kf); }
+.site-header[data-val="eu"] { border-top-color: var(--c-ballot-eu); }
 .site-header .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-6); padding-top: var(--space-3); padding-bottom: var(--space-3); }
-.brand { font-weight: 700; font-size: var(--fs-lg); color: var(--c-text); text-decoration: none; }
-.nav { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-4); font-size: var(--fs-sm); }
-/* Mobil: en rad som scrollar i sidled — sidhuvudets höjd beror då inte på typsnittet (ingen CLS). */
+.brand { display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; font-size: 1.4rem; letter-spacing: -0.03em; color: var(--c-text); text-decoration: none; }
+.brand::before { content: ""; width: 0.8rem; height: 0.8rem; border-radius: 50%; background: var(--c-bloc-left); box-shadow: 0.95rem 0 0 var(--c-bloc-right); margin-right: 0.95rem; }
+.nav { display: flex; flex: 1; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-4); font-size: 0.95rem; }
+.nav a { color: var(--c-text); text-decoration: none; padding: var(--space-1) 0; border-bottom: 2px solid transparent; }
+.nav a:hover { border-bottom-color: var(--c-border); }
+.nav a[aria-current="page"] { font-weight: 700; border-bottom-color: var(--c-text); }
+/* Andra nivån: mindre och dämpad, längst till höger. */
+.nav .nav-more { margin-left: auto; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-3); font-size: var(--fs-sm); }
+.nav .nav-more a { color: var(--c-muted); }
+.nav .nav-more a[aria-current="page"] { color: var(--c-text); }
+/* Mobil: varje nivå är en rad som scrollar i sidled — sidhuvudets höjd beror då inte på typsnittet (ingen CLS). */
 @media (max-width: 47.99rem) {
-  .site-header .wrap { flex-wrap: nowrap; flex-direction: column; align-items: stretch; }
-  .nav { flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; scrollbar-width: none; padding-bottom: 2px; }
-  .nav::-webkit-scrollbar { display: none; }
+  .site-header .wrap { flex-wrap: nowrap; flex-direction: column; align-items: stretch; gap: var(--space-1); }
+  .nav { flex: none; flex-direction: column; align-items: stretch; flex-wrap: nowrap; gap: 0; }
+  .nav .nav-main { display: flex; gap: var(--space-4); overflow-x: auto; white-space: nowrap; scrollbar-width: none; padding-bottom: 2px; }
+  .nav a { flex: none; white-space: nowrap; }
+  .nav .nav-more { margin-left: 0; flex-wrap: nowrap; gap: var(--space-4); padding-bottom: 2px; overflow-x: auto; white-space: nowrap; scrollbar-width: none; }
+  .nav::-webkit-scrollbar, .nav .nav-main::-webkit-scrollbar, .nav .nav-more::-webkit-scrollbar { display: none; }
 }
-.nav a { color: var(--c-text); text-decoration: none; padding: var(--space-1) 0; }
-.nav a[aria-current="page"] { font-weight: 700; border-bottom: 2px solid var(--c-accent); }
-.site-footer { border-top: 1px solid var(--c-border); margin-top: var(--space-8); padding: var(--space-6) 0; font-size: var(--fs-sm); color: var(--c-muted); }
+.nav .nav-main { display: contents; }
+@media (max-width: 47.99rem) { .nav .nav-main { display: flex; } }
+.site-footer { background: var(--c-surface); border-top: 1px solid var(--c-border); margin-top: var(--space-12); padding: var(--space-6) 0; font-size: var(--fs-sm); color: var(--c-muted); }
 
 .prob-card { display: grid; gap: var(--space-2); }
 .prob-card .q { font-weight: 600; }

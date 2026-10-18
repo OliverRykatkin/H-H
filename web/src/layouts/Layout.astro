@@ -1,6 +1,7 @@
 ---
 import dm400 from "@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff2?url";
 import dm700 from "@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff2?url";
+import serif400 from "@fontsource/source-serif-4/files/source-serif-4-latin-400-normal.woff2?url";
 import "../styles/global.css";
 import { PARTY_COLORS } from "@contracts/constants";
 import { manifest, dataUrl, eu } from "../lib/release";
@@ -24,18 +25,24 @@ const canonical = new URL(Astro.url.pathname, Astro.site).href;
 const fullTitle = title === "Mandatorn" ? title : `${title} – Mandatorn`;
 const partyVars = Object.entries(PARTY_COLORS).map(([p, c]) => `--party-${p}:${c}`).join(";");
 const plausible = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
-const nav = [
+// Två nivåer: själva prognosen först, resten dämpat till höger.
+const navMain = [
   ["/", "Översikt"], ["/mandat/", "Mandat"], ["/sannolikheter/", "Sannolikheter"],
   ["/valkretsar/", "Valkretsar"], ["/kommuner/", "Kommuner"], ["/regioner/", "Regioner"],
+];
+const navMore = [
   ["/partier/", "Partier"], ["/institut/", "Institut"], ["/valnatt/", "Valnatt"],
   ["/data/", "Öppen data"], ["/eu/", "EU-valet"], ["/om/", "Metod"],
 ];
-const euNav = [
-  ["/eu/", "Översikt"], ["/eu/partier/", "Partier"], ["/eu/sannolikheter/", "Sannolikheter"],
-  ["/eu/valnatt/", "Valnatt"], ["/eu/data/", "Öppen data"], ["/eu/metod/", "Metod"], ["/", "Riksdagsvalet"],
+const euMain = [
+  ["/eu/", "Översikt"], ["/eu/partier/", "Partier"], ["/eu/sannolikheter/", "Sannolikheter"], ["/eu/valnatt/", "Valnatt"],
 ];
-const menu = isEu ? euNav : nav;
+const euMore = [["/eu/data/", "Öppen data"], ["/eu/metod/", "Metod"], ["/", "Riksdagsvalet"]];
+const [menuMain, menuMore] = isEu ? [euMain, euMore] : [navMain, navMore];
 const path = Astro.url.pathname;
+const isCurrent = (href: string) => (href === "/" || href === "/eu/" ? path === href : path.startsWith(href));
+// Valsedelsband: riksdag gul (standard), region blå, kommun grå, EU mörkblå.
+const ballot = isEu || path.startsWith("/eu/") ? "eu" : /^\/regioner?\//.test(path) ? "rf" : /^\/kommun(er)?\//.test(path) ? "kf" : "rd";
 ---
 <!doctype html>
 <html lang="sv">
@@ -66,20 +73,24 @@ const path = Astro.url.pathname;
     <meta name="mandatorn:data" content={dataBase} />
     <link rel="preload" href={dm400} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={dm700} as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href={serif400} as="font" type="font/woff2" crossorigin />
     {/* font-display: optional — typsnittet byts aldrig mitt i visningen (ingen layoutförskjutning). */}
-    <style set:html={`@font-face{font-family:"DM Sans";font-style:normal;font-weight:400;font-display:optional;src:url(${dm400}) format("woff2")}@font-face{font-family:"DM Sans";font-style:normal;font-weight:700;font-display:optional;src:url(${dm700}) format("woff2")}:root{${partyVars}}`}></style>
+    <style set:html={`@font-face{font-family:"DM Sans";font-style:normal;font-weight:400;font-display:optional;src:url(${dm400}) format("woff2")}@font-face{font-family:"DM Sans";font-style:normal;font-weight:700;font-display:optional;src:url(${dm700}) format("woff2")}@font-face{font-family:"Source Serif 4";font-style:normal;font-weight:400;font-display:optional;src:url(${serif400}) format("woff2")}:root{${partyVars}}`}></style>
     {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
     {plausible && <script defer data-domain={plausible} src="https://plausible.io/js/script.js"></script>}
   </head>
   <body>
     <a class="skip" href="#main">Hoppa till innehållet</a>
-    <header class="site-header">
+    <header class="site-header" data-val={ballot}>
       <div class="wrap">
         <a class="brand" href="/">Mandatorn</a>
         <nav class="nav" aria-label="Huvudmeny">
-          {menu.map(([href, label]) => (
-            <a href={href} aria-current={(href === "/" || href === "/eu/" ? path === href : path.startsWith(href)) ? "page" : undefined}>{label}</a>
-          ))}
+          <div class="nav-main">
+            {menuMain.map(([href, label]) => <a href={href} aria-current={isCurrent(href) ? "page" : undefined}>{label}</a>)}
+          </div>
+          <div class="nav-more">
+            {menuMore.map(([href, label]) => <a href={href} aria-current={isCurrent(href) ? "page" : undefined}>{label}</a>)}
+          </div>
         </nav>
       </div>
     </header>

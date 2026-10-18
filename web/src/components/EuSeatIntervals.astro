@@ -14,7 +14,7 @@ const ticks = Array.from({ length: max + 1 }, (_, i) => i).filter((i) => i % 2 =
 ---
 <figure>
   <svg class="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Mandat per parti med 90 % intervall">
-    {ticks.map((t) => <g><line x1={x(t)} x2={x(t)} y1="4" y2={H - 22} stroke="#ebebeb" /><text x={x(t)} y={H - 6} text-anchor="middle" font-size="11" fill="#5c5f63">{t}</text></g>)}
+    {ticks.map((t) => <g><line x1={x(t)} x2={x(t)} y1="4" y2={H - 22} stroke="#e2e4e0" /><text x={x(t)} y={H - 6} text-anchor="middle" font-size="11" fill="#5c5f63">{t}</text></g>)}
     {rows.map((r, i) => {
       const cy = 16 + i * rowH;
       const c = PARTY_COLORS[r.party];

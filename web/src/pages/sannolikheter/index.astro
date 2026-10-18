@@ -31,7 +31,7 @@ const jsonLd = {
 <Layout title="Sannolikheter" description={description} jsonLd={jsonLd}>
   <h1>Hur sannolikt är det att …</h1>
   <p class="lede">
-    Sannolikheterna bygger på {formatInteger(sim.nSims)} simuleringar av valet {nat.nextElection.slice(0, 4)},
+    Sannolikheterna bygger på {formatInteger(sim.nSims)} simuleringar av valet {nat.nextElection.slice(0, 4)},{" "}
     {sim.horizonDays} dagar framåt. Mest sannolikt utfall för majoriteten: {top.name.toLocaleLowerCase("sv-SE") === "inget block" ? "inget block får egen majoritet" : `${top.name} får egen majoritet`} ({displayPct(top.p)}, {verbal(top.p).toLocaleLowerCase("sv-SE")}).
   </p>
   <p class="small muted">Uppdaterad {dateSv(nat.referenceDate)}. Osäkerheten växer med tiden kvar till valet. Simuleringar visar aldrig 0 eller 100 procent — mindre än 1 procent visas som &lt;1 %.</p>
