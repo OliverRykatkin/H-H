@@ -27,3 +27,11 @@ data/cache/
 
 # Lokala releaser från mandatorn_model.publish
 dist-data/
+
+# Lokalt: Claude Code, installerade skills, Terraform-planer
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/skills/
+.agents/
+skills-lock.json
+infra/*.plan
