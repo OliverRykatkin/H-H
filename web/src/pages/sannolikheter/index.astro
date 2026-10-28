@@ -16,6 +16,9 @@ const blocColor: Record<string, string> = { "Högerblocket": "#1f8f78", "Vänste
 const majority = Object.entries(sim.blocs).map(([name, v]) => ({ name, p: v.pMajority }));
 const parties = [...sim.parties].sort((a, b) => b.median - a.median);
 const coalitions = [...sim.coalitions].sort((a, b) => b.prob - a.prob);
+// Gemensam, symmetrisk axel kring 175 så att histogrammen går att jämföra.
+const histSeats = Object.values(sim.blocHistogram).flatMap((h) => Object.keys(h).map(Number));
+const histHalf = Math.max(175 - Math.min(...histSeats), Math.max(...histSeats) - 175) + 5;
 const top = [...majority].sort((a, b) => b.p - a.p)[0];
 const description = `Sannolikheter för valet ${nat.nextElection.slice(0, 4)} ur ${formatInteger(sim.nSims)} simuleringar: ${majority.map((m) => `${m.name} ${displayPct(m.p)}`).join(", ")}.`;
 const jsonLd = {
@@ -51,7 +54,7 @@ const jsonLd = {
     ))}
   </section>
   {Object.entries(sim.blocHistogram).map(([name, h]) => (
-    <ProbHistogram histogram={h} color={blocColor[name] ?? "#888"} title={`${name}: mandat i simuleringarna`} nSims={sim.nSims} />
+    <ProbHistogram half={histHalf} histogram={h} color={blocColor[name] ?? "#888"} title={`${name}: mandat i simuleringarna`} nSims={sim.nSims} />
   ))}
 
   <h2>Mandat per parti på valdagen</h2>
