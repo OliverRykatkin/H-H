@@ -1,6 +1,6 @@
 name: Publicera
 
-# Utlösare: ny mätning (merge till data/polls/), modelländring, daglig körning, manuellt.
+# Utlösare: ny mätning (merge till data/polls/), modell- eller sajtändring, daglig körning, manuellt.
 # Schemat ligger på udda minut — GitHubs schemalagda körningar försenas ofta på hel timme.
 on:
   push:
@@ -9,6 +9,7 @@ on:
       - "data/polls/**"
       - "mandatorn_model/**"
       - "data/*.json"
+      - "web/**"
   schedule:
     - cron: "17 4 * * *"   # 06:17 svensk sommartid / 05:17 vintertid
   workflow_dispatch:
