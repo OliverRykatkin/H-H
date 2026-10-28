@@ -55,6 +55,13 @@ def test_kvitterade_flaggor_blockerar_inte():
     assert rep.ok and len(rep.acknowledged) == 2
 
 
+def test_aggregatkontroll_bara_for_farska_matningar():
+    cfg = {**CFG, "aggregate_recent_days": 30}
+    df = pd.DataFrame([_poll("Novus", "2026-08-01", M=13), _poll("Sifo", "2026-09-25", M=13)])
+    ids = _ids(Q.check_polls(df, REF, cfg, aggregate={**OK}))
+    assert ids == {"aggregate:Sifo:2026-09-25:M"}
+
+
 def test_gamla_matningar_granskas_inte():
     df = pd.DataFrame([_poll("Novus", "2025-01-01"), _poll("Novus", "2025-02-01", M=30)])
     assert Q.check_polls(df, REF, CFG).ok

@@ -56,6 +56,9 @@ def check_polls(polls: pd.DataFrame, reference_date: datetime, cfg: dict,
                 aggregate: dict | None = None) -> QualityReport:
     rep = QualityReport()
     since = reference_date - timedelta(days=cfg["recent_days"])
+    # Aggregatkontrollen gäller bara färska mätningar: när trenden rör sig avviker gamla
+    # mätningar från aggregatet utan att något är fel.
+    agg_since = reference_date - timedelta(days=cfg.get("aggregate_recent_days", cfg["recent_days"]))
     recent = polls[polls["PublDate"] >= since]
     rep.checked_polls = len(recent)
     for _, row in recent.iterrows():
@@ -72,7 +75,7 @@ def check_polls(polls: pd.DataFrame, reference_date: datetime, cfg: dict,
         field_from = pd.to_datetime(row.get("collectPeriodFrom"), errors="coerce")
         if pd.notna(field_from) and pd.notna(field_to) and field_from > field_to:
             rep.add(f"period:{tag}", f"{label}: fältperioden börjar efter att den slutar")
-        if aggregate:
+        if aggregate and row["PublDate"] >= agg_since:
             for p in PARTIES:
                 v = shares.get(p)
                 if pd.notna(v) and abs(v - aggregate.get(p, v)) > cfg["max_dev_from_aggregate_pp"]:

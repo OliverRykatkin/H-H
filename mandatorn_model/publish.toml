@@ -34,4 +34,5 @@ max_jump_large_pp = 4.0    # parti ≥ 10 %: max avvikelse mot samma instituts f
 max_jump_small_pp = 2.5
 large_party_pct = 10.0
 max_dev_from_aggregate_pp = 6.0
+aggregate_recent_days = 30  # aggregatkontrollen gäller bara mätningar publicerade de senaste N dagarna
 recent_days = 120          # granska mätningar publicerade de senaste N dagarna
