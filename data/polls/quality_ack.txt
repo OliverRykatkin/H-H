@@ -12,3 +12,9 @@ aggregate:Sentio:2026-07-17:M  # Sentio 2026-07-17: M 15.8 % avviker -6.3 pp fr�
 aggregate:Sifo:2026-09-11:M  # Sifo 2026-09-11: M 15.8 % avviker -6.3 pp från aggregatet
 jump:Novus:2026-10-14:M  # Novus 2026-10-14: M ändrades +5.8 pp mot institutets förra mätning (gräns 4.0 pp)
 jump:Sifo:2026-10-14:M  # Sifo 2026-10-14: M ändrades +6.5 pp mot institutets förra mätning (gräns 4.0 pp)
+aggregate:Demoskop:2026-08-12:M  # Demoskop 2026-08-12: M 16.8 % avviker -6.0 pp från aggregatet
+aggregate:Demoskop:2026-09-03:M  # Demoskop 2026-09-03: M 16.6 % avviker -6.2 pp från aggregatet
+aggregate:Sifo:2026-09-03:M  # Sifo 2026-09-03: M 16.4 % avviker -6.4 pp från aggregatet
+aggregate:Novus:2026-09-09:M  # Novus 2026-09-09: M 16.6 % avviker -6.2 pp från aggregatet
+aggregate:Demoskop:2026-09-11:M  # Demoskop 2026-09-11: M 16.7 % avviker -6.1 pp från aggregatet
+aggregate:Indikator:2026-09-11:M  # Indikator 2026-09-11: M 16.8 % avviker -6.0 pp från aggregatet
