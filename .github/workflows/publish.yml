@@ -96,8 +96,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           title="Kvalitetsgrinden stoppade publiceringen $(date -u +%F)"
-          if ! gh issue list --state open --search "in:title \"Kvalitetsgrinden stoppade\"" --json number -q '.[0].number' | grep -q .; then
+          open=$(gh issue list --state open --search "in:title \"Kvalitetsgrinden stoppade\"" --json number -q '.[0].number')
+          if [ -z "$open" ]; then
             gh issue create --title "$title" --body-file report.md
+          else
+            # Redan ett öppet issue: kommentera så att nya flaggor inte stoppar tyst.
+            gh issue comment "$open" --body-file report.md
           fi
           exit 1
 
