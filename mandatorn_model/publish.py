@@ -42,6 +42,7 @@ from mandatorn_model.margins import (
 )
 from mandatorn_model.muni_mandates import allocate_area_mandates, load_structure_cached
 from mandatorn_model.polls import parse_polls
+from mandatorn_model import markets as MK
 from mandatorn_model.probabilities import coalition_summary, evaluate_questions
 from mandatorn_model.regional import apply_uniform_swing, compute_national_swing, load_area_results
 from mandatorn_model.seats import estimate_constituency_votes
@@ -65,7 +66,7 @@ ELECTION_DAYS = {d.isoformat() for e in (NEXT_ELECTION, BASELINE_ELECTION_DATE)
 INPUT_FILES = [
     "data/election_2026.json", "data/muni_structure_2026.json", "data/muni_structure_2022.json",
     "data/valnatt_2026.csv.gz", "mandatorn_model/questions.toml", "mandatorn_model/publish.toml",
-    "data/elected_2026.json", "data/archive_2026.json",
+    "data/elected_2026.json", "data/archive_2026.json", "data/markets/latest.json",
 ]
 
 
@@ -276,6 +277,24 @@ def build_release(polls: pd.DataFrame, fc: Forecast, cfg: dict) -> tuple[Release
     R.json("probabilities.json", C.Probabilities(questions=[
         C.Probability(id=q["id"], text=q["text"], p=q["p"], label=verbal(q["p"]), display=display_pct(q["p"]))
         for q in evaluate_questions(sim)]))
+
+    # markets.json — Polymarket som extern jämförelse (påverkar inte modellen). Saknas filen utelämnas den.
+    snap = MK.load_latest()
+    if snap is not None:
+        qs = {q["id"]: q for q in evaluate_questions(sim)}
+        R.json("markets.json", C.Markets(
+            source=snap["source"], fetchedAt=snap["fetchedAt"],
+            events=[C.MarketEvent(
+                slug=e["slug"], heading=e["title"], url=e["url"], endDate=e["endDate"],
+                volume=e["volume"], liquidity=e["liquidity"],
+                outcomes=[C.MarketOutcome(label=o["label"], p=o["p"], display=display_pct(o["p"]),
+                                          bid=o["bid"], ask=o["ask"]) for o in e["outcomes"]])
+                for e in snap["events"]],
+            comparisons=[C.MarketComparison(
+                event=r["event"], label=r["label"], marketP=r["marketP"], marketDisplay=display_pct(r["marketP"]),
+                questionId=r["questionId"], questionText=qs[r["questionId"]]["text"],
+                modelP=r["modelP"], modelDisplay=display_pct(r["modelP"]))
+                for r in MK.comparison_rows(snap, {k: v["p"] for k, v in qs.items()})]))
 
     # Valkretsar (N1)
     cs = simulate_constituency_seats(sim)

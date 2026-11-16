@@ -200,6 +200,45 @@ class Probabilities(_Model):
     questions: list[Probability]
 
 
+# ── Marknader (Polymarket) ─────────────────────────────────────────────────
+
+class MarketOutcome(_Model):
+    label: str
+    p: float = Field(description="Marknadens pris 0–1 (Polymarkets visade pris)")
+    display: str
+    bid: float | None
+    ask: float | None
+
+
+class MarketEvent(_Model):
+    slug: str
+    heading: str = Field(description="Svensk rubrik")
+    url: str
+    endDate: str | None
+    volume: float = Field(description="Omsatt volym i US-dollar")
+    liquidity: float = Field(description="Likviditet i orderboken i US-dollar")
+    outcomes: list[MarketOutcome]
+
+
+class MarketComparison(_Model):
+    event: str
+    label: str
+    marketP: float
+    marketDisplay: str
+    questionId: str
+    questionText: str
+    modelP: float
+    modelDisplay: str
+
+
+class Markets(_Model):
+    schemaVersion: int = SCHEMA_VERSION
+    source: str
+    fetchedAt: str = Field(description="UTC, ISO 8601")
+    events: list[MarketEvent]
+    comparisons: list[MarketComparison]
+
+
 # ── Valkretsar, kommuner, regioner ─────────────────────────────────────────
 
 class SeatMargin(_Model):
@@ -502,7 +541,7 @@ ARTIFACT_MODELS: dict[str, type[_Model]] = {
     "ValnattState": ValnattState, "ValnattIndex": ValnattIndex,
     "Manifest": Manifest, "ReleaseIndex": ReleaseIndex, "National": National,
     "Timeseries": Timeseries, "Polls": Polls, "Mandates": Mandates, "Simulation": Simulation,
-    "Probabilities": Probabilities, "Constituency": Constituency, "Area": Area,
+    "Probabilities": Probabilities, "Markets": Markets, "Constituency": Constituency, "Area": Area,
     "Margins": Margins, "Backtest": Backtest, "Institutes": Institutes,
     "EuNational": EuNational, "EuNowcastLive": EuNowcastLive, "EuSimulation": EuSimulation, "EuBacktest": EuBacktest,
 }

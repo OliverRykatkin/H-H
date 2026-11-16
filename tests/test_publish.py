@@ -8,6 +8,7 @@ from datetime import datetime
 import pytest
 
 from mandatorn_model import contracts as C
+from mandatorn_model import markets as MK
 from mandatorn_model import publish as P
 
 REF = datetime(2026, 10, 1)
@@ -52,6 +53,18 @@ def test_manifest_stammer_mot_filerna(published):
                      "probabilities.json", "valkrets/stockholms-stad.json", "kommun/0180.json",
                      "region/01.json", "open/mandat.csv", "open/mandat.schema.json"):
         assert required in paths
+
+
+def test_marknader_ar_med_och_validerar(published):
+    out, _ = published
+    m = _manifest(out)
+    if not (MK.LATEST_PATH.exists()):
+        assert "markets.json" not in {f.path for f in m.files}
+        return
+    entry = next(f for f in m.files if f.path == "markets.json")
+    mk = C.Markets.model_validate_json((out / entry.object).read_bytes())
+    assert mk.source == "Polymarket" and mk.events and all(0 <= o.p <= 1 for e in mk.events for o in e.outcomes)
+    assert all(0 <= c.modelP <= 1 and 0 <= c.marketP <= 1 for c in mk.comparisons)
 
 
 def test_release_id_ar_hash_av_filindex(published):

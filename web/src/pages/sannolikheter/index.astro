@@ -2,6 +2,7 @@
 import Layout from "../../layouts/Layout.astro";
 import ProbCard from "../../components/ProbCard.astro";
 import ProbHistogram from "../../components/ProbHistogram.astro";
+import MarketsSection from "../../components/MarketsSection.astro";
 import CoalitionBuilder from "../../islands/CoalitionBuilder";
 import { PARTY_COLORS, TOTAL_SEATS } from "@contracts/constants";
 import * as D from "../../lib/data";
@@ -12,6 +13,7 @@ import { formatNumber, formatInteger } from "../../lib/text/grammar";
 const nat = D.national();
 const sim = D.simulation();
 const probs = D.probabilities();
+const markets = D.markets();
 const blocColor: Record<string, string> = { "Högerblocket": "#1f8f78", "Vänsterblocket": "#c2405f" };
 const majority = Object.entries(sim.blocs).map(([name, v]) => ({ name, p: v.pMajority }));
 const parties = [...sim.parties].sort((a, b) => b.median - a.median);
@@ -87,6 +89,8 @@ const jsonLd = {
       </tbody>
     </table>
   </div>
+
+  {markets && <MarketsSection markets={markets} />}
 
   <CoalitionBuilder client:visible />
   <noscript><p class="banner warn">Koalitionsbyggaren kräver JavaScript. Fasta koalitioner finns i tabellen ovan.</p></noscript>

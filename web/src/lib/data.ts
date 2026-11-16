@@ -1,6 +1,6 @@
 /** Typade genvägar till releasens filer (vid bygget). */
 import type {
-  Archive, Area, Backtest, Elected, ElectionResult, Constituency, Institutes, Mandates, Margins, National, Polls, Probabilities,
+  Archive, Area, Backtest, Elected, ElectionResult, Constituency, Institutes, Mandates, Margins, Markets, National, Polls, Probabilities,
   Simulation, Timeseries, ValnattIndex,
 } from "@contracts/contracts";
 import { hasFile, paths, readJSON } from "./release";
@@ -18,6 +18,7 @@ export const simulation = (): Simulation => {
   return { ...s, blocs: sortBlocKeys(s.blocs) as Simulation["blocs"], blocHistogram: sortBlocKeys(s.blocHistogram) as Simulation["blocHistogram"] };
 };
 export const probabilities = () => readJSON<Probabilities>("probabilities.json");
+export const markets = () => (hasFile("markets.json") ? readJSON<Markets>("markets.json") : null);
 export const margins = () => readJSON<Margins>("margins.json");
 export const institutes = () => readJSON<Institutes>("institutes.json");
 export const backtest = (year: number) => readJSON<Backtest>(`backtest/${year}.json`);

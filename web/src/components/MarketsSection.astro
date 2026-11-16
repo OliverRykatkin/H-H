@@ -1,0 +1,51 @@
+---
+import type { Markets } from "@contracts/contracts";
+import { dateSv } from "../lib/format";
+import { formatInteger } from "../lib/text/grammar";
+interface Props { markets: Markets }
+const { markets } = Astro.props;
+const TOP = 8;
+---
+<h2>Marknadens syn</h2>
+<p class="small muted">
+  Satsningsmarknaden Polymarket prissätter just nu <strong>regeringsbildningen efter valet 2026</strong> — inte valet 2030.
+  Priserna är marknadens egen bedömning. De är ingen prognos från Mandatorn och påverkar inte modellen.
+  Hämtat {dateSv(markets.fetchedAt.slice(0, 10))}.
+</p>
+
+{markets.comparisons.length > 0 && (
+  <div class="table-scroll">
+    <table>
+      <caption>Marknaden bredvid modellens närmaste fråga. Frågorna mäter olika saker: marknaden gäller vem som blir statsminister nu, modellen vem som har störst stöd i ett val på valdagen 2030.</caption>
+      <thead><tr><th>Alternativ</th><th class="r">Marknaden</th><th class="r">Modellen</th><th>Modellens fråga</th></tr></thead>
+      <tbody>
+        {markets.comparisons.map((c) => (
+          <tr>
+            <td>{c.label}</td>
+            <td class="r"><strong>{c.marketDisplay}</strong></td>
+            <td class="r"><strong>{c.modelDisplay}</strong></td>
+            <td class="small muted">{c.questionText}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+)}
+
+{markets.events.map((e) => (
+  <div class="table-scroll">
+    <table>
+      <caption>
+        {e.heading} · volym {formatInteger(e.volume)} USD, likviditet {formatInteger(e.liquidity)} USD ·{" "}
+        <a href={e.url} rel="noopener noreferrer">Polymarket</a>
+      </caption>
+      <thead><tr><th>Alternativ</th><th class="r">Marknadens pris</th></tr></thead>
+      <tbody>
+        {e.outcomes.slice(0, TOP).map((o) => (
+          <tr><td>{o.label}</td><td class="r"><strong>{o.display}</strong></td></tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+))}
+<p class="small muted">Källa: Polymarket (publikt API). Priserna visas som sannolikheter och kan vara tunt handlade — kontrollera likviditeten ovan.</p>

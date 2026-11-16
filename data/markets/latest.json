@@ -1,0 +1,110 @@
+{
+ "fetchedAt": "2026-11-16T09:59:18Z",
+ "source": "Polymarket",
+ "events": [
+  {
+   "slug": "next-prime-minister-of-sweden",
+   "title": "Nästa statsminister",
+   "url": "https://polymarket.com/event/next-prime-minister-of-sweden",
+   "endDate": "2027-07-01",
+   "volume": 12608412,
+   "liquidity": 1220906,
+   "outcomes": [
+    {
+     "label": "Magdalena Andersson",
+     "p": 0.695,
+     "bid": 0.69,
+     "ask": 0.7
+    },
+    {
+     "label": "Ulf Kristersson",
+     "p": 0.298,
+     "bid": 0.293,
+     "ask": 0.303
+    },
+    {
+     "label": "Ebba Busch",
+     "p": 0.007,
+     "bid": 0.005,
+     "ask": 0.009
+    }
+   ]
+  },
+  {
+   "slug": "which-coalition-will-form-the-next-swedish-government",
+   "title": "Nästa regeringskoalition",
+   "url": "https://polymarket.com/event/which-coalition-will-form-the-next-swedish-government",
+   "endDate": "2027-08-01",
+   "volume": 390994,
+   "liquidity": 145710,
+   "outcomes": [
+    {
+     "label": "S + MP + C",
+     "p": 0.354,
+     "bid": 0.311,
+     "ask": 0.397
+    },
+    {
+     "label": "M + KD + L + C",
+     "p": 0.3,
+     "bid": 0.261,
+     "ask": 0.339
+    },
+    {
+     "label": "M + KD + L + SD",
+     "p": 0.1215,
+     "bid": 0.101,
+     "ask": 0.142
+    },
+    {
+     "label": "S + MP",
+     "p": 0.095,
+     "bid": 0.09,
+     "ask": 0.1
+    },
+    {
+     "label": "S + MP + C + V",
+     "p": 0.087,
+     "bid": 0.073,
+     "ask": 0.101
+    },
+    {
+     "label": "S",
+     "p": 0.0505,
+     "bid": 0.037,
+     "ask": 0.064
+    },
+    {
+     "label": "M + KD + L",
+     "p": 0.0355,
+     "bid": 0.025,
+     "ask": 0.046
+    },
+    {
+     "label": "S + MP + V",
+     "p": 0.0285,
+     "bid": 0.011,
+     "ask": 0.046
+    },
+    {
+     "label": "Other",
+     "p": 0.012,
+     "bid": 0.006,
+     "ask": 0.018
+    },
+    {
+     "label": "M + KD + SD",
+     "p": 0.008,
+     "bid": 0.006,
+     "ask": 0.01
+    },
+    {
+     "label": "S + MP + C + KD",
+     "p": 0.005,
+     "bid": 0.002,
+     "ask": 0.008
+    }
+   ]
+  }
+ ]
+}

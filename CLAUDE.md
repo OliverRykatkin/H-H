@@ -363,6 +363,12 @@ efter Cloud Run-cutover bekräftats stabil.
 - Konstanter (partier, färger, valdatum) genereras ur Python: kör `python tools/gen_contracts.py` efter ändring i `mandatorn_model/constants.py` eller `contracts.py`.
 - Tomma miljövariabler ska behandlas som osatta (`||`, inte `??`).
 
+## Polymarket (extern jämförelse, ingen modellinput)
+- `mandatorn_model/markets.py` hämtar Polymarkets regeringsmarknader (statsminister, koalition) via Gamma API → `data/markets/latest.json` + `history.jsonl` (rad bara vid ändrade priser). Workflow `sync-markets.yml` var 6:e timme committar; den dagliga publiceringen plockar upp senaste filen.
+- Releasen får `markets.json` (valfri; saknas filen utelämnas den). Visas som sektionen "Marknadens syn" på `/sannolikheter/`.
+- Marknaderna gäller **regeringsbildningen efter valet 2026**, inte valet 2030 — jämförelsen mot modellens frågor är inte samma sak och är märkt så. Lägg till 2030-marknader i `EVENTS`/`COMPARISONS` när de finns.
+- Pydantic-fält som heter `title` försvinner i `tools/gen_contracts.py` (`_strip_field_titles`) — kalla dem något annat.
+
 ## Valnatten (fas 3)
 - `mandatorn_model/nowcast_live.py`: Source (Valmyndigheten | Replay) → `compute_state` → `publish_state` (ny release = senaste prognosreleasen + `nowcast.json`, `mode: "nowcast"`). Ingen fördröjning (D4).
 - Baslinje 2030 = `data/baseline_districts_2026.csv.gz` (`fetch_valnatt.py --baseline 2026`), mappad till nya distrikt via `valdistriktskodForegaendeVal` (`align_baseline`).

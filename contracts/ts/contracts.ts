@@ -500,6 +500,68 @@ export interface Margins {
   schemaVersion?: number;
 }
 
+// ── Markets.schema.json ──
+export interface Markets {
+  comparisons: MarketComparison[];
+  events: MarketEvent[];
+  /**
+   * UTC, ISO 8601
+   */
+  fetchedAt: string;
+  schemaVersion?: number;
+  source: string;
+}
+/**
+ * This interface was referenced by `Markets`'s JSON-Schema
+ * via the `definition` "MarketComparison".
+ */
+export interface MarketComparison {
+  event: string;
+  label: string;
+  marketDisplay: string;
+  marketP: number;
+  modelDisplay: string;
+  modelP: number;
+  questionId: string;
+  questionText: string;
+}
+/**
+ * This interface was referenced by `Markets`'s JSON-Schema
+ * via the `definition` "MarketEvent".
+ */
+export interface MarketEvent {
+  endDate: string | null;
+  /**
+   * Svensk rubrik
+   */
+  heading: string;
+  /**
+   * Likviditet i orderboken i US-dollar
+   */
+  liquidity: number;
+  outcomes: MarketOutcome[];
+  slug: string;
+  url: string;
+  /**
+   * Omsatt volym i US-dollar
+   */
+  volume: number;
+}
+/**
+ * This interface was referenced by `Markets`'s JSON-Schema
+ * via the `definition` "MarketOutcome".
+ */
+export interface MarketOutcome {
+  ask: number | null;
+  bid: number | null;
+  display: string;
+  label: string;
+  /**
+   * Marknadens pris 0–1 (Polymarkets visade pris)
+   */
+  p: number;
+}
+
 // ── National.schema.json ──
 export interface National {
   baselineYear: number;

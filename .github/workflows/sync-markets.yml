@@ -1,0 +1,40 @@
+name: Synka Polymarket
+
+# Hämtar Polymarkets regeringsmarknader och committar data/markets/ vid ändring.
+# Marknadsdata är en extern jämförelse och påverkar inte modellen. Den dagliga publiceringen
+# (publish.yml, 06:17) plockar upp senaste committade ögonblicksbild — ingen egen publicering här.
+on:
+  schedule:
+    - cron: "37 */6 * * *"   # var sjätte timme, på udda minut
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-markets
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install requests==2.32.4
+      - name: Hämta marknader
+        run: python -m mandatorn_model.markets
+      - name: Committa vid ändring
+        run: |
+          git add data/markets
+          if git diff --cached --quiet; then
+            echo "Inga ändringar."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Polymarket: ny ögonblicksbild"
+          git pull --rebase origin main
+          git push origin HEAD:main

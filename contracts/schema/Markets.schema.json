@@ -1,0 +1,174 @@
+{
+  "$defs": {
+    "MarketComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "marketDisplay": {
+          "type": "string"
+        },
+        "marketP": {
+          "type": "number"
+        },
+        "modelDisplay": {
+          "type": "string"
+        },
+        "modelP": {
+          "type": "number"
+        },
+        "questionId": {
+          "type": "string"
+        },
+        "questionText": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "event",
+        "label",
+        "marketP",
+        "marketDisplay",
+        "questionId",
+        "questionText",
+        "modelP",
+        "modelDisplay"
+      ],
+      "title": "MarketComparison",
+      "type": "object"
+    },
+    "MarketEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "endDate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "heading": {
+          "description": "Svensk rubrik",
+          "type": "string"
+        },
+        "liquidity": {
+          "description": "Likviditet i orderboken i US-dollar",
+          "type": "number"
+        },
+        "outcomes": {
+          "items": {
+            "$ref": "#/$defs/MarketOutcome"
+          },
+          "type": "array"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "volume": {
+          "description": "Omsatt volym i US-dollar",
+          "type": "number"
+        }
+      },
+      "required": [
+        "slug",
+        "heading",
+        "url",
+        "endDate",
+        "volume",
+        "liquidity",
+        "outcomes"
+      ],
+      "title": "MarketEvent",
+      "type": "object"
+    },
+    "MarketOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "ask": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "bid": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "display": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "p": {
+          "description": "Marknadens pris 0–1 (Polymarkets visade pris)",
+          "type": "number"
+        }
+      },
+      "required": [
+        "label",
+        "p",
+        "display",
+        "bid",
+        "ask"
+      ],
+      "title": "MarketOutcome",
+      "type": "object"
+    }
+  },
+  "$id": "https://data.mandatorn.se/schema/v1/Markets.json",
+  "additionalProperties": false,
+  "properties": {
+    "comparisons": {
+      "items": {
+        "$ref": "#/$defs/MarketComparison"
+      },
+      "type": "array"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/MarketEvent"
+      },
+      "type": "array"
+    },
+    "fetchedAt": {
+      "description": "UTC, ISO 8601",
+      "type": "string"
+    },
+    "schemaVersion": {
+      "default": 1,
+      "type": "integer"
+    },
+    "source": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "source",
+    "fetchedAt",
+    "events",
+    "comparisons"
+  ],
+  "title": "Markets",
+  "type": "object"
+}
