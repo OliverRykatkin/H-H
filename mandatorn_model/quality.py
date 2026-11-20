@@ -82,12 +82,16 @@ def check_polls(polls: pd.DataFrame, reference_date: datetime, cfg: dict,
                     rep.add(f"aggregate:{tag}:{p}",
                             f"{label}: {p} {v:.1f} % avviker {v - aggregate[p]:+.1f} pp från aggregatet")
 
-    # Mot samma instituts förra mätning
+    # Mot samma instituts förra mätning. Hoppkontrollen hoppar över par med för långt mellanrum
+    # (jump_max_gap_days): efter en lucka, t.ex. över ett val, är en stor ändring väntad, inte ett fel.
+    max_gap = cfg.get("jump_max_gap_days")
     for company, g in polls.sort_values("PublDate", kind="stable").groupby("Company"):
         g = g.reset_index(drop=True)
         for i in range(1, len(g)):
             row, prev = g.iloc[i], g.iloc[i - 1]
             if row["PublDate"] < since:
+                continue
+            if max_gap is not None and (row["PublDate"] - prev["PublDate"]).days > max_gap:
                 continue
             for p in PARTIES:
                 a = pd.to_numeric(row.get(p), errors="coerce")

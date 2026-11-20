@@ -49,6 +49,14 @@ def test_kvalitet_flaggar_summa_framtid_hopp_dubblett():
     assert "duplicate:Demoskop:2026-09-23" in ids
 
 
+def test_hoppkontroll_hoppar_over_lang_lucka():
+    df = pd.DataFrame([_poll("Novus", "2026-08-01"), _poll("Novus", "2026-09-20", M=27, S=21)])   # 50 dagar
+    assert "jump:Novus:2026-09-20:M" in _ids(Q.check_polls(df, REF, CFG))                       # utan gräns: flaggas
+    assert Q.check_polls(df, REF, {**CFG, "jump_max_gap_days": 30}).ok                          # med gräns: inte
+    close = pd.DataFrame([_poll("Novus", "2026-09-01"), _poll("Novus", "2026-09-20", M=27, S=21)])
+    assert "jump:Novus:2026-09-20:M" in _ids(Q.check_polls(close, REF, {**CFG, "jump_max_gap_days": 30}))
+
+
 def test_kvitterade_flaggor_blockerar_inte():
     df = pd.DataFrame([_poll("Novus", "2026-09-01"), _poll("Novus", "2026-09-20", M=27, S=21)])
     rep = Q.check_polls(df, REF, CFG).apply_acks({"jump:Novus:2026-09-20:M", "jump:Novus:2026-09-20:S"})
