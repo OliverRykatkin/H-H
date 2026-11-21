@@ -1,5 +1,5 @@
 {
- "fetchedAt": "2026-11-20T20:40:02Z",
+ "fetchedAt": "2026-11-21T07:38:13Z",
  "source": "Polymarket",
  "events": [
   {
@@ -7,26 +7,26 @@
    "title": "Nästa statsminister",
    "url": "https://polymarket.com/event/next-prime-minister-of-sweden",
    "endDate": "2027-07-01",
-   "volume": 12842227,
-   "liquidity": 1146231,
+   "volume": 12854702,
+   "liquidity": 1015498,
    "outcomes": [
     {
      "label": "Magdalena Andersson",
-     "p": 0.52,
-     "bid": 0.51,
-     "ask": 0.53
+     "p": 0.53,
+     "bid": 0.52,
+     "ask": 0.54
     },
     {
      "label": "Ulf Kristersson",
-     "p": 0.4725,
-     "bid": 0.467,
-     "ask": 0.478
+     "p": 0.4385,
+     "bid": 0.43,
+     "ask": 0.447
     },
     {
      "label": "Ebba Busch",
-     "p": 0.0065,
-     "bid": 0.005,
-     "ask": 0.008
+     "p": 0.0075,
+     "bid": 0.006,
+     "ask": 0.009
     }
    ]
   },
@@ -35,62 +35,62 @@
    "title": "Nästa regeringskoalition",
    "url": "https://polymarket.com/event/which-coalition-will-form-the-next-swedish-government",
    "endDate": "2027-08-01",
-   "volume": 419686,
-   "liquidity": 259850,
+   "volume": 420040,
+   "liquidity": 268958,
    "outcomes": [
     {
      "label": "M + KD + L + C",
-     "p": 0.283,
-     "bid": 0.27,
-     "ask": 0.296
+     "p": 0.2765,
+     "bid": 0.26,
+     "ask": 0.293
     },
     {
      "label": "S + MP + C",
-     "p": 0.239,
-     "bid": 0.222,
-     "ask": 0.256
+     "p": 0.2345,
+     "bid": 0.221,
+     "ask": 0.248
     },
     {
      "label": "M + KD + L + SD",
-     "p": 0.122,
-     "bid": 0.115,
-     "ask": 0.129
+     "p": 0.1145,
+     "bid": 0.114,
+     "ask": 0.115
     },
     {
      "label": "S + MP",
-     "p": 0.095,
-     "bid": 0.09,
-     "ask": 0.1
-    },
-    {
-     "label": "S + MP + V",
-     "p": 0.063,
-     "bid": 0.039,
-     "ask": 0.086
+     "p": 0.1,
+     "bid": 0.08,
+     "ask": 0.12
     },
     {
      "label": "S + MP + C + V",
-     "p": 0.059,
-     "bid": 0.04,
-     "ask": 0.078
+     "p": 0.0735,
+     "bid": 0.058,
+     "ask": 0.089
+    },
+    {
+     "label": "S + MP + V",
+     "p": 0.0685,
+     "bid": 0.05,
+     "ask": 0.087
     },
     {
      "label": "S",
-     "p": 0.044,
-     "bid": 0.041,
-     "ask": 0.047
+     "p": 0.0475,
+     "bid": 0.043,
+     "ask": 0.052
     },
     {
      "label": "M + KD + SD",
-     "p": 0.035,
-     "bid": 0.027,
-     "ask": 0.043
+     "p": 0.032,
+     "bid": 0.022,
+     "ask": 0.042
     },
     {
      "label": "M + KD + L",
-     "p": 0.028,
+     "p": 0.031,
      "bid": 0.026,
-     "ask": 0.03
+     "ask": 0.036
     },
     {
      "label": "Other",
